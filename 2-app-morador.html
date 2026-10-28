@@ -68,24 +68,35 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
         </button>
       </div>
 
-      <p style="margin: 0; font-size: 18px; font-weight: 600;">Tire uma foto</p>
-      <sc-if value="{{semFoto}}" hint-placeholder-val="{{ true }}">
-        <button class="botao primario grande" onClick="{{tirarFoto}}" style="min-height: 64px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+      <p style="margin: 0; font-size: 18px; font-weight: 600;">Mostre o problema</p>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        <button class="botao primario" onClick="{{addFoto}}" style="min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px 4px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
-          Abrir câmera
+          Foto
         </button>
-        <button class="botao quieto" style="justify-self: center;" onClick="{{tirarFoto}}">Escolher da galeria</button>
+        <button class="botao primario" onClick="{{addVideo}}" style="min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px 4px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg>
+          Vídeo
+        </button>
+        <button class="botao primario" onClick="{{addAudio}}" style="min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px 4px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+          Áudio
+        </button>
+      </div>
+      <sc-if value="{{semMidia}}" hint-placeholder-val="{{ true }}">
+        <button class="botao quieto" style="justify-self: center;" onClick="{{addFoto}}">Escolher da galeria</button>
       </sc-if>
-      <sc-if value="{{temFoto}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{temMidia}}" hint-placeholder-val="{{ false }}">
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <sc-for list="{{fotos}}" as="f" hint-placeholder-count="1">
-            <div style="width: 96px; height: 96px; border-radius: var(--radius-sm); background: repeating-linear-gradient(135deg, var(--sunk) 0 8px, var(--trilho) 8px 16px); display: grid; place-items: end start; padding: 6px;">
-              <span class="t-legenda" style="background: var(--surface); padding: 1px 6px; border-radius: 4px;">{{f.nome}}</span>
+          <sc-for list="{{midias}}" as="m" hint-placeholder-count="1">
+            <div style="{{m.estilo}}">
+              <span style="font-size: 22px; line-height: 1; color: var(--ink);" aria-hidden="true">{{m.marca}}</span>
+              <span class="t-legenda" style="background: var(--surface); padding: 1px 6px; border-radius: 4px;">{{m.nome}}</span>
             </div>
           </sc-for>
-          <button class="botao" style="width: 96px; height: 96px;" onClick="{{tirarFoto}}" aria-label="Adicionar outra foto">+ Foto</button>
         </div>
-        <span class="t-pequeno" style="color: var(--soft);">Rostos e placas de carro são borrados antes de qualquer pessoa ver.</span>
+        <span class="t-pequeno" style="color: var(--soft);">Pode mandar mais de um. Vídeo até 30 segundos e áudio até 1 minuto, para não gastar seu pacote de dados.</span>
+        <span class="t-pequeno" style="color: var(--soft);">Rostos e placas de carro são borrados nas fotos e vídeos antes de qualquer pessoa ver.</span>
       </sc-if>
     </sc-if>
 
@@ -111,28 +122,31 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
         <textarea class="campo" rows="3" maxlength="300" style="font-size: 16px; min-height: 96px;" placeholder="Escreva aqui, se quiser"></textarea>
         <span class="t-meta" style="color: var(--mute); justify-self: end;">até 300 letras</span>
       </label>
-      <button class="botao grande" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
-        Gravar áudio curto
-      </button>
-
-      <label style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius-lg); background: var(--sunk); cursor: pointer;">
-        <input type="checkbox" checked="{{anonimo}}" onChange="{{toggleAnonimo}}" style="width: 24px; height: 24px; margin: 0; accent-color: var(--accent); flex: none;">
+      <label style="{{estiloIdentificar}}">
+        <input type="checkbox" checked="{{identificado}}" onChange="{{toggleAnonimo}}" style="width: 24px; height: 24px; margin: 0; accent-color: var(--accent); flex: none;">
         <span style="display: grid; gap: 2px;">
-          <span style="font-size: 17px; font-weight: 600;">Enviar sem me identificar</span>
-          <span class="t-pequeno" style="color: var(--soft);">Não guardamos seu nome, telefone nem dados do celular.</span>
+          <span style="font-size: 17px; font-weight: 600;">Me identificar (recomendado)</span>
+          <span class="t-pequeno" style="color: var(--soft);">Sua denúncia vale como prova e anda mais rápido na fila.</span>
         </span>
       </label>
+      <sc-if value="{{identificado}}" hint-placeholder-val="{{ true }}">
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Seu nome</span><input class="campo" style="min-height: 48px; font-size: 16px;" defaultValue="Maria José da Silva"></label>
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Telefone para contato</span><input class="campo" inputmode="tel" style="min-height: 48px; font-size: 16px;" placeholder="(82) 9xxxx-xxxx"></label>
+        <span class="t-pequeno" style="color: var(--soft);">Só a equipe da prefeitura vê, e só para falar sobre este relato. Nunca aparece no mapa.</span>
+      </sc-if>
       <sc-if value="{{avisoPrioridade}}" hint-placeholder-val="{{ false }}">
-        <div class="chamada" data-tom="atencao">
-          <span class="rotulo">Relato sem identificação anda mais devagar</span>
-          <span class="t-pequeno">Sem um contato, a equipe não consegue tirar dúvidas, e o relato fica com prioridade menor na fila. Se puder, desmarque e deixe seu nome ou telefone.</span>
+        <div class="chamada" data-tom="critico" role="alert">
+          <span class="rotulo">Sem identificação, sua denúncia perde força</span>
+          <ul class="t-pequeno" style="margin: 0; padding-left: 18px; display: grid; gap: 4px;">
+            <li>Vai para o fim da fila e pode levar muito mais tempo para ser vistoriada.</li>
+            <li>Não pode ser usada como prova no ofício à concessionária.</li>
+            <li>A equipe não tem como falar com você nem contar o resultado.</li>
+          </ul>
+          <button class="botao primario" style="justify-self: start;" onClick="{{toggleAnonimo}}">Quero me identificar</button>
         </div>
       </sc-if>
-      <sc-if value="{{identificado}}" hint-placeholder-val="{{ false }}">
-        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Seu nome (opcional)</span><input class="campo" style="min-height: 48px; font-size: 16px;"></label>
-        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Telefone para contato (opcional)</span><input class="campo" inputmode="tel" style="min-height: 48px; font-size: 16px;" placeholder="(82) 9xxxx-xxxx"></label>
-        <span class="t-pequeno" style="color: var(--soft);">Só a equipe da prefeitura vê, e só para falar sobre este relato. Nunca aparece no mapa.</span>
+      <sc-if value="{{semAvisoAnonimo}}" hint-placeholder-val="{{ false }}">
+        <span class="t-pequeno" style="color: var(--soft);">Não guardamos seu nome, telefone nem dados do celular.</span>
       </sc-if>
     </sc-if>
 
@@ -167,17 +181,27 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { passo: 1, tipo: null, fotos: 0, anonimo: true };
+    this.state = { passo: 1, tipo: null, midias: [], anonimo: false };
   }
   renderVals() {
     var self = this;
     var st = this.state;
     var off = !!this.props.semConexao;
     var escolhe = function (t) { return function () { self.setState({ tipo: t }); }; };
-    var bloqueado = st.passo === 1 && (!st.tipo || st.fotos === 0);
+    var bloqueado = st.passo === 1 && (!st.tipo || st.midias.length === 0);
     var titulos = { 1: 'Registrar problema', 2: 'Onde é?', 3: 'Quase pronto', 4: off ? 'Relato guardado' : 'Relato enviado' };
-    var fotos = [];
-    for (var i = 0; i < st.fotos; i++) fotos.push({ nome: 'Foto ' + (i + 1) });
+    var add = function (k) { return function () { if (self.state.midias.length < 6) self.setState({ midias: self.state.midias.concat(k) }); }; };
+    var cont = { foto: 0, video: 0, audio: 0 };
+    var FUNDO = {
+      foto: 'repeating-linear-gradient(135deg, var(--sunk) 0 8px, var(--trilho) 8px 16px)',
+      video: 'repeating-linear-gradient(135deg, var(--cat-1-clara) 0 8px, var(--sunk) 8px 16px)',
+      audio: 'repeating-linear-gradient(90deg, var(--cat-3-clara) 0 4px, var(--sunk) 4px 8px)'
+    };
+    var midias = st.midias.map(function (k) {
+      cont[k]++;
+      var nome = k === 'foto' ? 'Foto ' + cont.foto : (k === 'video' ? 'Vídeo 0:1' + (cont.video + 1) : 'Áudio 0:2' + cont.audio);
+      return { nome: nome, marca: k === 'video' ? '▶' : '', estilo: 'width: 96px; height: 96px; box-sizing: border-box; border-radius: var(--radius-sm); background: ' + FUNDO[k] + '; display: grid; grid-template-rows: 1fr auto; place-items: center start; padding: 6px;' };
+    });
     return {
       passo: st.passo,
       p1: st.passo === 1, p2: st.passo === 2, p3: st.passo === 3, p4: st.passo === 4,
@@ -191,26 +215,27 @@ class Component extends DCLogic {
       }),
       t: { agua: st.tipo === 'agua', padrao: st.tipo === 'padrao', rede: st.tipo === 'rede', ceu: st.tipo === 'ceu' },
       escolheAgua: escolhe('agua'), escolhePadrao: escolhe('padrao'), escolheRede: escolhe('rede'), escolheCeu: escolhe('ceu'),
-      fotos: fotos,
-      semFoto: st.fotos === 0,
-      temFoto: st.fotos > 0,
-      tirarFoto: function () { self.setState({ fotos: Math.min(self.state.fotos + 1, 3) }); },
-      anonimo: st.anonimo,
+      midias: midias,
+      semMidia: st.midias.length === 0,
+      temMidia: st.midias.length > 0,
+      addFoto: add('foto'), addVideo: add('video'), addAudio: add('audio'),
       identificado: !st.anonimo,
-      // Hipótese em teste: avisar que o anônimo perde prioridade (desligável nos Tweaks)
+      estiloIdentificar: 'display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius-lg); cursor: pointer; background: ' + (st.anonimo ? 'var(--sunk)' : 'var(--cat-1-clara)') + '; border: 2px solid ' + (st.anonimo ? 'var(--line)' : 'var(--accent)') + ';',
+      // Hipótese em teste: avisar que o anônimo perde força (desligável nos Tweaks)
       avisoPrioridade: st.anonimo && (this.props.avisoPrioridade ?? true),
+      semAvisoAnonimo: st.anonimo && !(this.props.avisoPrioridade ?? true),
       toggleAnonimo: function () { self.setState({ anonimo: !self.state.anonimo }); },
       bloqueado: bloqueado,
       estiloAvancar: bloqueado ? 'opacity: 0.45; cursor: not-allowed;' : '',
       rotuloAvancar: st.passo === 3 ? 'Enviar relato' : 'Continuar',
-      dica: st.passo === 1 ? (bloqueado ? 'Escolha o problema e tire pelo menos uma foto.' : 'O local é pego pelo GPS no passo seguinte.') : (st.passo === 2 ? 'Nada de cadastro ou senha.' : 'Você recebe um número para acompanhar.'),
+      dica: st.passo === 1 ? (bloqueado ? 'Escolha o problema e mande pelo menos uma foto, vídeo ou áudio.' :'O local é pego pelo GPS no passo seguinte.') : (st.passo === 2 ? 'Nada de cadastro ou senha.' : 'Você recebe um número para acompanhar.'),
       avancar: function () { if (!bloqueado) self.setState({ passo: st.passo + 1 }); },
       voltar: function () { self.setState({ passo: st.passo - 1 }); },
-      reiniciar: function () { self.setState({ passo: 1, tipo: null, fotos: 0, anonimo: true }); },
+      reiniciar: function () { self.setState({ passo: 1, tipo: null, midias: [], anonimo: false }); },
       tituloFim: off ? 'Guardado no celular' : 'Obrigado!',
       textoFim: off ? 'Assim que a internet voltar, o relato é enviado sozinho. Não precisa fazer nada.' : 'A equipe da prefeitura vai conferir o local. Guarde o número abaixo para acompanhar.',
       tomFim: off ? 'atencao' : 'atencao',
-      estadoFim: off ? 'Aguardando internet para enviar' : 'Aguardando vistoria'
+      estadoFim: off ? 'Aguardando internet para enviar' : (st.anonimo ? 'Aguardando vistoria, prioridade baixa' : 'Aguardando vistoria')
     };
   }
 }

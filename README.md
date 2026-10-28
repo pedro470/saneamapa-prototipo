@@ -15,8 +15,12 @@ python -m http.server 8000
 
 ## Telas
 
-- `2-app-morador.html`: o morador registra um problema em três passos, com foto e localização, e recebe o protocolo.
+- `2-app-morador.html`: o morador registra um problema em três passos, com foto, vídeo ou áudio e a localização, se identifica (marcado por padrão) e recebe o protocolo.
 - `3-app-fiscal.html`: o fiscal segue a rota do dia e registra a vistoria.
 - `1-painel-secretaria.html`: a Secretaria vê o mapa e a fila por prioridade e gera o ofício à concessionária.
+
+## Requisitos
+
+`Documento de Requisitos - SaneaMapa v4.docx` traz a revisão feita a partir da ata da entrevista, em controle de alterações: multimídia, identificação por padrão, precisão do GPS e grupos de risco.
 
 Os dados são fictícios. Nada do que for digitado é enviado ou guardado.
