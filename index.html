@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SaneaMapa — protótipo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#ffffff;--sunk:#f1f2f4;--ink:#161a22;--soft:#4a5366;--line:#dde1e8;--accent:#6b35c9;--cat-1-clara:#e4eafb;--cat-1-texto:#2e51b9}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Public Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
+main{max-width:1120px;margin:0 auto;padding:48px 16px;display:grid;gap:32px}
+h1{font-family:"Newsreader",Georgia,serif;font-size:42px;line-height:1.1;font-weight:600;margin:0}
+h2{font-family:"Newsreader",Georgia,serif;font-size:22px;font-weight:600;margin:0;background:var(--cat-1-clara);color:var(--cat-1-texto);border-radius:8px;padding:8px 16px}
+p{margin:0;max-width:70ch}
+.lede{color:var(--soft)}
+a{color:var(--accent);font-weight:600}
+.telas{display:flex;flex-wrap:wrap;gap:24px}
+.tela{display:grid;gap:8px}
+.tela iframe{width:390px;height:844px;border:1px solid var(--line);border-radius:24px;background:var(--bg)}
+.passos{margin:0;padding-left:20px;max-width:70ch}
+footer{border-top:1px solid var(--line);padding-top:16px;color:var(--soft);font-size:14px}
+@media (max-width:440px){.tela iframe{width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <header style="display:grid;gap:8px">
+    <h1>SaneaMapa</h1>
+    <p class="lede">Protótipo navegável do Sistema de Registro e Notificação de Saneamento Básico, para validar o fluxo antes do desenvolvimento.</p>
+  </header>
+
+  <section style="display:grid;gap:16px">
+    <h2>Como testar</h2>
+    <ol class="passos">
+      <li>No celular do morador, registre um problema em três passos e veja o protocolo.</li>
+      <li>No celular do fiscal, abra uma parada da rota, registre o resultado da vistoria e salve.</li>
+      <li>No <a href="1-painel-secretaria.html">painel da Secretaria</a>, clique num ponto do mapa, ligue as camadas e gere o ofício à concessionária.</li>
+    </ol>
+  </section>
+
+  <section style="display:grid;gap:16px">
+    <h2>Telas de celular</h2>
+    <div class="telas">
+      <div class="tela"><strong>Morador</strong><iframe src="2-app-morador.html" title="App do morador"></iframe><a href="2-app-morador.html">Abrir em tela cheia</a></div>
+      <div class="tela"><strong>Fiscal</strong><iframe src="3-app-fiscal.html" title="App do fiscal"></iframe><a href="3-app-fiscal.html">Abrir em tela cheia</a></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:16px">
+    <h2>Painel da Secretaria</h2>
+    <p>O painel é uma tela de computador: <a href="1-painel-secretaria.html">abrir o painel</a>.</p>
+  </section>
+
+  <footer>Dados fictícios, só para demonstração. Nenhum dado digitado no protótipo é enviado ou guardado.</footer>
+</main>
+</body>
+</html>

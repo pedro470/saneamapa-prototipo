@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Fiscal: rota e vistoria</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estilodopedro/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&amp;family=Public+Sans:wght@400;600;700&amp;family=Source+Code+Pro:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+.parada-num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;background:var(--ink);color:var(--ink-on);flex:none}
+.opcao-res{display:flex;gap:12px;align-items:center;min-height:52px;padding:10px 14px;border-radius:var(--radius-lg);border:1px solid var(--line-strong);background:var(--surface);cursor:pointer;font-size:16px;font-weight:600}
+.opcao-res input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); font-family: var(--font-body); overflow: hidden;">
+
+  <sc-if value="{{naRota}}" hint-placeholder-val="{{ true }}">
+    <header style="padding: 20px 20px 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--line);">
+      <div style="display: grid; gap: 2px;">
+        <span style="font-family: var(--font-display); font-size: 24px; font-weight: 600;">Rota de hoje</span>
+        <span class="t-pequeno" style="color: var(--soft);">{{resumoRota}}</span>
+      </div>
+      <div class="vistas" role="group" aria-label="Modo de deslocamento" style="width: 100%;">
+        <sc-for list="{{modos}}" as="m" hint-placeholder-count="3">
+          <button aria-pressed="{{m.on}}" onClick="{{m.pick}}" style="flex: 1;">{{m.nome}}</button>
+        </sc-for>
+      </div>
+    </header>
+    <main style="flex: 1; overflow-y: auto; padding: 14px 20px; display: grid; gap: 14px; align-content: start;">
+      <div style="position: relative; height: 180px; border-radius: var(--radius-lg); background: var(--sunk); overflow: hidden; border: 1px solid var(--line);" aria-label="Mapa da rota">
+        <div style="position: absolute; left: 0; top: 50%; width: 100%; height: 10px; background: var(--surface);"></div>
+        <div style="position: absolute; left: 40%; top: 0; width: 10px; height: 100%; background: var(--surface);"></div>
+        <svg style="position: absolute; inset: 0;" width="100%" height="100%" viewBox="0 0 350 180" preserveAspectRatio="none" aria-hidden="true"><path d="M30 150 L80 120 L150 95 L240 70 L310 40" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="6 5"></path></svg>
+        <span class="parada-num" style="position: absolute; left: 4%; top: 76%; background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink);" aria-label="Partida">P</span>
+        <span class="parada-num" style="position: absolute; left: 20%; top: 58%;">1</span>
+        <span class="parada-num" style="position: absolute; left: 40%; top: 44%;">2</span>
+        <span class="parada-num" style="position: absolute; left: 66%; top: 31%;">3</span>
+        <span class="parada-num" style="position: absolute; left: 86%; top: 14%;">4</span>
+      </div>
+      <span class="t-pequeno" style="color: var(--soft);">Pontos críticos vêm antes quando o desvio é pequeno. A rota fica salva para usar sem internet.</span>
+
+      <sc-if value="{{salvoAgora}}" hint-placeholder-val="{{ false }}">
+        <div class="chamada" data-tom="{{tomSalvo}}"><span class="rotulo">{{tituloSalvo}}</span><span class="t-pequeno">{{textoSalvo}}</span></div>
+      </sc-if>
+
+      <ol style="margin: 0; padding: 0; list-style: none; display: grid; gap: 10px;">
+        <sc-for list="{{paradas}}" as="p" hint-placeholder-count="4">
+          <li style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; display: grid; gap: 8px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <span class="parada-num">{{p.ordem}}</span>
+              <span style="font-weight: 700;">{{p.id}}</span>
+              <span class="etiqueta {{p.cat}}" style="font-weight: 400; white-space: normal;">{{p.tipoNome}}</span>
+            </div>
+            <span class="t-pequeno">{{p.trecho}} · {{p.bairro}}</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;">
+              <span class="medidor" data-nivel="{{p.nivel}}"><i><b></b><b></b><b></b></i>Urgência {{p.nivelNome}}</span>
+              <span class="estado" data-tom="{{p.tom}}">{{p.status}}</span>
+              <span class="t-meta" style="color: var(--mute);">{{p.dist}}</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="botao" style="flex: 1;">Abrir no GPS</button>
+              <sc-if value="{{p.pendente}}" hint-placeholder-val="{{ true }}">
+                <button class="botao primario" style="flex: 1;" onClick="{{p.abrir}}">Vistoriar</button>
+              </sc-if>
+            </div>
+          </li>
+        </sc-for>
+      </ol>
+      <button class="botao quieto" style="justify-self: center;">Recalcular rota</button>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{naVistoria}}" hint-placeholder-val="{{ false }}">
+    <header style="padding: 16px 20px 12px; display: grid; gap: 6px; border-bottom: 1px solid var(--line);">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="botao quieto" style="padding: 0 8px;" onClick="{{voltarRota}}" aria-label="Voltar para a rota">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+        <span style="font-family: var(--font-display); font-size: 22px; font-weight: 600;">Vistoria {{v.id}}</span>
+      </div>
+      <span class="t-pequeno" style="color: var(--soft);">{{v.trecho}} · {{v.bairro}}</span>
+      <span class="etiqueta {{v.cat}}" style="font-weight: 400;">{{v.tipoNome}} · {{v.relatos}} relatos</span>
+    </header>
+    <main style="flex: 1; overflow-y: auto; padding: 14px 20px; display: grid; gap: 16px; align-content: start;">
+      <div style="display: grid; gap: 6px;">
+        <span class="t-rotulo" style="color: var(--soft);">Fotos dos moradores</span>
+        <div style="display: flex; gap: 8px;">
+          <div style="width: 84px; height: 84px; border-radius: var(--radius-sm); background: repeating-linear-gradient(135deg, var(--sunk) 0 8px, var(--trilho) 8px 16px);"></div>
+          <div style="width: 84px; height: 84px; border-radius: var(--radius-sm); background: repeating-linear-gradient(135deg, var(--sunk) 0 8px, var(--trilho) 8px 16px);"></div>
+          <div style="width: 84px; height: 84px; border-radius: var(--radius-sm); background: var(--sunk); display: grid; place-items: center;" class="t-pequeno">+ 5</div>
+        </div>
+      </div>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: grid; gap: 8px;">
+        <legend class="t-rotulo" style="padding: 0; margin-bottom: 8px;">Resultado da vistoria</legend>
+        <sc-for list="{{resultados}}" as="r" hint-placeholder-count="3">
+          <label class="opcao-res" style="{{r.estilo}}"><input type="radio" name="resultado" checked="{{r.on}}" onChange="{{r.pick}}">{{r.nome}}</label>
+        </sc-for>
+      </fieldset>
+
+      <sc-if value="{{encaminhado}}" hint-placeholder-val="{{ false }}">
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Órgão de destino</span>
+          <select class="campo" style="min-height: 48px;"><option>Secretaria de Saúde (poço contaminado)</option><option>Defesa Civil</option><option>Outro órgão</option></select>
+        </label>
+      </sc-if>
+
+      <label style="display: grid; gap: 6px;"><span class="t-rotulo">Tipo confirmado</span>
+        <select class="campo" style="min-height: 48px;"><option>{{v.tipoNome}}</option><option>Sem ligação de água</option><option>Água fora do padrão</option><option>Sem rede de esgoto</option><option>Esgoto a céu aberto</option></select>
+      </label>
+
+      <div style="display: grid; gap: 8px;">
+        <span class="t-rotulo">Fotos da vistoria</span>
+        <button class="botao" style="min-height: 48px;">Tirar foto da vistoria</button>
+        <button class="botao quieto" style="justify-self: start; padding: 0;">Corrigir a localização no mapa</button>
+      </div>
+
+      <label style="display: grid; gap: 6px;"><span class="t-rotulo">Observações (opcional)</span>
+        <textarea class="campo" rows="3" style="min-height: 80px;"></textarea>
+      </label>
+    </main>
+    <footer style="padding: 12px 20px 20px; border-top: 1px solid var(--line); display: grid; gap: 6px;">
+      <button class="botao primario" style="min-height: 52px; font-size: 17px; {{estiloSalvar}}" onClick="{{salvar}}" disabled="{{semResultado}}">Salvar vistoria</button>
+      <span class="t-pequeno" style="color: var(--soft); text-align: center;">Só o ponto confirmado pode ir para o ofício à concessionária.</span>
+    </footer>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"semConexao":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+// Status → tom (o mesmo do painel)
+var TOM_STATUS = { 'Atribuído': 'atencao', 'Confirmado': 'positivo', 'Não confirmado': 'neutro', 'Encaminhado a outro órgão': 'neutro' };
+var NIVEL = { 1: 'normal', 2: 'elevada', 3: 'crítica' };
+var PARADAS = [
+  { id: 'P-0142', tipoNome: 'Esgoto a céu aberto', cat: 'cat-5', trecho: 'Rua São Domingos, 200 a 300', bairro: 'Vergel do Lago', nivel: 3, relatos: 7, dist: '1,2 km, 6 min' },
+  { id: 'P-0156', tipoNome: 'Sem rede de esgoto', cat: 'cat-4', trecho: 'Travessa Belo Horizonte, 1 a 80', bairro: 'Bom Parto', nivel: 3, relatos: 3, dist: '2,1 km, 9 min' },
+  { id: 'P-0150', tipoNome: 'Esgoto a céu aberto', cat: 'cat-5', trecho: 'Rua do Arame, 50 a 200', bairro: 'Jacintinho', nivel: 1, relatos: 2, dist: '2,6 km, 14 min' },
+  { id: 'P-0133', tipoNome: 'Sem ligação de água', cat: 'cat-2', trecho: 'Rua Nova Esperança, 600 a 700', bairro: 'Benedito Bentes', nivel: 1, relatos: 1, dist: '1,9 km, 11 min' }
+];
+var RESULTADOS = ['Confirmado', 'Não confirmado', 'Encaminhado a outro órgão'];
+var MODOS = [ ['carro', 'Carro'], ['moto', 'Moto'], ['pe', 'A pé'] ];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tela: 'rota', atual: null, resultado: null, feitos: {}, modo: 'carro', ultimo: null };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var off = !!this.props.semConexao;
+    var feitos = st.feitos;
+    var nFeitos = Object.keys(feitos).length;
+    var paradas = PARADAS.map(function (p, i) {
+      var status = feitos[p.id] || 'Atribuído';
+      return Object.assign({}, p, {
+        ordem: i + 1,
+        nivelNome: NIVEL[p.nivel],
+        status: status,
+        tom: TOM_STATUS[status],
+        pendente: !feitos[p.id],
+        abrir: function () { self.setState({ tela: 'vistoria', atual: p.id, resultado: null }); }
+      });
+    });
+    var v = PARADAS.filter(function (p) { return p.id === st.atual; })[0] || PARADAS[0];
+    var tempo = { carro: '7,8 km, 40 min', moto: '7,8 km, 32 min', pe: '6,1 km, 1 h 25 min' }[st.modo];
+    return {
+      naRota: st.tela === 'rota',
+      naVistoria: st.tela === 'vistoria',
+      resumoRota: (PARADAS.length - nFeitos) + ' de ' + PARADAS.length + ' vistorias pendentes · ' + tempo,
+      modos: MODOS.map(function (m) { return { nome: m[1], on: st.modo === m[0], pick: function () { self.setState({ modo: m[0] }); } }; }),
+      paradas: paradas,
+      salvoAgora: !!st.ultimo,
+      tomSalvo: off ? 'atencao' : 'positivo',
+      tituloSalvo: off ? 'Vistoria salva no celular' : 'Vistoria enviada',
+      textoSalvo: off ? st.ultimo + ' sincroniza sozinha quando houver sinal. Pode seguir para o próximo ponto.' : st.ultimo + ' registrada com seu nome, data e hora.',
+      v: v,
+      resultados: RESULTADOS.map(function (r) {
+        var on = st.resultado === r;
+        return { nome: r, on: on, estilo: on ? 'border-color: var(--accent); background: var(--accent-soft);' : '', pick: function () { self.setState({ resultado: r }); } };
+      }),
+      encaminhado: st.resultado === 'Encaminhado a outro órgão',
+      semResultado: !st.resultado,
+      estiloSalvar: st.resultado ? '' : 'opacity: 0.45; cursor: not-allowed;',
+      voltarRota: function () { self.setState({ tela: 'rota' }); },
+      salvar: function () {
+        if (!st.resultado) return;
+        var f = Object.assign({}, st.feitos);
+        f[st.atual] = st.resultado;
+        self.setState({ feitos: f, tela: 'rota', ultimo: 'A vistoria de ' + st.atual });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
