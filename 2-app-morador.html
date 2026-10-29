@@ -126,7 +126,7 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
         <input type="checkbox" checked="{{identificado}}" onChange="{{toggleAnonimo}}" style="width: 24px; height: 24px; margin: 0; accent-color: var(--accent); flex: none;">
         <span style="display: grid; gap: 2px;">
           <span style="font-size: 17px; font-weight: 600;">Me identificar (recomendado)</span>
-          <span class="t-pequeno" style="color: var(--soft);">Sua denúncia vale como prova e anda mais rápido na fila.</span>
+          <span class="t-pequeno" style="color: var(--soft);">Sua denúncia anda mais rápido na fila.</span>
         </span>
       </label>
       <sc-if value="{{identificado}}" hint-placeholder-val="{{ true }}">
@@ -142,8 +142,6 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
           <span class="rotulo">Sem identificação, sua denúncia perde força</span>
           <ul class="t-pequeno" style="margin: 0; padding-left: 18px; display: grid; gap: 4px;">
             <li>Vai para o fim da fila e pode levar muito mais tempo para ser vistoriada.</li>
-            <li>Não pode ser usada como prova no ofício à concessionária.</li>
-            <li>A equipe não tem como falar com você nem contar o resultado.</li>
           </ul>
           <button class="botao primario" style="justify-self: start;" onClick="{{toggleAnonimo}}">Quero me identificar</button>
         </div>
@@ -167,39 +165,7 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
       </div>
     </sc-if>
 
-    <sc-if value="{{p5}}" hint-placeholder-val="{{ false }}">
-      <label style="display: grid; gap: 6px;"><span class="t-rotulo">Número do protocolo</span>
-        <input class="campo" style="min-height: 48px; font-size: 18px; font-family: var(--font-mono);" defaultValue="SM-2026-004871">
-      </label>
-      <sc-if value="{{pendente}}" hint-placeholder-val="{{ false }}">
-        <div class="chamada" data-tom="atencao">
-          <span class="rotulo">Ainda não chegou à prefeitura</span>
-          <span class="t-pequeno">O relato está guardado no seu celular e vai ser enviado sozinho quando a internet voltar.</span>
-        </div>
-      </sc-if>
-      <sc-if value="{{recebido}}" hint-placeholder-val="{{ true }}">
-        <div style="background: var(--sunk); border-radius: var(--radius-lg); padding: 14px 18px; display: grid; gap: 6px;">
-          <span class="t-rotulo" style="color: var(--soft);">{{tipoNome}}</span>
-          <span class="t-pequeno">Registrado em 27/10/2026, 14:32 · Rua São Domingos, Vergel do Lago</span>
-        </div>
-        <ol style="margin: 0; padding: 0; list-style: none; display: grid; gap: 10px;">
-          <sc-for list="{{etapas}}" as="e" hint-placeholder-count="4">
-            <li style="display: flex; gap: 12px; align-items: flex-start;">
-              <span style="{{e.marca}}" aria-hidden="true"></span>
-              <span style="display: grid; gap: 2px;">
-                <span style="{{e.estiloNome}}">{{e.nome}}</span>
-                <span class="t-pequeno" style="color: var(--soft);">{{e.texto}}</span>
-              </span>
-            </li>
-          </sc-for>
-        </ol>
-      </sc-if>
-      <span class="t-pequeno" style="color: var(--soft);">Aqui aparece só o andamento. Fotos, nome e telefone não são mostrados.</span>
-    </sc-if>
 
-    <sc-if value="{{p1}}" hint-placeholder-val="{{ true }}">
-      <button class="botao quieto" style="justify-self: center;" onClick="{{abrirConsulta}}">Já fez um relato? Acompanhe pelo protocolo</button>
-    </sc-if>
   </main>
 
   <footer style="padding: 12px 20px 20px; border-top: 1px solid var(--line); display: grid; gap: 8px;">
@@ -208,11 +174,7 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
       <span class="t-pequeno" style="color: var(--soft); text-align: center;">{{dica}}</span>
     </sc-if>
     <sc-if value="{{p4}}" hint-placeholder-val="{{ false }}">
-      <button class="botao primario grande" onClick="{{abrirConsulta}}">Ver como está meu relato</button>
-      <button class="botao grande" onClick="{{reiniciar}}">Registrar outro problema</button>
-    </sc-if>
-    <sc-if value="{{p5}}" hint-placeholder-val="{{ false }}">
-      <button class="botao grande" onClick="{{reiniciar}}">Registrar um problema</button>
+      <button class="botao primario grande" onClick="{{reiniciar}}">Registrar outro problema</button>
     </sc-if>
   </footer>
 </div>
@@ -233,15 +195,7 @@ class Component extends DCLogic {
     var telefoneOk = digitos === 10 || digitos === 11;
     var faltaContato = !st.anonimo && (!st.nome.trim() || !telefoneOk);
     var bloqueado = (st.passo === 1 && (!st.tipo || st.midias.length === 0)) || (st.passo === 3 && faltaContato);
-    var titulos = { 1: 'Registrar problema', 2: 'Onde é?', 3: 'Quase pronto', 4: off ? 'Relato guardado' : 'Relato enviado', 5: 'Acompanhar relato' };
-    var NOMES_TIPO = { agua: 'Casa sem água', padrao: 'Água suja ou fraca', rede: 'Rua sem esgoto', ceu: 'Esgoto na rua' };
-    // RF017: o morador vê só o andamento do ponto, sem urgência nem dados pessoais
-    var ETAPAS = [
-      ['Recebido pela prefeitura', 'O relato chegou e entrou na fila.'],
-      ['Aguardando vistoria', st.anonimo ? 'Relato sem identificação: fica atrás dos identificados na fila.' : 'Um fiscal vai conferir o local.'],
-      ['Vistoria feita', 'O fiscal confirma ou não o problema no local.'],
-      ['Concessionária notificada', 'Quando confirmado, a prefeitura cobra a concessionária.']
-    ];
+    var titulos = { 1: 'Registrar problema', 2: 'Onde é?', 3: 'Quase pronto', 4: off ? 'Relato guardado' : 'Relato enviado' };
     var add = function (k) { return function () { if (self.state.midias.length < 6) self.setState({ midias: self.state.midias.concat(k) }); }; };
     var cont = { foto: 0, video: 0, audio: 0 };
     var FUNDO = {
@@ -256,10 +210,10 @@ class Component extends DCLogic {
     });
     return {
       passo: st.passo,
-      p1: st.passo === 1, p2: st.passo === 2, p3: st.passo === 3, p4: st.passo === 4, p5: st.passo === 5,
+      p1: st.passo === 1, p2: st.passo === 2, p3: st.passo === 3, p4: st.passo === 4,
       naoFim: st.passo < 4,
       mostraPassos: st.passo < 4,
-      podeVoltar: (st.passo > 1 && st.passo < 4) || st.passo === 5,
+      podeVoltar: st.passo > 1 && st.passo < 4,
       semConexao: off,
       tituloPasso: titulos[st.passo],
       barras: [1, 2, 3].map(function (n) {
@@ -280,30 +234,17 @@ class Component extends DCLogic {
       bloqueado: bloqueado,
       estiloAvancar: bloqueado ? 'opacity: 0.45; cursor: not-allowed;' : '',
       rotuloAvancar: st.passo === 3 ? 'Enviar relato' : 'Continuar',
-      dica: st.passo === 1 ? (bloqueado ? 'Escolha o problema e mande pelo menos uma foto, vídeo ou áudio.' :'O local é pego pelo GPS no passo seguinte.') : (st.passo === 2 ? 'Nada de cadastro ou senha.' : (bloqueado ? 'Informe seu nome e um telefone com DDD, ou desmarque a identificação.' : 'Você recebe um número para acompanhar.')),
+      dica: st.passo === 1 ? (bloqueado ? 'Escolha o problema e mande pelo menos uma foto, vídeo ou áudio.' :'O local é pego pelo GPS no passo seguinte.') : (st.passo === 2 ? 'Nada de cadastro ou senha.' : (bloqueado ? 'Informe seu nome e um telefone com DDD, ou desmarque a identificação.' : 'Você recebe um número de protocolo.')),
       nome: st.nome,
       telefone: st.telefone,
       mudaNome: function (e) { self.setState({ nome: e.target.value }); },
       mudaTelefone: function (e) { self.setState({ telefone: e.target.value }); },
       telefoneInvalido: !st.anonimo && st.telefone !== '' && !telefoneOk,
       avancar: function () { if (!bloqueado) self.setState({ passo: st.passo + 1 }); },
-      voltar: function () { self.setState({ passo: st.passo === 5 ? (st.tipo ? 4 : 1) : st.passo - 1 }); },
+      voltar: function () { self.setState({ passo: st.passo - 1 }); },
       reiniciar: function () { self.setState({ passo: 1, tipo: null, midias: [], anonimo: false, telefone: '' }); },
-      abrirConsulta: function () { self.setState({ passo: 5 }); },
-      // relato feito agora sem internet ainda não chegou à prefeitura (RF017.4)
-      pendente: off && !!st.tipo,
-      recebido: !(off && st.tipo),
-      tipoNome: NOMES_TIPO[st.tipo] || 'Esgoto na rua',
-      etapas: ETAPAS.map(function (e, i) {
-        var feito = i === 0, atual = i === 1;
-        return {
-          nome: e[0], texto: e[1],
-          estiloNome: 'font-weight: ' + (atual ? '700' : '600') + '; color: ' + (feito || atual ? 'var(--ink)' : 'var(--mute)') + ';',
-          marca: 'flex: none; width: 14px; height: 14px; margin-top: 4px; border-radius: 50%; box-sizing: border-box; ' + (feito ? 'background: var(--positivo);' : (atual ? 'background: var(--accent);' : 'border: 2px solid var(--line-strong);'))
-        };
-      }),
       tituloFim: off ? 'Guardado no celular' : 'Obrigado!',
-      textoFim: off ? 'Assim que a internet voltar, o relato é enviado sozinho. Não precisa fazer nada.' : 'A equipe da prefeitura vai conferir o local. Guarde o número abaixo para acompanhar.',
+      textoFim: off ? 'Assim que a internet voltar, o relato é enviado sozinho. Não precisa fazer nada.' : 'A equipe da prefeitura vai conferir o local. Este é o número do seu relato.',
       tomFim: off ? 'atencao' : 'atencao',
       estadoFim: off ? 'Aguardando internet para enviar' : (st.anonimo ? 'Aguardando vistoria, prioridade baixa' : 'Aguardando vistoria')
     };
