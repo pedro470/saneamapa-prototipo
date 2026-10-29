@@ -90,7 +90,11 @@ a{color:var(--accent)}a:hover{color:var(--ink)}
       </fieldset>
 
       <label style="display: grid; gap: 6px;"><span class="t-rotulo">Tipo confirmado</span>
-        <select class="campo" style="min-height: 48px;"><option>{{v.tipoNome}}</option><option>Sem ligação de água</option><option>Água fora do padrão</option><option>Sem rede de esgoto</option><option>Esgoto a céu aberto</option></select>
+        <select class="campo" style="min-height: 48px;">
+          <sc-for list="{{v.tipos}}" as="t" hint-placeholder-count="4">
+            <option selected="{{t.sel}}">{{t.nome}}</option>
+          </sc-for>
+        </select>
       </label>
 
       <div style="display: grid; gap: 8px;">
@@ -125,6 +129,7 @@ var PARADAS = [
   { id: 'P-0133', tipoNome: 'Sem ligação de água', cat: 'cat-2', trecho: 'Rua Nova Esperança, 600 a 700', bairro: 'Benedito Bentes', nivel: 1, relatos: 1, identificados: 1 }
 ];
 var RESULTADOS = ['Confirmado', 'Não confirmado'];
+var TIPOS = ['Sem ligação de água', 'Água fora do padrão', 'Sem rede de esgoto', 'Esgoto a céu aberto'];
 
 class Component extends DCLogic {
   constructor(props) {
@@ -150,6 +155,8 @@ class Component extends DCLogic {
     });
     var v0 = PARADAS.filter(function (p) { return p.id === st.atual; })[0] || PARADAS[0];
     var v = Object.assign({}, v0, {
+      // o tipo do ponto vem marcado, sem repetir na lista
+      tipos: TIPOS.map(function (t) { return { nome: t, sel: t === v0.tipoNome }; }),
       contato: v0.identificados ? v0.identificados + (v0.identificados === 1 ? ' morador se identificou' : ' moradores se identificaram') + ': ver nome e telefone (o acesso fica registrado).' : 'Nenhum relato identificado neste ponto.'
     });
     // RF007.7: sem foto ou vídeo da vistoria, o ponto não pode ser confirmado
