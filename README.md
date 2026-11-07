@@ -21,6 +21,10 @@ python -m http.server 8000
 
 ## Requisitos
 
-`Documento de Requisitos - SaneaMapa v5.docx` traz os requisitos que este protótipo segue, redigidos conforme a ISO/IEC/IEEE 29148: perfis Morador, Fiscal e Prefeitura, com os perfis internos da Prefeitura ainda a definir (TBD). O escopo segue a entrevista com o cliente; funções que nenhum pedido exige, como o ofício à concessionária, a rota do fiscal e a exportação, ficaram fora desta versão. O documento é gerado a partir de `requisitos/requisitos.md`, fora deste repositório.
+`Documento de Requisitos - SaneaMapa v6.docx` traz os requisitos do sistema, no formato do modelo da disciplina: requisitos funcionais em tabela com os campos de cada cadastro, requisitos não funcionais e requisitos de segurança. Os perfis são Morador, Fiscal e Prefeitura, com os perfis internos da Prefeitura ainda a definir (TBD). O escopo segue a entrevista com o cliente; funções que nenhum pedido exige, como o ofício à concessionária, a rota do fiscal e a exportação, ficaram fora.
+
+O protótipo ainda segue a versão 5 dos requisitos. As regras acrescentadas na versão 6, como o limite de relatos por telefone e a foto da vistoria só pela câmera, não estão nas telas.
+
+O documento é gerado a partir de `requisitos/requisitos.md`, que é a fonte da verdade: edite o md e rode `py -3 gerar_docx.py` dentro de `requisitos/` (com `--word`, o Word atualiza o sumário e exporta um PDF). O `modelo.docx` fornece a capa, o cabeçalho e os estilos, e `entrevista.md` traz as anotações da entrevista com o cliente.
 
 Os dados são fictícios. Nada do que for digitado é enviado ou guardado.
