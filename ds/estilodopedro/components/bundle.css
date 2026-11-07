@@ -603,6 +603,51 @@ ul.verificacao > li.feito .item > label::after { content: "feito"; margin-left: 
 .comando button { flex: none; font: inherit; font-size: var(--t-pequeno-tamanho); color: var(--soft); background: var(--sunk); border: 0; border-left: 1px solid var(--line-strong); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; min-width: 76px; min-height: var(--alvo-toque); padding: 0 var(--space-3); cursor: pointer; }
 .comando button:hover { color: var(--ink); }
 
+/* ========== ACOMPANHAMENTO EM CARTÕES (06/11/2026; provado nas Frentes e na Planos de cutover) ========== */
+/* CartaoDeGrupo: o grupo em duas colunas, identidade à esquerda na cor clara e itens à direita na folha. Alternativa opcional à Pasta. */
+.lista-grupos { display: grid; gap: var(--space-5); container-type: inline-size; }
+.cartao-grupo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); border-radius: var(--radius-caixa); overflow: hidden; background: var(--folha); box-shadow: inset 0 0 0 1px var(--line); scroll-margin-top: var(--space-5); }
+.cartao-grupo > .ident { background: var(--cor-clara); color: var(--ink); padding: var(--space-5); display: grid; gap: var(--space-3); align-content: start; align-self: start; min-width: 0; position: sticky; top: calc(var(--altura-ferramentas, 0px) + var(--space-3)); }
+.cartao-grupo > .ident h3 { font-family: var(--font-display); font-size: var(--t-titulo-caixa-tamanho); line-height: var(--t-titulo-caixa-altura); font-weight: var(--t-titulo-caixa-peso); }
+.cartao-grupo > .ident .papel { color: var(--soft); font-size: var(--t-pequeno-tamanho); }
+.cartao-grupo > .ident .rot { display: block; color: var(--soft); font-size: var(--t-rotulo-tamanho); font-weight: var(--t-rotulo-peso); }
+.cartao-grupo > .ident .passo { font-weight: 600; }
+.cartao-grupo > .lista { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-2); align-content: start; min-width: 0; }
+.cartao-grupo > .lista .vazio { color: var(--soft); font-size: var(--t-pequeno-tamanho); padding: var(--space-2) 0; }
+:where(.cartao-grupo) { --cor: var(--cat-1); --cor-clara: var(--cat-1-clara); }
+@container (max-width: 640px) { .cartao-grupo { grid-template-columns: minmax(0, 1fr); } .cartao-grupo > .ident { position: static; } }
+@container (max-width: 480px) { .cartao-grupo > .ident, .cartao-grupo > .lista { padding-inline: var(--space-4); } }
+
+/* ItemEmDuasLinhas: o nome em negrito na primeira linha, o resto em cinza na segunda, o prazo à direita; abre o detalhe no clique. */
+.itens { list-style: none; margin: 0; padding: 0; container-type: inline-size; }
+.itens .item { border-bottom: 1px solid var(--line); }
+.itens > li:last-child .item { border-bottom: 0; }
+.itens .item > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--space-1) var(--space-3); padding: var(--space-3) 0; min-height: var(--alvo-toque); }
+.itens .item > summary::-webkit-details-marker { display: none; }
+.itens .item .titulo { font-weight: 600; line-height: 1.35; }
+.itens .item .linha-cinza { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-2); margin-top: var(--space-1); color: var(--soft); font-size: var(--t-pequeno-tamanho); }
+.itens .item .linha-cinza .sep { color: var(--mute); }
+.itens .item[open] > summary .titulo { color: var(--accent); }
+.itens .item > dl { margin: 0 0 var(--space-2); display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: var(--space-1) var(--space-3); padding-left: var(--space-3); border-left: var(--fio) solid var(--line); color: var(--soft); font-size: var(--t-pequeno-tamanho); }
+.itens .item > dl dt { color: var(--mute); }
+.itens .item > dl dd { margin: 0; }
+@container (max-width: 480px) { .itens .item > summary { grid-template-columns: minmax(0, 1fr); } .itens .item .prazo-pilula { justify-self: start; } .itens .item > dl { grid-template-columns: minmax(0, 1fr); } }
+
+/* PilulaDePrazo: o prazo numa pílula só; sem tom é contorno, com tom leva a marca e a cor do tom; sem data diz "sem data". */
+.prazo-pilula { --marca-tamanho: 8px; display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; font-size: var(--t-meta-tamanho); line-height: 1.6; font-variant-numeric: tabular-nums; padding: 0 var(--space-2); border-radius: var(--radius-pill); border: 1px solid var(--line-strong); color: var(--soft); }
+.prazo-pilula[data-tom] { border-color: transparent; background: var(--tom-soft); color: var(--tom); font-weight: 600; }
+.prazo-pilula[data-tom]::before { content: ""; flex: none; width: calc(var(--marca-tamanho) * var(--marca-escala, 1)); height: calc(var(--marca-tamanho) * var(--marca-escala, 1)); border-radius: var(--marca-raio, 50%); rotate: var(--marca-giro, 0deg); clip-path: var(--marca-recorte, none); background: var(--marca-fundo); box-shadow: var(--marca-sombra, none); }
+.prazo-pilula.sem-data { color: var(--mute); }
+
+/* TrocaDePeso: o peso (ou outro valor de poucas opções) trocado ali mesmo no cartão, sem abrir a edição. */
+.troca-peso { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
+.troca-peso .rot { display: inline; color: var(--soft); font-size: var(--t-rotulo-tamanho); font-weight: var(--t-rotulo-peso); }
+.troca-peso .botoes { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-pill); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.troca-peso button { font: inherit; font-size: var(--t-pequeno-tamanho); font-weight: 600; min-height: calc(var(--alvo-toque) - 4px); padding: 0 var(--space-3); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--soft); cursor: pointer; }
+.troca-peso button:hover { color: var(--ink); }
+.troca-peso button[aria-pressed="true"] { background: var(--accent); color: var(--accent-on); }
+.troca-peso button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* ========== TELAS ESTREITAS E MOVIMENTO REDUZIDO ========== */
 
 @media (max-width: 900px) {
