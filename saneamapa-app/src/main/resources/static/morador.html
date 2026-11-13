@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaneaMapa — Registrar Ocorrência</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Public+Sans:wght@400;600;700&family=Source+Code+Pro:wght@400&display=swap">
+  <link rel="stylesheet" href="/ds/bundle.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    body { margin: 0; font-family: var(--font-body); }
+    .grade-tipos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .tipo-btn {
+      min-height: 78px; padding: 10px 8px; border-radius: var(--radius-lg);
+      border: 2px solid var(--line); background: var(--surface);
+      font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+      display: grid; place-items: center; text-align: center; gap: 4px;
+    }
+    .tipo-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+    .busca-linha { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+  </style>
+</head>
+<body>
+<div class="app-mobile-wrap">
+  <div class="celular" id="app"></div>
+</div>
+
+<script src="/js/mapa-saneamapa.js"></script>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+
+const TIPOS = [
+  { id: 'CASA_SEM_AGUA', nome: 'Casa sem ligação de água' },
+  { id: 'AGUA_FORA_PADRAO', nome: 'Água fora do padrão' },
+  { id: 'RUA_SEM_ESGOTO', nome: 'Rua sem rede de esgoto' },
+  { id: 'ESGOTO_CEU_ABERTO', nome: 'Esgoto a céu aberto' }
+];
+const OFFLINE_KEY = 'saneamapa_pendentes_v6';
+const TERMO_KEY = 'saneamapa_termo_aceito_v6';
+
+let mapaCtrl = null;
+let gravador = null;
+let gravadorChunks = [];
+let gravadorTimer = null;
+
+let state = {
+  tela: localStorage.getItem(TERMO_KEY) ? 1 : 0, // 0 termo, 1 problema/mídia, 2 mapa/local, 3 dados, 4 protocolo
+  tipoOcorrencia: 'ESGOTO_CEU_ABERTO',
+  evidencias: [], // { tipo, origem, arquivoCaminho, previewUrl, nome, tamanhoBytes, dataHoraCaptura, duracaoSegundos, uploadando }
+  erroMidia: '',
+  gravandoAudio: false,
+  segundosAudio: 0,
+  buscaEndereco: '',
+  resultadosBusca: [],
+  buscandoEndereco: false,
+  latitude: -9.66599,
+  longitude: -35.73500,
+  precisaoMetros: null,
+  posicaoManual: false,
+  logradouro: '',
+  bairro: '',
+  pontoReferencia: '',
+  gpsStatus: '',
+  descricao: '',
+  identificado: true,
+  nomeMorador: '',
+  telefoneMorador: '',
+  erroEnvio: '',
+  enviando: false,
+  resposta: null
+};
+
+function getPendentes() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]'); } catch { return []; }
+}
+function savePendentes(lista) {
+  localStorage.setItem(OFFLINE_KEY, JSON.stringify(lista.slice(0, 20)));
+}
+
+async function tentarSincronizarPendentes() {
+  if (!navigator.onLine) return;
+  const pendentes = getPendentes();
+  if (!pendentes.length) return;
+  const restantes = [];
+  for (const item of pendentes) {
+    try {
+      const r = await fetch('/api/morador/relatos', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item)
+      });
+      if (!r.ok) restantes.push(item);
+    } catch { restantes.push(item); }
+  }
+  savePendentes(restantes);
+  render();
+}
+
+function obterDuracaoMidia(file, isVideo) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(file);
+    const el = document.createElement(isVideo ? 'video' : 'audio');
+    el.preload = 'metadata';
+    el.onloadedmetadata = () => {
+      const dur = Number.isFinite(el.duration) ? Math.ceil(el.duration) : null;
+      URL.revokeObjectURL(url);
+      resolve(dur);
+    };
+    el.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    el.src = url;
+  });
+}
+
+async function processarArquivosSelecionados(fileList, origem) {
+  state.erroMidia = '';
+  const arquivos = Array.from(fileList || []);
+  if (!arquivos.length) return;
+
+  for (const file of arquivos) {
+    let tipo = 'FOTO';
+    if (file.type.startsWith('video/')) tipo = 'VIDEO';
+    else if (file.type.startsWith('audio/')) tipo = 'AUDIO';
+    else if (!file.type.startsWith('image/')) {
+      state.erroMidia = `Formato não suportado (${file.name}). Selecione foto, vídeo ou áudio.`;
+      render();
+      continue;
+    }
+
+    let duracao = null;
+    if (tipo === 'VIDEO' || tipo === 'AUDIO') {
+      duracao = await obterDuracaoMidia(file, tipo === 'VIDEO');
+      if (tipo === 'VIDEO' && duracao && duracao > 30) {
+        state.erroMidia = `Vídeo "${file.name}" recusado: tem ${duracao}s e o limite máximo é 30 segundos.`;
+        render();
+        continue;
+      }
+      if (tipo === 'AUDIO' && duracao && duracao > 60) {
+        state.erroMidia = `Áudio "${file.name}" recusado: tem ${duracao}s e o limite máximo é 60 segundos.`;
+        render();
+        continue;
+      }
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    const item = {
+      tipo,
+      origem,
+      arquivoCaminho: '',
+      previewUrl,
+      nome: file.name,
+      dataHoraCaptura: file.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString(),
+      latitudeCaptura: state.latitude,
+      longitudeCaptura: state.longitude,
+      duracaoSegundos: duracao,
+      uploadando: true
+    };
+    state.evidencias.push(item);
+    render();
+
+    try {
+      const fd = new FormData();
+      fd.append('arquivo', file);
+      fd.append('tipo', tipo);
+      if (duracao) fd.append('duracaoSegundos', String(duracao));
+      const resp = await fetch('/api/morador/midias', { method: 'POST', body: fd });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        state.evidencias = state.evidencias.filter(x => x !== item);
+        URL.revokeObjectURL(previewUrl);
+        state.erroMidia = (data.erro || 'Não foi possível enviar o arquivo.') + (data.orientacao ? ' ' + data.orientacao : '');
+      } else {
+        item.arquivoCaminho = data.arquivoCaminho;
+        item.uploadando = false;
+      }
+    } catch {
+      state.evidencias = state.evidencias.filter(x => x !== item);
+      URL.revokeObjectURL(previewUrl);
+      state.erroMidia = 'Falha ao enviar a mídia para o servidor. Verifique sua conexão e tente novamente.';
+    }
+    render();
+  }
+}
+
+async function alternarGravacaoAudio() {
+  state.erroMidia = '';
+  if (state.gravandoAudio && gravador) {
+    gravador.stop();
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    document.getElementById('inp-audio-fallback')?.click();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    gravadorChunks = [];
+    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    gravador = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    state.gravandoAudio = true;
+    state.segundosAudio = 0;
+
+    gravador.ondataavailable = ev => { if (ev.data.size > 0) gravadorChunks.push(ev.data); };
+    gravador.onstop = async () => {
+      clearInterval(gravadorTimer);
+      stream.getTracks().forEach(t => t.stop());
+      const dur = Math.max(1, state.segundosAudio);
+      state.gravandoAudio = false;
+      state.segundosAudio = 0;
+      const blob = new Blob(gravadorChunks, { type: gravador.mimeType || 'audio/webm' });
+      const file = new File([blob], `audio_${Date.now()}.webm`, { type: blob.type });
+      await processarArquivosSelecionados([file], 'MICROFONE');
+    };
+
+    gravador.start();
+    gravadorTimer = setInterval(() => {
+      state.segundosAudio += 1;
+      const btn = document.getElementById('btn-gravar-audio');
+      if (btn) btn.textContent = `Parar gravação (${state.segundosAudio}s / 60s)`;
+      if (state.segundosAudio >= 60 && gravador && gravador.state === 'recording') {
+        gravador.stop();
+      }
+    }, 1000);
+    render();
+  } catch {
+    document.getElementById('inp-audio-fallback')?.click();
+  }
+}
+
+function removerEvidencia(idx) {
+  const item = state.evidencias[idx];
+  if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  state.evidencias.splice(idx, 1);
+  render();
+}
+
+function capturarGpsReal() {
+  state.gpsStatus = 'Obtendo sua localização atual...';
+  const statusEl = document.getElementById('gps-status-el');
+  if (statusEl) statusEl.textContent = state.gpsStatus;
+
+  if (!navigator.geolocation) {
+    state.posicaoManual = true;
+    state.gpsStatus = 'GPS não disponível neste navegador. Toque no mapa ou arraste o marcador.';
+    if (statusEl) statusEl.textContent = state.gpsStatus;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = Number(pos.coords.latitude.toFixed(6));
+      const lng = Number(pos.coords.longitude.toFixed(6));
+      const acc = Math.round(pos.coords.accuracy || 15);
+      state.latitude = lat;
+      state.longitude = lng;
+      state.precisaoMetros = acc;
+      state.posicaoManual = acc > 25;
+      state.gpsStatus = `Localização obtida (precisão aproximada de ${acc} m).`;
+      if (mapaCtrl) mapaCtrl.setPosition(lat, lng, true);
+      atualizarCamposLocalNoDom();
+    },
+    () => {
+      state.posicaoManual = true;
+      state.gpsStatus = 'Não foi possível acessar o GPS. Busque o endereço ou marque o local no mapa.';
+      const el = document.getElementById('gps-status-el');
+      if (el) el.textContent = state.gpsStatus;
+    },
+    { timeout: 10000, enableHighAccuracy: true }
+  );
+}
+
+async function executarBuscaEndereco() {
+  const inp = document.getElementById('busca-endereco-inp');
+  const consulta = inp ? inp.value : state.buscaEndereco;
+  state.buscaEndereco = consulta;
+  if (!consulta || !consulta.trim()) return;
+  state.buscandoEndereco = true;
+  const listaEl = document.getElementById('resultados-busca');
+  if (listaEl) listaEl.innerHTML = '<span class="t-pequeno" style="color:var(--soft);">Buscando endereço...</span>';
+
+  const res = await SaneaMapaGeo.buscarEndereco(consulta);
+  state.buscandoEndereco = false;
+  state.resultadosBusca = res;
+  if (!listaEl) return;
+  if (!res.length) {
+    listaEl.innerHTML = '<span class="t-pequeno" style="color:var(--soft);">Nenhum endereço encontrado. Tente incluir o bairro ou marque direto no mapa.</span>';
+    return;
+  }
+  listaEl.innerHTML = res.map((r, i) => `
+    <button type="button" class="botao quieto" style="text-align:left; justify-content:flex-start; padding:6px 8px; border:1px solid var(--line);" onclick="escolherResultadoBusca(${i})">
+      <span class="t-pequeno">${esc(r.rotulo)}</span>
+    </button>
+  `).join('');
+}
+
+function escolherResultadoBusca(idx) {
+  const item = state.resultadosBusca[idx];
+  if (!item) return;
+  state.resultadosBusca = [];
+  const listaEl = document.getElementById('resultados-busca');
+  if (listaEl) listaEl.innerHTML = '';
+  state.posicaoManual = true;
+  if (mapaCtrl) mapaCtrl.setPosition(item.lat, item.lng, true);
+}
+
+function atualizarCamposLocalNoDom() {
+  const latEl = document.getElementById('inp-lat');
+  const lngEl = document.getElementById('inp-lng');
+  const ruaEl = document.getElementById('inp-rua');
+  const bairroEl = document.getElementById('inp-bairro');
+  const statusEl = document.getElementById('gps-status-el');
+  if (latEl) latEl.value = state.latitude;
+  if (lngEl) lngEl.value = state.longitude;
+  if (ruaEl && state.logradouro) ruaEl.value = state.logradouro;
+  if (bairroEl && state.bairro) bairroEl.value = state.bairro;
+  if (statusEl && state.gpsStatus) statusEl.textContent = state.gpsStatus;
+}
+
+async function inicializarMapaPasso2() {
+  mapaCtrl = await SaneaMapaGeo.criarSeletorLocalizacao({
+    containerId: 'mapa-seletor',
+    searchInputId: 'busca-endereco-inp',
+    lat: state.latitude,
+    lng: state.longitude,
+    onSelect: info => {
+      state.latitude = info.lat;
+      state.longitude = info.lng;
+      if (info.logradouro) state.logradouro = info.logradouro;
+      if (info.bairro) state.bairro = info.bairro;
+      atualizarCamposLocalNoDom();
+    }
+  });
+}
+
+function aplicarMascaraTelefone(valor) {
+  const d = String(valor || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+async function enviarRelato() {
+  state.erroEnvio = '';
+  const prontas = state.evidencias.filter(e => !e.uploadando && e.arquivoCaminho);
+  if (!prontas.length) {
+    state.erroEnvio = 'Aguarde o envio da mídia ou anexe ao menos uma foto, vídeo ou áudio.';
+    render();
+    return;
+  }
+
+  const payload = {
+    protocolo: 'SM-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+    dataHoraRegistro: new Date().toISOString(),
+    tipoOcorrencia: state.tipoOcorrencia,
+    descricao: state.descricao,
+    identificado: state.identificado,
+    nomeMorador: state.identificado ? state.nomeMorador : null,
+    telefoneMorador: state.identificado ? state.telefoneMorador : null,
+    latitude: state.latitude,
+    longitude: state.longitude,
+    precisaoMetros: state.precisaoMetros || 15,
+    logradouro: state.logradouro,
+    bairro: state.bairro,
+    pontoReferencia: state.pontoReferencia,
+    posicaoManual: state.posicaoManual,
+    evidencias: prontas.map(ev => ({
+      tipo: ev.tipo,
+      origem: ev.origem,
+      arquivoCaminho: ev.arquivoCaminho,
+      dataHoraCaptura: ev.dataHoraCaptura,
+      latitudeCaptura: ev.latitudeCaptura,
+      longitudeCaptura: ev.longitudeCaptura,
+      duracaoSegundos: ev.duracaoSegundos || null
+    }))
+  };
+
+  if (!navigator.onLine) {
+    const pendentes = getPendentes();
+    if (pendentes.length >= 20) {
+      state.erroEnvio = 'Limite de 20 relatos pendentes sem internet atingido no aparelho.';
+      render();
+      return;
+    }
+    pendentes.push(payload);
+    savePendentes(pendentes);
+    state.resposta = {
+      protocolo: payload.protocolo,
+      pendente: true,
+      prioridadeReduzida: !state.identificado,
+      mensagem: 'Relato salvo no aparelho enquanto você está sem conexão. Ele será enviado assim que a internet voltar.'
+    };
+    state.tela = 4;
+    render();
+    return;
+  }
+
+  state.enviando = true;
+  render();
+  try {
+    const res = await fetch('/api/morador/relatos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      state.erroEnvio = `${data.erro || 'Erro ao enviar relato.'} ${data.orientacao || ''}`;
+      state.enviando = false;
+      render();
+      return;
+    }
+    state.resposta = { ...data, pendente: false };
+    state.enviando = false;
+    state.tela = 4;
+    render();
+  } catch {
+    state.erroEnvio = 'Não foi possível conectar ao servidor no momento. Tente novamente em instantes.';
+    state.enviando = false;
+    render();
+  }
+}
+
+function irParaTela(t) {
+  state.tela = t;
+  mapaCtrl = null;
+  render();
+}
+
+function renderMidiaItem(ev, idx) {
+  let preview = '';
+  if (ev.tipo === 'FOTO') {
+    preview = `<img class="midia-preview-img" src="${esc(ev.previewUrl || ev.arquivoCaminho)}" alt="Prévia da foto anexada">`;
+  } else if (ev.tipo === 'VIDEO') {
+    preview = `<video class="midia-preview-video" src="${esc(ev.previewUrl || ev.arquivoCaminho)}" controls playsinline muted></video>`;
+  } else {
+    preview = `<audio class="midia-preview-audio" src="${esc(ev.previewUrl || ev.arquivoCaminho)}" controls></audio>`;
+  }
+  return `
+    <div class="midia-item">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <span class="t-pequeno"><b>${ev.tipo}</b> · ${ev.origem === 'CAMERA' ? 'Câmera' : ev.origem === 'MICROFONE' ? 'Microfone' : 'Galeria'}${ev.duracaoSegundos ? ` · ${ev.duracaoSegundos}s` : ''}</span>
+        <button type="button" class="botao quieto" style="padding:2px 8px; min-height:28px;" onclick="removerEvidencia(${idx})">Remover</button>
+      </div>
+      ${preview}
+      ${ev.uploadando ? `<span class="t-pequeno" style="color:var(--soft);">Enviando arquivo...</span>` : `<span class="t-pequeno" style="color:var(--soft);">Arquivo anexado: ${esc(ev.nome)}</span>`}
+    </div>`;
+}
+
+function render() {
+  const el = document.getElementById('app');
+  const pendentesCount = getPendentes().length;
+  const titulos = ['Termo de uso', 'Qual é o problema?', 'Onde fica?', 'Seus dados', 'Protocolo'];
+
+  const header = `<header class="cab-cel">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+        ${state.tela >= 1 && state.tela <= 3 ? `<button type="button" class="botao quieto" style="padding:4px 8px;" onclick="irParaTela(${state.tela - 1})">←</button>` : ''}
+        <h1 style="margin:0; font-family:var(--font-display); font-size:21px;">${titulos[state.tela]}</h1>
+      </div>
+      <a href="/index.html" class="t-pequeno" style="flex-shrink:0;">Início</a>
+    </div>
+    ${state.tela >= 1 && state.tela <= 3 ? `<span class="t-pequeno" style="color:var(--soft);">Passo ${state.tela} de 3</span>` : ''}
+    ${!navigator.onLine ? `<span class="estado" data-tom="atencao">Sem internet — o envio ficará salvo no aparelho (${pendentesCount}/20)</span>` : ''}
+    ${navigator.onLine && pendentesCount > 0 ? `<button type="button" class="botao" onclick="tentarSincronizarPendentes()">Enviar ${pendentesCount} relato(s) pendente(s)</button>` : ''}
+  </header>`;
+
+  let body = '<main class="corpo-cel">';
+  let footer = '<footer class="rodape-cel">';
+
+  if (state.tela === 0) {
+    body += `
+      <p class="t-corpo" style="margin:0;">O SaneaMapa é gratuito e ajuda a mapear problemas de água e esgoto na cidade para orientar vistorias da prefeitura.</p>
+      <div class="chamada" data-tom="neutro"><span class="rotulo">Privacidade e proteção de dados</span>
+        <span class="t-pequeno">Seu nome, telefone e localização exata ficam restritos à equipe técnica. Fotos e vídeos passam por desfoque de rostos e placas antes da análise.</span>
+      </div>
+      <div class="chamada" data-tom="atencao"><span class="rotulo">Orientações ao registrar</span>
+        <span class="t-pequeno">Dê preferência a mostrar apenas o problema na rua. Evite filmar pessoas ou citar nomes de vizinhos no áudio.</span>
+      </div>`;
+    footer += `<button type="button" class="botao primario" onclick="localStorage.setItem('${TERMO_KEY}','1'); irParaTela(1);">Li e concordo</button>`;
+  } else if (state.tela === 1) {
+    const algumaUploadando = state.evidencias.some(e => e.uploadando);
+    body += `
+      <div class="grade-tipos">
+        ${TIPOS.map(t => `<button type="button" class="tipo-btn" aria-pressed="${state.tipoOcorrencia === t.id}" onclick="state.tipoOcorrencia='${t.id}'; render();">${t.nome}</button>`).join('')}
+      </div>
+      <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:8px;">
+        <span class="t-rotulo">Anexar fotos, vídeo ou áudio (mínimo 1)</span>
+        <input id="inp-foto-cam" class="input-oculto" type="file" accept="image/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
+        <input id="inp-video-cam" class="input-oculto" type="file" accept="video/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
+        <input id="inp-galeria" class="input-oculto" type="file" accept="image/*,video/*" multiple onchange="processarArquivosSelecionados(this.files, 'GALERIA'); this.value='';">
+        <input id="inp-audio-fallback" class="input-oculto" type="file" accept="audio/*" onchange="processarArquivosSelecionados(this.files, 'MICROFONE'); this.value='';">
+
+        <div class="grid-2">
+          <button type="button" class="btn-acao-midia" onclick="document.getElementById('inp-foto-cam').click()">Tirar foto</button>
+          <button type="button" class="btn-acao-midia" onclick="document.getElementById('inp-video-cam').click()">Gravar vídeo (até 30s)</button>
+        </div>
+        <div class="grid-2">
+          <button type="button" class="btn-acao-midia" onclick="document.getElementById('inp-galeria').click()">Foto/vídeo da galeria</button>
+          <button type="button" id="btn-gravar-audio" class="btn-acao-midia ${state.gravandoAudio ? 'gravando' : ''}" onclick="alternarGravacaoAudio()">
+            ${state.gravandoAudio ? `Parar gravação (${state.segundosAudio}s / 60s)` : 'Gravar áudio (até 60s)'}
+          </button>
+        </div>
+        ${state.erroMidia ? `<div class="chamada" data-tom="critico"><span class="rotulo">Arquivo não aceito</span><span class="t-pequeno">${esc(state.erroMidia)}</span></div>` : ''}
+        <div class="midia-lista">
+          ${state.evidencias.map((ev, i) => renderMidiaItem(ev, i)).join('')}
+        </div>
+      </div>`;
+    footer += `<button type="button" class="botao primario" ${state.evidencias.length === 0 || algumaUploadando ? 'disabled' : ''} onclick="irParaTela(2)">Continuar para o local</button>`;
+  } else if (state.tela === 2) {
+    body += `
+      <div class="field-group">
+        <span class="t-rotulo">Buscar endereço ou referência</span>
+        <div class="busca-linha">
+          <input id="busca-endereco-inp" class="campo" type="text" placeholder="Ex.: Rua São Domingos, Vergel do Lago" value="${esc(state.buscaEndereco)}" oninput="state.buscaEndereco=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault(); executarBuscaEndereco();}">
+          <button type="button" class="botao" onclick="executarBuscaEndereco()">Buscar</button>
+        </div>
+        <div id="resultados-busca" style="display:grid; grid-template-columns:minmax(0,1fr); gap:6px;"></div>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <button type="button" class="botao" onclick="capturarGpsReal()">Usar meu GPS atual</button>
+        <span id="gps-status-el" class="t-pequeno" style="color:var(--soft);">${esc(state.gpsStatus || 'Toque no mapa ou arraste o pino para ajustar o local exato.')}</span>
+      </div>
+
+      <div id="mapa-seletor" class="mapa-container"></div>
+
+      <div class="grid-2">
+        <label class="field-group"><span class="t-rotulo">Latitude</span><input id="inp-lat" class="campo" type="number" step="0.000001" value="${state.latitude}" onchange="state.latitude=parseFloat(this.value)||state.latitude; if(mapaCtrl) mapaCtrl.setPosition(state.latitude, state.longitude, true);"></label>
+        <label class="field-group"><span class="t-rotulo">Longitude</span><input id="inp-lng" class="campo" type="number" step="0.000001" value="${state.longitude}" onchange="state.longitude=parseFloat(this.value)||state.longitude; if(mapaCtrl) mapaCtrl.setPosition(state.latitude, state.longitude, true);"></label>
+      </div>
+      <label class="field-group"><span class="t-rotulo">Rua / Logradouro</span><input id="inp-rua" class="campo" maxlength="150" value="${esc(state.logradouro)}" oninput="state.logradouro=this.value" placeholder="Preenchido automaticamente pelo mapa"></label>
+      <label class="field-group"><span class="t-rotulo">Bairro</span><input id="inp-bairro" class="campo" maxlength="80" value="${esc(state.bairro)}" oninput="state.bairro=this.value" placeholder="Ex.: Vergel do Lago"></label>
+      <label class="field-group"><span class="t-rotulo">Ponto de referência (opcional)</span><input class="campo" maxlength="100" value="${esc(state.pontoReferencia)}" oninput="state.pontoReferencia=this.value" placeholder="Ex.: em frente à escola"></label>`;
+    footer += `<button type="button" class="botao primario" onclick="irParaTela(3)">Continuar</button>`;
+  } else if (state.tela === 3) {
+    body += `
+      <label class="field-group"><span class="t-rotulo">Descrição (opcional, até 300 caracteres)</span>
+        <textarea class="campo" rows="3" maxlength="300" oninput="state.descricao=this.value" placeholder="Descreva brevemente o problema encontrado">${esc(state.descricao)}</textarea>
+      </label>
+      <label style="display:flex; align-items:flex-start; gap:10px; padding:12px; background:var(--sunk); border-radius:var(--radius-sm); cursor:pointer;">
+        <input type="checkbox" ${state.identificado ? 'checked' : ''} onchange="state.identificado=this.checked; render();">
+        <span><b>Me identificar (recomendado)</b><br><span class="t-pequeno" style="color:var(--soft);">Relatos identificados ajudam a equipe no contato em campo e recebem maior prioridade na fila.</span></span>
+      </label>
+      ${state.identificado ? `
+        <label class="field-group"><span class="t-rotulo">Seu nome completo</span><input class="campo" maxlength="120" value="${esc(state.nomeMorador)}" oninput="state.nomeMorador=this.value" placeholder="Digite seu nome"></label>
+        <label class="field-group"><span class="t-rotulo">Telefone com DDD</span><input class="campo" maxlength="15" value="${esc(state.telefoneMorador)}" oninput="state.telefoneMorador=aplicarMascaraTelefone(this.value); this.value=state.telefoneMorador;" placeholder="(82) 99999-9999"></label>
+      ` : `
+        <div class="chamada" data-tom="atencao"><span class="rotulo">Envio anônimo</span>
+          <span class="t-pequeno">Nenhum nome ou telefone será salvo, mas o atendimento pode ter prioridade menor na fila.</span>
+          <button type="button" class="botao" onclick="state.identificado=true; render();">Quero me identificar</button>
+        </div>
+      `}
+      ${state.erroEnvio ? `<div class="chamada" data-tom="critico"><span class="rotulo">Não foi possível enviar</span><span class="t-pequeno">${esc(state.erroEnvio)}</span></div>` : ''}`;
+    footer += `<button type="button" class="botao primario" ${state.enviando ? 'disabled' : ''} onclick="enviarRelato()">${state.enviando ? 'Enviando denúncia...' : 'Enviar denúncia'}</button>`;
+  } else if (state.tela === 4) {
+    const r = state.resposta;
+    body += `
+      <div class="chamada" data-tom="${r.pendente ? 'atencao' : 'positivo'}">
+        <span class="rotulo">${r.pendente ? 'Relato salvo para envio posterior' : 'Denúncia registrada com sucesso'}</span>
+        <span class="t-corpo">Protocolo: <b class="t-meta">${esc(r.protocolo)}</b></span>
+        ${r.codigoPonto ? `<span class="t-pequeno">Ponto de acompanhamento: <b>${esc(r.codigoPonto)}</b></span>` : ''}
+        <span class="t-pequeno">${esc(r.mensagem)}</span>
+        ${r.prioridadeReduzida ? `<span class="t-pequeno">Observação: relatos anônimos entram com prioridade reduzida na fila.</span>` : ''}
+      </div>
+      <p class="t-pequeno" style="color:var(--soft);">Anote seu número de protocolo. Por privacidade, o histórico não permanece salvo no dispositivo após o envio.</p>`;
+    footer += `<button type="button" class="botao primario" onclick="state.evidencias=[]; state.descricao=''; state.erroEnvio=''; irParaTela(1);">Fazer novo relato</button>`;
+  }
+
+  body += '</main>';
+  footer += '</footer>';
+  el.innerHTML = header + body + footer;
+
+  if (state.tela === 2) {
+    inicializarMapaPasso2();
+  }
+}
+
+window.addEventListener('online', tentarSincronizarPendentes);
+window.addEventListener('offline', render);
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SaneaMapa — Monitoramento de Saneamento Básico</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Public+Sans:wght@400;600;700&family=Source+Code+Pro:wght@400&display=swap">
+  <link rel="stylesheet" href="/ds/bundle.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); }
+    .portal { max-width: 1080px; margin: 0 auto; padding: 36px 20px; display: grid; gap: 28px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px; display: grid; gap: 12px; align-content: space-between; }
+    .card-top { display: grid; gap: 10px; }
+    .badge-area { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--sunk); color: var(--soft); justify-self: start; }
+  </style>
+</head>
+<body>
+<main class="portal">
+  <header class="cabecalho" style="max-width: none;">
+    <h1 class="t-titulo-pagina">SaneaMapa</h1>
+    <p class="lede">Plataforma colaborativa de registro, vistoria técnica e acompanhamento do saneamento básico em Maceió.</p>
+  </header>
+
+  <section class="cards">
+    <article class="card">
+      <div class="card-top">
+        <span class="badge-area">Cidadão</span>
+        <h2 style="margin:0; font-family:var(--font-display);">Registrar Ocorrência</h2>
+        <p class="t-pequeno" style="color:var(--soft); margin:0;">Comunique falta de água, água fora do padrão ou esgoto com localização exata no mapa, fotos, vídeos ou áudio.</p>
+      </div>
+      <a class="botao primario" href="/morador.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:44px;">Fazer denúncia</a>
+    </article>
+
+    <article class="card">
+      <div class="card-top">
+        <span class="badge-area">Equipe de Campo</span>
+        <h2 style="margin:0; font-family:var(--font-display);">Área do Fiscal</h2>
+        <p class="t-pequeno" style="color:var(--soft); margin:0;">Acesse os pontos designados, valide ocorrências presencialmente no mapa e anexe registros fotográficos de vistoria.</p>
+      </div>
+      <a class="botao primario" href="/fiscal.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:44px;">Entrar como fiscal</a>
+    </article>
+
+    <article class="card">
+      <div class="card-top">
+        <span class="badge-area">Gestão Municipal</span>
+        <h2 style="margin:0; font-family:var(--font-display);">Painel da Prefeitura</h2>
+        <p class="t-pequeno" style="color:var(--soft); margin:0;">Gerencie a fila priorizada de vistorias, acompanhe camadas de vulnerabilidade, dados censitários e indicadores urbanos.</p>
+      </div>
+      <a class="botao primario" href="/painel.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-height:44px;">Acessar painel</a>
+    </article>
+  </section>
+
+  <section class="card">
+    <div style="display:grid; gap:6px;">
+      <h3 style="margin:0;">Ocorrências em Acompanhamento Público</h3>
+      <p class="t-pequeno" style="color:var(--soft); margin:0;">Resumo por trecho de rua para transparência pública, preservando integralmente a privacidade dos moradores.</p>
+    </div>
+    <div id="publico-lista" class="tabela-rolar t-pequeno">Carregando ocorrências...</div>
+  </section>
+</main>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+
+fetch('/api/publico/pontos')
+  .then(r => {
+    if (!r.ok) throw new Error();
+    return r.json();
+  })
+  .then(pontos => {
+    const el = document.getElementById('publico-lista');
+    if (!pontos.length) {
+      el.textContent = 'Nenhum ponto em acompanhamento no momento.';
+      return;
+    }
+    el.innerHTML = '<table class="tabela"><thead><tr><th>Código</th><th>Problema</th><th>Trecho</th><th>Bairro</th><th>Relatos</th><th>Situação</th></tr></thead><tbody>' +
+      pontos.map(p => `<tr><td><b>${esc(p.codigoExibicao)}</b></td><td>${esc(p.tipoRotulo)}</td><td>${esc(p.trechoRua)}</td><td>${esc(p.bairro)}</td><td>${p.quantidadeRelatos}</td><td><span class="estado">${esc(p.statusRotulo)}</span></td></tr>`).join('') +
+      '</tbody></table>';
+  })
+  .catch(() => {
+    document.getElementById('publico-lista').textContent = 'Não foi possível carregar os pontos públicos no momento.';
+  });
+</script>
+</body>
+</html>
