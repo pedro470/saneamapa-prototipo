@@ -16,8 +16,8 @@ public interface LogAuditoriaRepository extends JpaRepository<LogAuditoria, Long
            "(:usuarioId IS NULL OR l.usuario.id = :usuarioId) AND " +
            "(:sistema IS FALSE OR l.usuario IS NULL) AND " +
            "(:tipoEvento IS NULL OR l.tipoEvento = :tipoEvento) AND " +
-           "(:de IS NULL OR l.dataHora >= :de) AND " +
-           "(:ate IS NULL OR l.dataHora <= :ate) " +
+           "l.dataHora >= :de AND " +
+           "l.dataHora <= :ate " +
            "ORDER BY l.dataHora DESC")
     List<LogAuditoria> buscarFiltrado(@Param("usuarioId") Long usuarioId,
                                       @Param("sistema") boolean apenasSistema,

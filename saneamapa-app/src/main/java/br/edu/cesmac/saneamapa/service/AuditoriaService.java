@@ -18,6 +18,10 @@ import java.util.List;
 @Service
 public class AuditoriaService {
 
+    private static final ZoneOffset FUSO = ZoneOffset.ofHours(-3);
+    private static final OffsetDateTime INICIO_SEM_FILTRO = OffsetDateTime.of(2000, 1, 1, 0, 0, 0, 0, FUSO);
+    private static final OffsetDateTime FIM_SEM_FILTRO = OffsetDateTime.of(9999, 12, 31, 23, 59, 59, 0, FUSO);
+
     private final LogAuditoriaRepository logRepository;
     private final UsuarioRepository usuarioRepository;
 
@@ -40,8 +44,10 @@ public class AuditoriaService {
     @Transactional(readOnly = true)
     public List<LogAuditoriaDto> pesquisar(Long usuarioId, boolean apenasSistema, TipoEventoAuditoria tipoEvento,
                                            LocalDate de, LocalDate ate) {
-        OffsetDateTime inicio = de != null ? de.atStartOfDay().atOffset(ZoneOffset.ofHours(-3)) : null;
-        OffsetDateTime fim = ate != null ? ate.plusDays(1).atStartOfDay().minusNanos(1).atOffset(ZoneOffset.ofHours(-3)) : null;
+        // Sem filtro de data, usa limites abertos em vez de null: o PostgreSQL não consegue
+        // inferir o tipo de um parâmetro nulo em "(:de IS NULL OR ...)" e a consulta falha.
+        OffsetDateTime inicio = de != null ? de.atStartOfDay().atOffset(FUSO) : INICIO_SEM_FILTRO;
+        OffsetDateTime fim = ate != null ? ate.plusDays(1).atStartOfDay().minusNanos(1).atOffset(FUSO) : FIM_SEM_FILTRO;
         return logRepository.buscarFiltrado(usuarioId, apenasSistema, tipoEvento, inicio, fim)
                 .stream()
                 .map(l -> new LogAuditoriaDto(
