@@ -1,0 +1,14 @@
+# Build do Maven
+target/
+*.class
+*.jar
+
+# IDEs e sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Temporários do Word
+~$*.docx
