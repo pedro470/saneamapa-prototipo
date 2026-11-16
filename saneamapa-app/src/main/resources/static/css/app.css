@@ -346,3 +346,15 @@ textarea.campo {
   background: rgba(255, 255, 255, 0.28);
 }
 
+
+/* Aviso global de erro (js/avisos.js) */
+.aviso-global {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  z-index: 10000;
+  box-shadow: 0 6px 24px rgba(12, 16, 24, 0.18);
+}
+.aviso-global[hidden] { display: none; }

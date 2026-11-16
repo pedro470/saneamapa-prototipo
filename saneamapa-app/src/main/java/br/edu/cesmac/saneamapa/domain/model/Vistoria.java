@@ -109,10 +109,10 @@ public class Vistoria {
             );
         }
 
-        BigDecimal latAlvo = novaLatPonto != null ? novaLatPonto : ponto.getLatitude();
-        BigDecimal lonAlvo = novaLonPonto != null ? novaLonPonto : ponto.getLongitude();
+        // RS008: a distância é medida contra a posição gravada do ponto, nunca contra uma posição
+        // corrigida enviada na própria requisição (senão o fiscal enviaria a sua posição e teria 0 m).
         double distancia = GeoUtils.calcularDistanciaMetros(
-                latAlvo.doubleValue(), lonAlvo.doubleValue(),
+                ponto.getLatitude().doubleValue(), ponto.getLongitude().doubleValue(),
                 latitudeFiscal.doubleValue(), longitudeFiscal.doubleValue()
         );
         if (distancia > RAIO_MAXIMO_METROS) {
@@ -124,8 +124,10 @@ public class Vistoria {
         this.dataHoraVistoria = OffsetDateTime.now();
         this.resultado = resultado;
         this.tipoOcorrenciaValidado = tipoValidado != null ? tipoValidado : ponto.getTipoOcorrencia();
-        this.latitudePonto = latAlvo;
-        this.longitudePonto = lonAlvo;
+        // Registra a posição do ponto resultante da vistoria (a corrigida, se o fiscal corrigiu).
+        boolean corrigiu = novaLatPonto != null && novaLonPonto != null;
+        this.latitudePonto = corrigiu ? novaLatPonto : ponto.getLatitude();
+        this.longitudePonto = corrigiu ? novaLonPonto : ponto.getLongitude();
         this.latitudeFiscal = latitudeFiscal;
         this.longitudeFiscal = longitudeFiscal;
         this.distanciaFiscalMetros = BigDecimal.valueOf(distancia).setScale(2, RoundingMode.HALF_UP);

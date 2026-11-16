@@ -10,48 +10,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 /**
  * Inicializador de dados operacionais mínimos do SaneaMapa (equipe inicial, camadas territoriais e Censo base).
- * Não insere relatos ou ocorrências fictícias.
+ * Roda só com o banco vazio. Não insere relatos nem ocorrências e nunca apaga dados: a carga de demonstração
+ * com relatos e pontos fica no database/06_seed_dados.sql, que é a única fonte desses dados.
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
 
-    private static final List<String> PROTOCOLOS_SEMENTE_FICTICIA = List.of(
-            "SM-2026-004812", "SM-2026-004899", "SM-2026-004610", "SM-2026-004720", "SM-2026-004880"
-    );
-    private static final List<String> PONTOS_SEMENTE_FICTICIA = List.of(
-            "P-0142", "P-0118", "P-0131", "P-0150", "P-0127", "P-0098", "P-0109"
-    );
-    private static final List<String> USUARIOS_SEMENTE_EXTRAS = List.of(
-            "julia.souza@exemplo.gov.br", "rafael.torres@exemplo.gov.br", "bruno.freitas@exemplo.gov.br"
-    );
-
     private final UsuarioRepository usuarioRepository;
     private final CamadaVulnerabilidadeRepository camadaRepository;
-    private final PontoRepository pontoRepository;
-    private final RelatoRepository relatoRepository;
-    private final ItemFilaVistoriaRepository filaRepository;
-    private final VistoriaRepository vistoriaRepository;
     private final ImportacaoCensoRepository importacaoRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(UsuarioRepository usuarioRepository,
                            CamadaVulnerabilidadeRepository camadaRepository,
-                           PontoRepository pontoRepository,
-                           RelatoRepository relatoRepository,
-                           ItemFilaVistoriaRepository filaRepository,
-                           VistoriaRepository vistoriaRepository,
                            ImportacaoCensoRepository importacaoRepository,
                            PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.camadaRepository = camadaRepository;
-        this.pontoRepository = pontoRepository;
-        this.relatoRepository = relatoRepository;
-        this.filaRepository = filaRepository;
-        this.vistoriaRepository = vistoriaRepository;
         this.importacaoRepository = importacaoRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -59,8 +37,8 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        // Banco já tem usuários (do próprio app ou da carga 06_seed_dados.sql): nada é inserido nem apagado.
         if (usuarioRepository.count() > 0) {
-            limparDadosFicticiosLegados();
             return;
         }
 
@@ -100,45 +78,5 @@ public class DataInitializer implements CommandLineRunner {
         imp.adicionarSetor(new SetorCensitario("270430405000198", "Jacintinho",
                 "[[-9.655,-35.728],[-9.640,-35.728],[-9.640,-35.710],[-9.655,-35.710]]", new BigDecimal("90.00"), new BigDecimal("34.00")));
         importacaoRepository.save(imp);
-    }
-
-    /**
-     * Remove apenas os registros fictícios de demonstração anteriores, preservando 100% dos relatos reais enviados.
-     */
-    private void limparDadosFicticiosLegados() {
-        List<Relato> relatosFicticios = relatoRepository.findAll().stream()
-                .filter(r -> PROTOCOLOS_SEMENTE_FICTICIA.contains(r.getProtocolo()))
-                .toList();
-        if (!relatosFicticios.isEmpty()) {
-            relatoRepository.deleteAll(relatosFicticios);
-            relatoRepository.flush();
-        }
-
-        for (String codigo : PONTOS_SEMENTE_FICTICIA) {
-            pontoRepository.findByCodigoExibicao(codigo).ifPresent(ponto -> {
-                List<Relato> restantes = relatoRepository.findByPontoIdOrderByDataHoraRegistroDesc(ponto.getId());
-                if (restantes.isEmpty()) {
-                    filaRepository.findByPontoId(ponto.getId()).ifPresent(filaRepository::delete);
-                    List<Vistoria> vistorias = vistoriaRepository.findByPontoIdOrderByDataHoraVistoriaDesc(ponto.getId());
-                    if (!vistorias.isEmpty()) {
-                        vistoriaRepository.deleteAll(vistorias);
-                    }
-                    pontoRepository.delete(ponto);
-                }
-            });
-        }
-        pontoRepository.flush();
-
-        for (String email : USUARIOS_SEMENTE_EXTRAS) {
-            usuarioRepository.findByEmailIgnoreCase(email).ifPresent(u -> {
-                boolean emUsoPonto = pontoRepository.findAll().stream()
-                        .anyMatch(p -> p.getFiscalAtribuido() != null && p.getFiscalAtribuido().getId().equals(u.getId()));
-                boolean emUsoVistoria = vistoriaRepository.findAll().stream()
-                        .anyMatch(v -> v.getFiscal().getId().equals(u.getId()));
-                if (!emUsoPonto && !emUsoVistoria) {
-                    usuarioRepository.delete(u);
-                }
-            });
-        }
     }
 }

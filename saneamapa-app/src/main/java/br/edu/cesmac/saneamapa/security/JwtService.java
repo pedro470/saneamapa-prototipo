@@ -6,6 +6,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,11 +26,25 @@ public class JwtService {
     private final Key signingKey;
     private final long expirationMinutes;
 
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
+
     public JwtService(
-            @Value("${saneamapa.jwt.secret}") String secret,
+            @Value("${saneamapa.jwt.secret:}") String secret,
             @Value("${saneamapa.jwt.expiration-minutes:30}") long expirationMinutes) {
-        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.signingKey = criarChave(secret);
         this.expirationMinutes = expirationMinutes;
+    }
+
+    /**
+     * Sem JWT_SECRET definido, gera uma chave aleatória a cada inicialização: nenhum segredo fica no repositório,
+     * e os tokens emitidos antes de um reinício deixam de valer (o usuário entra de novo).
+     */
+    private static Key criarChave(String secret) {
+        if (secret == null || secret.isBlank()) {
+            log.warn("JWT_SECRET não definido: usando chave aleatória gerada nesta inicialização.");
+            return Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        }
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String gerarToken(Usuario usuario) {

@@ -5,6 +5,9 @@
 window.SaneaMapaGeo = (function () {
   let leafletPromise = null;
 
+  // bindPopup/bindTooltip interpretam HTML: todo texto vindo do servidor passa por aqui.
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
   function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -130,14 +133,13 @@ window.SaneaMapaGeo = (function () {
     };
   }
 
-  async function criarMapaFiscal({ containerId, pontoLat, pontoLng, fiscalLat, fiscalLng, onFiscalMove }) {
+  // RS008: a posição do fiscal só vem do GPS (setFiscalPosition). O mapa não aceita clique para movê-la.
+  async function criarMapaFiscal({ containerId, pontoLat, pontoLng, fiscalLat, fiscalLng }) {
     const container = document.getElementById(containerId);
     if (!container) return null;
     const L = await garantirMapa();
     const pLat = Number(pontoLat);
     const pLng = Number(pontoLng);
-    const fLat = Number(fiscalLat);
-    const fLng = Number(fiscalLng);
 
     container.innerHTML = '';
     const map = L.map(container).setView([pLat, pLng], 17);
@@ -147,32 +149,33 @@ window.SaneaMapaGeo = (function () {
 
     L.marker([pLat, pLng]).addTo(map).bindPopup('Local informado pelo cidadão');
 
-    const dentroInicial = calcularDistanciaMetros(pLat, pLng, fLat, fLng) <= 100;
     const circulo = L.circle([pLat, pLng], {
       radius: 100,
-      color: dentroInicial ? '#059669' : '#b91c1c',
+      color: '#64748b',
       fillOpacity: 0.14
     }).addTo(map);
 
-    const fiscalMarker = L.circleMarker([fLat, fLng], {
-      radius: 9,
-      color: '#ffffff',
-      weight: 2,
-      fillColor: '#1d4ed8',
-      fillOpacity: 1
-    }).addTo(map).bindPopup('Sua posição atual');
+    let fiscalMarker = null;
 
-    function atualizarRaio(latVal, lngVal) {
-      const d = calcularDistanciaMetros(pLat, pLng, latVal, lngVal);
-      const cor = d <= 100 ? '#059669' : '#b91c1c';
-      circulo.setStyle({ color: cor });
-      if (typeof onFiscalMove === 'function') onFiscalMove(latVal, lngVal, Math.round(d));
+    function posicionarFiscal(latNum, lngNum) {
+      if (!fiscalMarker) {
+        fiscalMarker = L.circleMarker([latNum, lngNum], {
+          radius: 9,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: '#1d4ed8',
+          fillOpacity: 1
+        }).addTo(map).bindPopup('Sua posição pelo GPS');
+      } else {
+        fiscalMarker.setLatLng([latNum, lngNum]);
+      }
+      const d = calcularDistanciaMetros(pLat, pLng, latNum, lngNum);
+      circulo.setStyle({ color: d <= 100 ? '#059669' : '#b91c1c' });
     }
 
-    map.on('click', ev => {
-      fiscalMarker.setLatLng(ev.latlng);
-      atualizarRaio(ev.latlng.lat, ev.latlng.lng);
-    });
+    if (fiscalLat != null && fiscalLng != null) {
+      posicionarFiscal(Number(fiscalLat), Number(fiscalLng));
+    }
 
     setTimeout(() => map.invalidateSize(), 150);
 
@@ -180,9 +183,8 @@ window.SaneaMapaGeo = (function () {
       setFiscalPosition(latVal, lngVal) {
         const latNum = Number(latVal);
         const lngNum = Number(lngVal);
-        fiscalMarker.setLatLng([latNum, lngNum]);
+        posicionarFiscal(latNum, lngNum);
         map.panTo([latNum, lngNum]);
-        atualizarRaio(latNum, lngNum);
       }
     };
   }
@@ -215,7 +217,7 @@ window.SaneaMapaGeo = (function () {
             fillColor: '#d97706',
             fillOpacity: 0.16,
             weight: 1.5
-          }).addTo(map).bindPopup(`${c.nome} (peso ${c.pesoUrgencia})`);
+          }).addTo(map).bindPopup(`${esc(c.nome)} (peso ${esc(c.pesoUrgencia)})`);
         } else if (c.tipoGeometria === 'POLIGONO' && c.poligonoCoordenadas) {
           try {
             const coords = JSON.parse(c.poligonoCoordenadas);
@@ -224,7 +226,7 @@ window.SaneaMapaGeo = (function () {
               fillColor: '#d97706',
               fillOpacity: 0.14,
               weight: 1.5
-            }).addTo(map).bindPopup(`${c.nome} (peso ${c.pesoUrgencia})`);
+            }).addTo(map).bindPopup(`${esc(c.nome)} (peso ${esc(c.pesoUrgencia)})`);
           } catch (e) {}
         }
       });
@@ -252,7 +254,7 @@ window.SaneaMapaGeo = (function () {
           color: '#0f766e',
           fillColor: '#14b8a6',
           fillOpacity: 0.6
-        }).addTo(map).bindPopup(`Censo ${s.bairro}: Água ${s.pctRedeAgua}% · Esgoto ${s.pctRedeEsgoto}%`);
+        }).addTo(map).bindPopup(`Censo ${esc(s.bairro)}: Água ${esc(s.pctRedeAgua)}% · Esgoto ${esc(s.pctRedeEsgoto)}%`);
       });
     }
 
@@ -271,7 +273,7 @@ window.SaneaMapaGeo = (function () {
           fillColor: COR_TIPO[p.tipoOcorrencia] || '#1f2937',
           fillOpacity: 0.95
         }).addTo(map);
-        m.bindTooltip(`${p.codigoExibicao} · ${p.quantidadeRelatos} relato(s)`);
+        m.bindTooltip(`${esc(p.codigoExibicao)} · ${esc(p.quantidadeRelatos)} relato(s)`);
         m.on('click', () => onSelectPonto && onSelectPonto(p.id));
       });
     }

@@ -15,6 +15,7 @@
 <body>
 <div id="root"></div>
 
+<script src="/js/avisos.js"></script>
 <script src="/js/mapa-saneamapa.js"></script>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
@@ -64,8 +65,25 @@ async function api(url, opts = {}) {
   }
   const r = await fetch(url, { ...opts, headers });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((data.erro || 'Falha na operação.') + (data.orientacao ? ' ' + data.orientacao : ''));
+  if (r.status === 401 && st.token) {
+    // Token vencido (30 min) ou usuário desativado: volta ao login com o motivo.
+    encerrarSessao('Sua sessão expirou. Entre novamente para continuar.');
+    const err = new Error(data.erro || 'Sessão expirada.');
+    err.tratado = true;
+    throw err;
+  }
+  if (!r.ok) throw new Error((data.erro || `Falha na operação (erro ${r.status}).`) + (data.orientacao ? ' ' + data.orientacao : ''));
   return data;
+}
+
+function encerrarSessao(motivo) {
+  st.token = '';
+  st.usuario = null;
+  st.senha = '';
+  st.erroLogin = motivo || '';
+  sessionStorage.removeItem('sm_pref_token');
+  sessionStorage.removeItem('sm_pref_user');
+  render();
 }
 
 async function login(e) {
@@ -87,11 +105,7 @@ async function login(e) {
 }
 
 function sair() {
-  st.token = '';
-  st.usuario = null;
-  st.senha = '';
-  sessionStorage.clear();
-  render();
+  encerrarSessao('');
 }
 
 async function carregarAba(aba) {
@@ -365,7 +379,7 @@ function render() {
           <div><h1 class="t-titulo-pagina" style="margin:0;">SaneaMapa</h1><p class="lede" style="margin:0;">Painel da Prefeitura</p></div>
           ${st.erroLogin ? `<div class="chamada" data-tom="critico"><span class="rotulo">Acesso negado</span><span class="t-pequeno">${esc(st.erroLogin)}</span></div>` : ''}
           <form onsubmit="login(event)" style="display:grid; gap:12px;">
-            <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@prefeitura.gov.br" required></label>
+            <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@exemplo.gov.br" required></label>
             <label class="field-group"><span class="t-rotulo">Senha</span><input class="campo" type="password" value="${esc(st.senha)}" oninput="st.senha=this.value" placeholder="Digite sua senha" required></label>
             <button class="botao primario" type="submit">Entrar</button>
           </form>

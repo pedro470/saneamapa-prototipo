@@ -3,6 +3,20 @@
 ## 1. Introdução do Projeto
 O **SaneaMapa** é um Sistema de Registro e Notificação de Saneamento Básico, concebido a partir de uma demanda social e educativa apresentada pela comunidade ao CESMAC. Seu objetivo é permitir que moradores registrem ocorrências de falhas de saneamento (casa sem ligação de água, água fora do padrão, rua sem rede de esgoto e esgoto a céu aberto) com evidências georreferenciadas (foto, vídeo e áudio com transcrição), confrontando a realidade de campo com os dados oficiais do Censo do IBGE ("saneado no papel versus saneado na prática"). O sistema conta com três perfis — **Morador**, **Fiscal** (vistoria em campo a até 100 m do ponto) e **Prefeitura** (gestão do mapa, fila priorizada por vulnerabilidade social, usuários, Censo e auditoria LGPD).
 
+### Como executar
+Os scripts completos estão na pasta `database/` e devem rodar nesta ordem, num banco PostgreSQL vazio chamado `saneamapa`:
+
+| Ordem | Arquivo | Conteúdo |
+|---|---|---|
+| 1 | `01_ddl_4_integridades.sql` | Tabelas com as 4 integridades |
+| 2 | `02_triggers.sql` | Triggers (seção 3) |
+| 3 | `03_indices.sql` | Índices (seção 4) |
+| 4 | `04_contas_permissoes.sql` | Contas e permissões (seção 5) |
+| 5 | `05_views.sql` | Views (seção 6) |
+| 6 | `06_seed_dados.sql` | Carga de demonstração (opcional) |
+
+Exemplo com `psql`: `psql -U postgres -d saneamapa -f 01_ddl_4_integridades.sql`, repetindo para cada arquivo. Com Docker, `docker compose up --build` na raiz do repositório já executa os scripts 01 a 05.
+
 ---
 
 ## 2. Criação das Tabelas (DDL) mantendo todas as 4 Integridades
@@ -25,7 +39,11 @@ CREATE TABLE IF NOT EXISTS ponto (
     reincidencia                BOOLEAN        NOT NULL DEFAULT FALSE,
     peso_urgencia               SMALLINT       NOT NULL DEFAULT 0,
     nivel_urgencia              VARCHAR(15)    NOT NULL DEFAULT 'NORMAL',
+    motivo_urgencia             VARCHAR(300),
     fiscal_atribuido_id         BIGINT,
+    posicao_manual_algum_relato BOOLEAN        NOT NULL DEFAULT FALSE,
+    criado_em                   TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em               TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- mantido pelo trigger do ciclo de vida
 
     -- Integridade Referencial
     CONSTRAINT fk_ponto_fiscal
@@ -61,6 +79,7 @@ CREATE TABLE IF NOT EXISTS relato (
     latitude           NUMERIC(10, 7) NOT NULL CHECK (latitude BETWEEN -90.0 AND 90.0),
     longitude          NUMERIC(10, 7) NOT NULL CHECK (longitude BETWEEN -180.0 AND 180.0),
     precisao_metros    INTEGER        NOT NULL CHECK (precisao_metros >= 0),
+    criado_em          TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- hora do servidor (limite de 24 h)
 
     CONSTRAINT chk_relato_lgpd_identificacao CHECK (
         (identificado = TRUE AND nome_morador IS NOT NULL AND telefone_morador ~ '^\(\d{2}\) \d{4,5}-\d{4}$')
@@ -69,7 +88,7 @@ CREATE TABLE IF NOT EXISTS relato (
     )
 );
 ```
-*(O DDL completo de todas as 10 tabelas encontra-se em `database/01_ddl_4_integridades.sql`.)*
+*(O DDL completo das 11 tabelas encontra-se em `database/01_ddl_4_integridades.sql`: usuario, alteracao_usuario, ponto, relato, evidencia, item_fila_vistoria, camada_vulnerabilidade, vistoria, importacao_censo, setor_censitario e log_auditoria.)*
 
 ---
 
@@ -122,7 +141,7 @@ CREATE TRIGGER trg_ponto_ciclo_vida
 ```sql
 -- Índice parcial para validar rapidamente o limite de 5 relatos por telefone em 24h (RF001 / RS001)
 CREATE INDEX IF NOT EXISTS idx_relato_telefone_24h
-    ON relato (telefone_morador, data_hora_registro DESC)
+    ON relato (telefone_morador, criado_em DESC)
     WHERE telefone_morador IS NOT NULL;
 
 -- Índice para ordenação da fila de vistoria por pontuação (RF005)

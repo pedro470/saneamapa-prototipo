@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SaneaMapa — Triggers PostgreSQL
 -- Garantem imutabilidade da auditoria (RF019/RS011), ciclo de vida do ponto
--- (Seção 10.1), atualização automática no agrupamento (RF004) e limite 24h (RS001)
+-- (Seção 10.1) e limite 24h (RS001). O agrupamento (RF004) fica no Java: ver item 4.
 -- ============================================================================
 
 -- 1. TRIGGER DE IMUTABILIDADE DO LOG DE AUDITORIA (RF019 / RS011)
@@ -67,7 +67,7 @@ BEGIN
           INTO qtd_recentes
           FROM relato
          WHERE telefone_morador = NEW.telefone_morador
-           AND data_hora_registro >= (CURRENT_TIMESTAMP - INTERVAL '24 hours');
+           AND criado_em >= (CURRENT_TIMESTAMP - INTERVAL '24 hours');  -- hora do servidor, não a do aparelho
 
         IF qtd_recentes >= 5 THEN
             RAISE EXCEPTION
@@ -86,37 +86,9 @@ CREATE TRIGGER trg_relato_limite_24h
     EXECUTE FUNCTION fn_validar_limite_relatos_24h();
 
 
--- 4. TRIGGER DE ATUALIZAÇÃO DO PONTO AO VINCULAR NOVO RELATO (RF004 / RS009)
-CREATE OR REPLACE FUNCTION fn_ao_inserir_relato()
-RETURNS TRIGGER
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_status_atual VARCHAR(25);
-BEGIN
-    SELECT status INTO v_status_atual FROM ponto WHERE id = NEW.ponto_id;
-
-    UPDATE ponto
-       SET quantidade_relatos = (SELECT COUNT(*) FROM relato WHERE ponto_id = NEW.ponto_id),
-           data_ultimo_relato = GREATEST(data_ultimo_relato, NEW.data_hora_registro::DATE),
-           reincidencia = CASE
-               WHEN v_status_atual = 'CONFIRMADO' THEN TRUE
-               ELSE reincidencia
-           END,
-           status = CASE
-               WHEN v_status_atual = 'NAO_CONFIRMADO' THEN 'AGUARDANDO_VISTORIA'
-               ELSE status
-           END,
-           posicao_manual_algum_relato = posicao_manual_algum_relato OR NEW.posicao_manual
-     WHERE id = NEW.ponto_id;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- 4. VÍNCULO DE NOVO RELATO AO PONTO (RF004 / RS009): regra mantida só no Java
+-- A contagem de relatos, a reincidência e o retorno à fila ficam em Ponto.registrarVinculoNovoRelato
+-- (que também retira o fiscal atribuído). Um trigger com a mesma regra criava um segundo dono do dado
+-- e reescrevia os valores da carga 06_seed_dados.sql. As linhas abaixo removem a versão antiga, se existir.
 DROP TRIGGER IF EXISTS trg_relato_atualiza_ponto ON relato;
-CREATE TRIGGER trg_relato_atualiza_ponto
-    AFTER INSERT ON relato
-    FOR EACH ROW
-    EXECUTE FUNCTION fn_ao_inserir_relato();
+DROP FUNCTION IF EXISTS fn_ao_inserir_relato();

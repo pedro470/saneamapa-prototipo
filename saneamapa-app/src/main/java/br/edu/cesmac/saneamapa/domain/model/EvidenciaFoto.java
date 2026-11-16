@@ -58,8 +58,9 @@ public class EvidenciaFoto extends Evidencia {
 
     @Override
     public String descreverTratamento() {
+        // Protótipo: o desfoque é registrado mas não processado; o arquivo servido é o original.
         return regiaoDesfoqueManual != null
-                ? "Rosto/placa desfocados + novo desfoque manual (" + regiaoDesfoqueManual + ")"
-                : "Rosto/placa desfocados automaticamente";
+                ? "Desfoque de rosto/placa e novo desfoque (" + regiaoDesfoqueManual + ") simulados no protótipo: a imagem exibida é a original"
+                : "Desfoque de rosto/placa simulado no protótipo: a imagem exibida é a original";
     }
 }

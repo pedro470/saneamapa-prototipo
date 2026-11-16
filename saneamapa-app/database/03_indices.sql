@@ -17,7 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_ponto_coordenadas
 
 -- Índice parcial para verificação rápida do limite de 5 relatos por telefone em 24h (RF001, RS001)
 CREATE INDEX IF NOT EXISTS idx_relato_telefone_24h
-    ON relato (telefone_morador, data_hora_registro DESC)
+    ON relato (telefone_morador, criado_em DESC)
     WHERE telefone_morador IS NOT NULL;
 
 -- Índice para ordenação decrescente da fila de vistoria por pontuação (RF005)

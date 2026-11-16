@@ -40,15 +40,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && !token.isBlank()) {
             try {
-                UsuarioAutenticado principal = jwtService.validarToken(token);
-                boolean ativo = usuarioRepository.findById(principal.id())
-                        .map(u -> u.isAtivo())
-                        .orElse(false);
-                if (ativo) {
-                    var authority = new SimpleGrantedAuthority("ROLE_" + principal.perfil().name());
-                    var authentication = new UsernamePasswordAuthenticationToken(principal, null, List.of(authority));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
+                UsuarioAutenticado doToken = jwtService.validarToken(token);
+                // O perfil vale o que está no banco, não o que veio no token: mudança de perfil ou
+                // desativação tem efeito imediato, e um claim adulterado não eleva o acesso.
+                usuarioRepository.findById(doToken.id())
+                        .filter(u -> u.isAtivo())
+                        .ifPresent(u -> {
+                            var principal = new UsuarioAutenticado(u.getId(), u.getEmail(), u.getNomeCompleto(), u.getPerfil());
+                            var authority = new SimpleGrantedAuthority("ROLE_" + u.getPerfil().name());
+                            var authentication = new UsernamePasswordAuthenticationToken(principal, null, List.of(authority));
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                        });
             } catch (Exception ignored) {
                 SecurityContextHolder.clearContext();
             }

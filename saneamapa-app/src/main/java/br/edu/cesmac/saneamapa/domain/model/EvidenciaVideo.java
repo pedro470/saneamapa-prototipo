@@ -50,6 +50,7 @@ public class EvidenciaVideo extends Evidencia {
 
     @Override
     public String descreverTratamento() {
-        return "Vídeo sem som e com desfoque em todos os quadros";
+        // Protótipo: remoção de som e desfoque registrados mas não processados; o arquivo servido é o original.
+        return "Remoção de som e desfoque simulados no protótipo: o vídeo exibido é o original";
     }
 }

@@ -66,6 +66,14 @@ class DominioPooTest {
                 "Longe", List.of("/cam.jpg"), List.of(OrigemEvidencia.CAMERA)
         ));
 
+        // RS008: enviar a própria posição como "nova posição do ponto" não zera a distância.
+        assertThrows(DistanciaVistoriaExcedidaException.class, () -> new Vistoria(
+                ponto, fiscal, ResultadoVistoria.CONFIRMADO, TipoOcorrencia.ESGOTO_CEU_ABERTO,
+                new BigDecimal("-9.6740000"), new BigDecimal("-35.7489300"),
+                new BigDecimal("-9.6740000"), new BigDecimal("-35.7489300"),
+                "Correção forjada", List.of("/cam.jpg"), List.of(OrigemEvidencia.CAMERA)
+        ));
+
         assertThrows(RegraNegocioException.class, () -> new Vistoria(
                 ponto, fiscal, ResultadoVistoria.CONFIRMADO, TipoOcorrencia.ESGOTO_CEU_ABERTO,
                 null, null, new BigDecimal("-9.6712500"), new BigDecimal("-35.7489300"),

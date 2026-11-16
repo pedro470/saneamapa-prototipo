@@ -16,6 +16,7 @@
   <div class="celular" id="app"></div>
 </div>
 
+<script src="/js/avisos.js"></script>
 <script src="/js/mapa-saneamapa.js"></script>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
@@ -32,9 +33,9 @@ let st = {
   detalhe: null,
   contatos: null,
   audioPlayers: {}, // { [evId]: { url, aviso } }
-  latFiscal: -9.67120,
-  lonFiscal: -35.74890,
-  distanciaAtual: 0,
+  latFiscal: null,
+  lonFiscal: null,
+  distanciaAtual: null,
   resultado: 'CONFIRMADO',
   tipoValidado: '',
   observacoes: '',
@@ -59,8 +60,26 @@ async function api(url, opts = {}) {
   }
   const r = await fetch(url, { ...opts, headers });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((data.erro || 'Falha na operação.') + (data.orientacao ? ' ' + data.orientacao : ''));
+  if (r.status === 401 && st.token) {
+    // Token vencido (30 min) ou usuário desativado: volta ao login com o motivo.
+    encerrarSessao('Sua sessão expirou. Entre novamente para continuar.');
+    const err = new Error(data.erro || 'Sessão expirada.');
+    err.tratado = true;
+    throw err;
+  }
+  if (!r.ok) throw new Error((data.erro || `Falha na operação (erro ${r.status}).`) + (data.orientacao ? ' ' + data.orientacao : ''));
   return data;
+}
+
+function encerrarSessao(motivo) {
+  st.token = '';
+  st.usuario = null;
+  st.senha = '';
+  st.detalhe = null;
+  st.erroLogin = motivo || '';
+  sessionStorage.removeItem('sm_fiscal_token');
+  sessionStorage.removeItem('sm_fiscal_user');
+  render();
 }
 
 async function entrar(e) {
@@ -97,39 +116,57 @@ async function abrirPonto(id) {
   st.observacoes = '';
   st.detalhe = await api('/api/fiscal/pontos/' + id);
   st.tipoValidado = st.detalhe.resumo.tipoOcorrencia;
-  st.latFiscal = Number(st.detalhe.resumo.latitudeAproximada);
-  st.lonFiscal = Number(st.detalhe.resumo.longitudeAproximada);
-  st.distanciaAtual = 0;
+  // RS008: a posição do fiscal vem só do GPS; começa vazia em vez de copiar a do ponto.
+  st.latFiscal = null;
+  st.lonFiscal = null;
+  st.distanciaAtual = null;
   render();
 }
 
-function capturarGpsFiscal() {
-  if (!navigator.geolocation) {
-    alert('GPS indisponível neste navegador. Toque no mapa ou informe a posição.');
-    return;
+function lerGpsFiscal() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('GPS indisponível neste aparelho. A vistoria exige a posição do GPS no momento de salvar.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        st.latFiscal = Number(pos.coords.latitude.toFixed(6));
+        st.lonFiscal = Number(pos.coords.longitude.toFixed(6));
+        if (mapaFiscalCtrl) mapaFiscalCtrl.setFiscalPosition(st.latFiscal, st.lonFiscal);
+        atualizarCamposPosicaoNoDom();
+        resolve();
+      },
+      () => reject(new Error('Não foi possível ler sua posição pelo GPS. Ative a localização do aparelho e tente de novo.')),
+      { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
+    );
+  });
+}
+
+async function capturarGpsFiscal() {
+  try {
+    await lerGpsFiscal();
+  } catch (err) {
+    const distEl = document.getElementById('fiscal-dist');
+    if (distEl) {
+      distEl.textContent = err.message;
+      distEl.dataset.tom = 'critico';
+    }
   }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = Number(pos.coords.latitude.toFixed(6));
-      const lon = Number(pos.coords.longitude.toFixed(6));
-      st.latFiscal = lat;
-      st.lonFiscal = lon;
-      if (mapaFiscalCtrl) mapaFiscalCtrl.setFiscalPosition(lat, lon);
-      atualizarCamposPosicaoNoDom();
-    },
-    () => alert('Não foi possível obter sua localização pelo GPS. Ajuste o pino diretamente no mapa.'),
-    { timeout: 10000, enableHighAccuracy: true }
-  );
 }
 
 function atualizarCamposPosicaoNoDom() {
   const latEl = document.getElementById('fiscal-lat');
   const lonEl = document.getElementById('fiscal-lon');
   const distEl = document.getElementById('fiscal-dist');
-  if (latEl) latEl.value = st.latFiscal;
-  if (lonEl) lonEl.value = st.lonFiscal;
-  const pLat = Number(st.detalhe?.resumo?.latitudeAproximada || st.latFiscal);
-  const pLon = Number(st.detalhe?.resumo?.longitudeAproximada || st.lonFiscal);
+  if (latEl) latEl.value = st.latFiscal ?? '';
+  if (lonEl) lonEl.value = st.lonFiscal ?? '';
+  if (st.latFiscal == null || st.lonFiscal == null || !st.detalhe) {
+    st.distanciaAtual = null;
+    return;
+  }
+  const pLat = Number(st.detalhe.resumo.latitudeAproximada);
+  const pLon = Number(st.detalhe.resumo.longitudeAproximada);
   st.distanciaAtual = Math.round(SaneaMapaGeo.calcularDistanciaMetros(pLat, pLon, st.latFiscal, st.lonFiscal));
   if (distEl) {
     const dentro = st.distanciaAtual <= 100;
@@ -148,13 +185,7 @@ async function inicializarMapaFiscal() {
     pontoLat: r.latitudeAproximada,
     pontoLng: r.longitudeAproximada,
     fiscalLat: st.latFiscal,
-    fiscalLng: st.lonFiscal,
-    onFiscalMove: (lat, lng, dist) => {
-      st.latFiscal = Number(lat.toFixed(6));
-      st.lonFiscal = Number(lng.toFixed(6));
-      st.distanciaAtual = dist;
-      atualizarCamposPosicaoNoDom();
-    }
+    fiscalLng: st.lonFiscal
   });
   atualizarCamposPosicaoNoDom();
 }
@@ -224,6 +255,8 @@ function removerMidiaCamera(idx) {
 async function salvarVistoria() {
   st.erroVistoria = '';
   try {
+    // RS008: a posição enviada é a do GPS lida agora, no momento de salvar.
+    await lerGpsFiscal();
     const caminhos = st.midiasCamera.map(m => m.arquivoCaminho);
     const res = await api(`/api/fiscal/pontos/${st.detalhe.resumo.id}/vistoria`, {
       method: 'POST',
@@ -246,11 +279,7 @@ async function salvarVistoria() {
 }
 
 function sair() {
-  st.token = '';
-  st.usuario = null;
-  st.senha = '';
-  sessionStorage.clear();
-  render();
+  encerrarSessao('');
 }
 
 function renderEvidenciaMorador(ev) {
@@ -295,7 +324,7 @@ function render() {
         </div>
         ${st.erroLogin ? `<div class="chamada" data-tom="critico"><span class="rotulo">Acesso recusado</span><span class="t-pequeno">${esc(st.erroLogin)}</span></div>` : ''}
         <form onsubmit="entrar(event)" style="display:grid; grid-template-columns:minmax(0,1fr); gap:12px;">
-          <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@prefeitura.gov.br" required></label>
+          <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@exemplo.gov.br" required></label>
           <label class="field-group"><span class="t-rotulo">Senha</span><input class="campo" type="password" value="${esc(st.senha)}" oninput="st.senha=this.value" placeholder="Digite sua senha" required></label>
           <button class="botao primario" type="submit">Entrar</button>
         </form>
@@ -349,11 +378,12 @@ function render() {
         <span class="t-pequeno"><b>Endereço:</b> ${esc(r.trechoRua)} · ${esc(r.bairro)}</span>
         <span class="t-pequeno"><b>Coordenada do ponto:</b> <span class="t-meta">${r.latitudeAproximada}, ${r.longitudeAproximada}</span></span>
         <div id="mapa-fiscal" class="mapa-container" style="height:220px;"></div>
-        <span id="fiscal-dist" class="estado" data-tom="positivo">Calculando distância...</span>
-        <button type="button" class="botao" onclick="capturarGpsFiscal()">Atualizar com meu GPS atual</button>
+        <span id="fiscal-dist" class="estado" data-tom="neutro">Sua posição ainda não foi lida pelo GPS.</span>
+        <button type="button" class="botao" onclick="capturarGpsFiscal()">Conferir minha distância pelo GPS</button>
+        <span class="t-pequeno">A posição é lida de novo pelo GPS ao salvar a vistoria e não pode ser digitada (RS008).</span>
         <div class="grid-2">
-          <label class="field-group"><span class="t-pequeno">Latitude do fiscal</span><input id="fiscal-lat" class="campo" type="number" step="0.000001" value="${st.latFiscal}" onchange="st.latFiscal=parseFloat(this.value)||st.latFiscal; if(mapaFiscalCtrl) mapaFiscalCtrl.setFiscalPosition(st.latFiscal, st.lonFiscal);"></label>
-          <label class="field-group"><span class="t-pequeno">Longitude do fiscal</span><input id="fiscal-lon" class="campo" type="number" step="0.000001" value="${st.lonFiscal}" onchange="st.lonFiscal=parseFloat(this.value)||st.lonFiscal; if(mapaFiscalCtrl) mapaFiscalCtrl.setFiscalPosition(st.latFiscal, st.lonFiscal);"></label>
+          <label class="field-group"><span class="t-pequeno">Latitude do fiscal (GPS)</span><input id="fiscal-lat" class="campo" type="text" value="${st.latFiscal ?? ''}" readonly></label>
+          <label class="field-group"><span class="t-pequeno">Longitude do fiscal (GPS)</span><input id="fiscal-lon" class="campo" type="text" value="${st.lonFiscal ?? ''}" readonly></label>
         </div>
       </section>
 

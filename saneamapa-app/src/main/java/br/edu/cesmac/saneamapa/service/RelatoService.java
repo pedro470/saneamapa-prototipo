@@ -30,12 +30,15 @@ import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class RelatoService {
 
     private static final double RAIO_AGRUPAMENTO_METROS = 50.0;
     private static final int LIMITE_RELATOS_24H_TELEFONE = 5;
+    private static final long DIAS_MAXIMOS_RELATO_OFFLINE = 7;
+    private static final Pattern PROTOCOLO_VALIDO = Pattern.compile("^SM-[A-Z0-9-]{4,16}$");
 
     private final RelatoRepository relatoRepository;
     private final PontoRepository pontoRepository;
@@ -66,11 +69,13 @@ public class RelatoService {
 
     @Transactional
     public RelatoCriadoResponse registrarRelato(CriarRelatoRequest req) {
-        OffsetDateTime agora = req.dataHoraRegistro() != null ? req.dataHoraRegistro() : OffsetDateTime.now();
+        OffsetDateTime agora = dataHoraConfiavel(req.dataHoraRegistro());
 
         if (req.identificado() && req.telefoneMorador() != null) {
-            long recentes = relatoRepository.countByTelefoneMoradorAndDataHoraRegistroAfter(
-                    req.telefoneMorador().trim(), agora.minusHours(24)
+            // RS001: a janela de 24 h usa a hora em que o servidor recebeu os relatos (criado_em),
+            // e não a hora informada pelo aparelho, que poderia ser recuada para escapar do limite.
+            long recentes = relatoRepository.countByTelefoneMoradorAndCriadoEmAfter(
+                    req.telefoneMorador().trim(), OffsetDateTime.now().minusHours(24)
             );
             if (recentes >= LIMITE_RELATOS_24H_TELEFONE) {
                 throw new RegraNegocioException(
@@ -110,7 +115,9 @@ public class RelatoService {
         servicoUrgencia.classificarPonto(ponto, camadasAtivas);
         ponto = pontoRepository.save(ponto);
 
-        String protocolo = (req.protocolo() != null && !req.protocolo().isBlank())
+        // RF001^1: o protocolo nasce no aparelho (o relato pode ser guardado sem conexão).
+        // Só é aceito no formato esperado; fora dele, o servidor gera um.
+        String protocolo = (req.protocolo() != null && PROTOCOLO_VALIDO.matcher(req.protocolo().trim()).matches())
                 ? req.protocolo().trim()
                 : gerarProtocolo(req.identificado());
 
@@ -193,6 +200,22 @@ public class RelatoService {
             codigo = String.format("P-%04d", proximo);
         }
         return codigo;
+    }
+
+    /**
+     * A data/hora vem do aparelho porque o relato pode ter sido registrado sem conexão (RF001).
+     * Só é aceita dentro de uma janela plausível: até 7 dias no passado (fila off-line) e 5 minutos
+     * no futuro (relógio adiantado). Fora disso vale a hora do servidor, para que uma data recuada
+     * não infle os dias de espera na fila nem uma data futura distorça o ponto.
+     */
+    static OffsetDateTime dataHoraConfiavel(OffsetDateTime informada) {
+        OffsetDateTime agora = OffsetDateTime.now();
+        if (informada == null
+                || informada.isAfter(agora.plusMinutes(5))
+                || informada.isBefore(agora.minusDays(DIAS_MAXIMOS_RELATO_OFFLINE))) {
+            return agora;
+        }
+        return informada;
     }
 
     private String gerarProtocolo(boolean identificado) {

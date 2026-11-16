@@ -234,7 +234,9 @@ class SaneaMapaIntegracaoTest {
                 .andExpect(jsonPath("$.erro", containsString("30 segundos")));
 
         // Acesso público à mídia salva é negado (proteção LGPD) e permitido para equipe autenticada
-        mockMvc.perform(get(caminho)).andExpect(status().isForbidden());
+        mockMvc.perform(get(caminho))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.orientacao").exists());
 
         String tokenPref = obterToken("ana.lima@exemplo.gov.br", "Sanea2026");
         mockMvc.perform(get(caminho).param("token", tokenPref))

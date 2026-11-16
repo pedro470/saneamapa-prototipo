@@ -146,7 +146,7 @@ public class VistoriaService {
         auditoriaService.registrar(fiscalId, TipoEventoAuditoria.EDICAO_FOTO,
                 TipoObjetoAuditoria.EVIDENCIA, foto.getId(),
                 "Novo desfoque aplicado na evidência #" + foto.getId() + " (" + req.regiao().trim() + "). Versão anterior descartada.");
-        return "Desfoque aplicado na foto. A versão anterior foi descartada.";
+        return "Área de desfoque registrada. No protótipo o desfoque é simulado: a foto exibida continua a original.";
     }
 
     @Transactional

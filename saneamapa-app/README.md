@@ -4,7 +4,7 @@ Implementação completa do sistema **SaneaMapa** (*Sistema de Registro e Notifi
 
 ## Estrutura do Projeto
 
-- `database/`: Scripts PostgreSQL puros (DDL com as 4 integridades, Triggers, Índices, Contas/Permissões, Views, Seed e o arquivo `ENTREGA_3AF_SQL.md` / `.txt` para entrega).
+- `database/`: Scripts PostgreSQL puros (DDL com as 4 integridades, Triggers, Índices, Contas/Permissões, Views, Seed e o arquivo `ENTREGA_3AF_SQL.md` para entrega).
 - `src/main/java/br/edu/cesmac/saneamapa/`:
   - `domain/model/`: Entidades ricas seguindo os **4 Pilares de POO**:
     - **Abstração**: `EntidadeAuditavel` (`@MappedSuperclass`), `Evidencia` (classe abstrata), `GeometriaCamada` (interface), `CalculadoraPontuacaoFila` (interface).
@@ -18,6 +18,10 @@ Implementação completa do sistema **SaneaMapa** (*Sistema de Registro e Notifi
 
 ## Como Executar
 
+O caminho recomendado é o Docker, a partir da **raiz do repositório** (`docker compose up --build`); ver o `README.md` da raiz, que traz também os usuários de demonstração.
+
+Sem Docker, com PostgreSQL e Maven instalados:
+
 1. Crie o banco PostgreSQL `saneamapa` e execute os scripts em `database/`:
    - `01_ddl_4_integridades.sql`
    - `02_triggers.sql`
@@ -29,6 +33,7 @@ Implementação completa do sistema **SaneaMapa** (*Sistema de Registro e Notifi
    ```bash
    mvn spring-boot:run
    ```
+   Testes: `mvn test` (usam banco H2 em memória; não exigem PostgreSQL).
 4. Acesse http://localhost:8080.
    - Prefeitura: `ana.lima@exemplo.gov.br` / `Sanea2026`
    - Fiscal: `carlos.mendes@exemplo.gov.br` / `Sanea2026`

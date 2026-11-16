@@ -12,3 +12,9 @@ Thumbs.db
 
 # Temporários do Word
 ~$*.docx
+
+# Segredos locais (JWT_SECRET, senhas)
+.env
+
+# Mídias enviadas em execuções locais (podem conter dados pessoais)
+uploads/

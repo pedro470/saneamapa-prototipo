@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface RelatoRepository extends JpaRepository<Relato, Long> {
-    long countByTelefoneMoradorAndDataHoraRegistroAfter(String telefoneMorador, OffsetDateTime desde);
+    long countByTelefoneMoradorAndCriadoEmAfter(String telefoneMorador, OffsetDateTime desde);
     List<Relato> findByPontoIdOrderByDataHoraRegistroDesc(Long pontoId);
     boolean existsByPontoIdAndIdentificadoTrue(Long pontoId);
 }
