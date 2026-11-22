@@ -14,7 +14,7 @@ Convenções de marcação aceitas pelo gerador:
   :::                    ID | Descrição | Prioridade
   [[quebra]]             quebra de página
 -->
-<!-- versao: Versão 6 – novembro de 2026 -->
+<!-- versao: Versão 7 – novembro de 2026 -->
 <!-- cliente: Demanda da comunidade ao CESMAC -->
 
 # Introdução
@@ -29,13 +29,13 @@ Além desta seção introdutória, as seções seguintes estão organizadas como
 - **Seção 3 – Requisitos funcionais:** especifica os requisitos funcionais, agrupados por área funcional, numa tabela com o identificador, a descrição e a prioridade de cada requisito.
 - **Seção 4 – Requisitos não funcionais:** especifica as qualidades e restrições do sistema como um todo, divididas em requisitos de produto, organizacionais e externos.
 - **Seção 5 – Requisitos de segurança:** identifica os perigos ligados aos requisitos funcionais e as soluções adotadas para cada um.
-- **Seção 6 – Itens a definir:** lista as informações ainda não obtidas, com o responsável por cada uma e a forma de resolução.
-- **Seção 7 – Alterações em relação às versões anteriores:** registra o que mudou nesta versão e as inconsistências da versão 4, com a decisão adotada para cada uma.
-- **Seção 8 – Referências:** apresenta os documentos utilizados na elaboração deste documento.
-- **Seção 9 – Anotações da entrevista:** transcreve as anotações da entrevista com o cliente, que são a fonte dos requisitos marcados como "Entrevista".
-- **Seção 10 – Anexos:** apresenta o ciclo de vida do ponto, a matriz de permissões e as hipóteses que ficaram fora do escopo.
-
-A matriz de rastreabilidade e a matriz de avaliação de risco não fazem parte desta revisão.
+- **Seção 6 – Matriz de avaliação de risco:** classifica os perigos da Seção 5 pela gravidade e pela probabilidade de ocorrência.
+- **Seção 7 – Matriz de rastreabilidade:** registra a ligação entre os requisitos funcionais dependentes.
+- **Seção 8 – Itens a definir:** lista as informações ainda não obtidas, com o responsável por cada uma e a forma de resolução.
+- **Seção 9 – Alterações em relação às versões anteriores:** registra o que mudou nesta versão e as inconsistências da versão 4, com a decisão adotada para cada uma.
+- **Seção 10 – Referências:** apresenta os documentos utilizados na elaboração deste documento.
+- **Seção 11 – Anotações da entrevista:** transcreve as anotações da entrevista com o cliente, que são a fonte dos requisitos marcados como "Entrevista".
+- **Seção 12 – Anexos:** apresenta o ciclo de vida do ponto, a matriz de permissões e as hipóteses que ficaram fora do escopo.
 
 ## Convenções, termos e abreviações
 
@@ -56,7 +56,7 @@ Os requisitos funcionais são apresentados em tabelas com três colunas: o ident
 - **Campos:** os dados que a função recebe ou mantém, um por linha, no formato "Nome: Tipo; (máscara); obrigatoriedade". O número sobrescrito ao fim da linha remete à nota de mesmo número em "Regra e observações do preenchimento dos campos".
 - **Regra e observações do preenchimento dos campos:** as notas numeradas, com as validações e o comportamento de cada campo.
 - **Observações, Alteração, Exclusão e Pesquisa:** as regras do requisito que não se prendem a um campo, o que acontece quando um registro é alterado ou excluído e os critérios de busca.
-- **Fonte:** a origem de cada parte do requisito. "Entrevista" indica um pedido registrado nas anotações da entrevista com o cliente (Seção 9). "Legislação (LGPD)" indica a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). "Derivado" indica o que não foi pedido literalmente, mas sem o qual um pedido da entrevista não funciona ou o sistema não opera. "Analista" indica hipótese do analista, uma escolha entre alternativas possíveis que ainda precisa ser validada com o cliente.
+- **Fonte:** a origem de cada parte do requisito. "Entrevista" indica um pedido registrado nas anotações da entrevista com o cliente (Seção 11). "Legislação (LGPD)" indica a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). "Derivado" indica o que não foi pedido literalmente, mas sem o qual um pedido da entrevista não funciona ou o sistema não opera. "Analista" indica hipótese do analista, uma escolha entre alternativas possíveis que ainda precisa ser validada com o cliente.
 
 Os requisitos não funcionais são apresentados numa tabela com o identificador, a categoria, a descrição, a prioridade e a fonte. A categoria segue a divisão em requisitos de produto (como o sistema se comporta: facilidade de uso, desempenho, confiabilidade, portabilidade, espaço e segurança), organizacionais (decorrentes de quem desenvolve e mantém o sistema) e externos (decorrentes de leis e normas). Cada descrição traz um valor verificável.
 
@@ -76,7 +76,7 @@ Os verbos "deve" e "não deve" indicam, respectivamente, obrigação e proibiç�
 
 ### Itens a definir
 
-Quando uma informação necessária não foi obtida, o requisito indica a lacuna com a marca [TBD-nn], e a Seção 6 registra o que falta, quem responde e como a lacuna será resolvida. Um requisito com TBD está especificado em tudo, exceto no item marcado.
+Quando uma informação necessária não foi obtida, o requisito indica a lacuna com a marca [TBD-nn], e a Seção 8 registra o que falta, quem responde e como a lacuna será resolvida. Um requisito com TBD está especificado em tudo, exceto no item marcado.
 
 A entrevista não identificou os perfis internos da Prefeitura. Por isso, os requisitos se referem ao perfil Prefeitura, e cada ação atribuída a ele indica o TBD que definirá o perfil interno responsável.
 
@@ -94,7 +94,7 @@ Cada requisito recebe uma única prioridade, que vale para o requisito inteiro: 
 
 ## Origem da demanda e escopo
 
-**Origem da demanda.** O SaneaMapa responde a uma demanda de caráter social e educativo, sem fins lucrativos, apresentada como uma solicitação da comunidade ao CESMAC. O cliente não tem ligação com a prefeitura nem com qualquer secretaria municipal, e seus interesses ainda não estão bem definidos. Os requisitos se apoiam numa entrevista com esse cliente, registrada por dois integrantes do grupo. As duas anotações estão transcritas na Seção 9 e são a única fonte do que este documento atribui à "Entrevista".
+**Origem da demanda.** O SaneaMapa responde a uma demanda de caráter social e educativo, sem fins lucrativos, apresentada como uma solicitação da comunidade ao CESMAC. O cliente não tem ligação com a prefeitura nem com qualquer secretaria municipal, e seus interesses ainda não estão bem definidos. Os requisitos se apoiam numa entrevista com esse cliente, registrada por dois integrantes do grupo. As duas anotações estão transcritas na Seção 11 e são a única fonte do que este documento atribui à "Entrevista".
 
 **O que a entrevista pediu.** Segundo as anotações, o problema é que, "no papel", a rua está saneada, mas na prática não está. O objetivo é dar à própria comunidade o poder de questionar as áreas declaradas como saneadas. Para isso, o cliente pediu:
 
@@ -114,7 +114,7 @@ O cliente comentou que já existem fontes alternativas, mas difíceis de usar e 
 - a validação feita por um fiscal em vistoria de campo, a partir de uma fila com atribuição (TBD-25);
 - o envio anônimo com prioridade reduzida, que contraria a entrevista e fica como hipótese a validar (TBD-10).
 
-As funções que nenhum pedido exige ficaram fora desta versão e estão listadas na seção 10.3.
+As funções que nenhum pedido exige ficaram fora desta versão e estão listadas na seção 12.3.
 
 **Sistemas relacionados.** As informações a seguir são do levantamento do analista, não vieram da entrevista e não foram conferidas com o cliente. Na avaliação do analista, as bases públicas sobre saneamento não servem para apontar uma rua sem atendimento. O SNIS, substituído pelo SINISA, é alimentado uma vez por ano pelos próprios prestadores e divulga indicadores por município. O Censo do IBGE detalha o acesso até o setor censitário, mas só a cada dez anos e a partir da declaração do morador sobre a ligação à rede geral, que não distingue a rede disponível do serviço que de fato chega. A PNAD Contínua é amostral e não desce ao bairro. Essas limitações são compatíveis com o que a entrevista chamou de fontes difíceis de usar e pouco ágeis, e com a ideia de que a rua está saneada "no papel".
 
@@ -128,7 +128,7 @@ O sistema distingue três perfis de usuário.
 - **Prefeitura:** usuário da prefeitura que acompanha as denúncias no painel. Acessa o sistema com credencial individual. A entrevista prevê que a prefeitura veja o status e a quantidade de denúncias por localização; organizar a fila de validação é hipótese do analista.
 - **Fiscal:** quem valida a denúncia em campo. Acessa o sistema com credencial individual. A entrevista pede que a denúncia seja validada, mas não diz por quem; o perfil Fiscal é hipótese do analista [TBD-25].
 
-Fiscal e Prefeitura formam a equipe interna. O perfil Prefeitura agrupa perfis internos ainda não identificados [TBD-01 a TBD-09]. Quando esses perfis forem definidos, cada ação da matriz da seção 10.2 passará a indicar o perfil interno responsável. Os papéis "coordenador da fiscalização", "gestão" e "administrador", usados na versão 4, foram retirados por não terem fonte na entrevista.
+Fiscal e Prefeitura formam a equipe interna. O perfil Prefeitura agrupa perfis internos ainda não identificados [TBD-01 a TBD-09]. Quando esses perfis forem definidos, cada ação da matriz da seção 12.2 passará a indicar o perfil interno responsável. Os papéis "coordenador da fiscalização", "gestão" e "administrador", usados na versão 4, foram retirados por não terem fonte na entrevista.
 
 [[quebra]]
 
@@ -244,7 +244,7 @@ Reincidência: Boolean; gerado automaticamente ^4^
 **Regra e observações do preenchimento dos campos:**
 ^1^ Corrigíveis pelo fiscal na vistoria (RF007).
 ^2^ Incrementada a cada relato vinculado ao ponto.
-^3^ "Aguardando vistoria", "em vistoria", "confirmado" ou "não confirmado", conforme o ciclo de vida da seção 10.1.
+^3^ "Aguardando vistoria", "em vistoria", "confirmado" ou "não confirmado", conforme o ciclo de vida da seção 12.1.
 ^4^ Marcada quando um relato é vinculado a um ponto "confirmado", sem alterar o status do ponto [TBD-18].
 
 **Agrupamento:** ao receber um relato, o sistema deve vinculá-lo ao ponto mais próximo do mesmo tipo situado a até 50 metros, preservando as evidências, a descrição e a data de cada relato. Quando não houver ponto do mesmo tipo nesse raio, o sistema deve criar um ponto com status "aguardando vistoria", com o tipo e a coordenada do relato. Um relato vinculado a um ponto "não confirmado" devolve o ponto ao status "aguardando vistoria".
@@ -381,6 +381,27 @@ Ativo: Boolean; marcado por padrão ^4^
 **Fonte:** Analista (formatos do CPF e do celular); Legislação (LGPD) (registro das alterações); Derivado (demais regras).
 :::
 
+::: RF021 | Essencial
+O sistema deve criar o primeiro usuário interno na instalação, para que o cadastro de usuários (RF013) e a autenticação (RF018) possam ser usados, e impedir que a equipe interna fique sem nenhum usuário capaz de cadastrar outros.
+**Atores:** sistema.
+**Pré-condição:** nenhum usuário interno cadastrado.
+
+**Primeiro Usuário:**
+Dados do usuário: conforme o Cadastro de Usuário do RF013, com o perfil Prefeitura; obrigatório ^1^
+Link de definição de senha: String(200); gerado automaticamente ^2^
+
+**Regra e observações do preenchimento dos campos:**
+^1^ Informados na configuração da instalação do sistema, fora das telas do painel, e validados com as mesmas regras do RF013. O perfil é sempre Prefeitura [TBD-03].
+^2^ Enviado ao e-mail do primeiro usuário, válido por 24 horas e de uso único. O sistema não define nem exibe senha inicial; o usuário define a sua senha pelo link, conforme a política do RNF16.
+
+Obs1: a criação ocorre uma única vez. Quando já houver um usuário interno cadastrado, a configuração da instalação é ignorada.
+Obs2: o sistema não deve permitir desativar o último usuário ativo com o perfil Prefeitura (RF013).
+Obs3: a criação do primeiro usuário é registrada no log de auditoria (RF019).
+Obs4: se a autenticação usar o login institucional da Prefeitura [TBD-19], este requisito se limita a indicar qual conta institucional recebe o perfil Prefeitura.
+
+**Fonte:** Derivado.
+:::
+
 ## Indicadores do painel
 
 ::: RF015 | Importante
@@ -431,7 +452,7 @@ Tipo de evento: Integer; gerado automaticamente ^1^
 Objeto afetado: Integer; (identificador do relato, ponto, evidência ou usuário); gerado automaticamente
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Acesso a nome, telefone, coordenada exata ou áudio de morador; edição de foto (RF003); atribuição de ponto a fiscal (RF005); mudança de status de ponto (RF007); alteração de cadastro de usuário (RF013); e importação de dados do Censo (RF020).
+^1^ Acesso a nome, telefone, coordenada exata ou áudio de morador; edição de foto (RF003); atribuição de ponto a fiscal (RF005); mudança de status de ponto (RF007); alteração de cadastro de usuário (RF013); criação do primeiro usuário (RF021); e importação de dados do Censo (RF020).
 
 **Alteração e exclusão:** os registros de log não podem ser alterados nem excluídos.
 
@@ -528,6 +549,53 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 
 [[quebra]]
 
+# Matriz de avaliação de risco
+
+A matriz posiciona cada perigo da Seção 5 pela gravidade do dano, se ele ocorrer, e pela probabilidade de ocorrência com as soluções da Seção 5 já aplicadas. As duas classificações são hipóteses do analista e devem ser revistas quando os itens a definir forem respondidos.
+
+- **Gravidade:** catastrófico (1), dano grave a uma pessoa ou exposição de dados pessoais de muitos moradores; crítico (2), dano a uma pessoa ou decisão errada sobre um ponto; marginal (3), distorção corrigível da fila ou do mapa; insignificante (4), sem efeito sobre pessoas ou decisões.
+- **Probabilidade:** frequente (A), esperado várias vezes por mês; provável (B), esperado algumas vezes por ano; ocasional (C), pode ocorrer uma vez por ano; remoto (D), pouco provável durante a vida do sistema; improvável (E), só por falha simultânea de mais de uma solução; eliminado (F), as soluções tornam o perigo impossível.
+
+<!-- cols: 20,20,20,20,20 -->
+| Gravidade / probabilidade | Catastrófico (1) | Crítico (2) | Marginal (3) | Insignificante (4) |
+|---|---|---|---|---|
+| Frequente (A) | | | | |
+| Provável (B) | | | | |
+| Ocasional (C) | | RS009 | RS001, RS002, RS013 | |
+| Remoto (D) | RS003, RS004 | RS006, RS007, RS008, RS010 | | |
+| Improvável (E) | | RS011, RS012 | RS005 | |
+| Eliminado (F) | | | | |
+
+Os perigos de maior atenção são o RS003 e o RS004, por serem catastróficos, e o RS009, o mais provável entre os críticos. O RS003 depende da definição de quem vê os dados do morador [TBD-08], e o RS009, de quem distribui as vistorias [TBD-01] e de quem valida a denúncia [TBD-25].
+
+[[quebra]]
+
+# Matriz de rastreabilidade
+
+A matriz registra a ligação entre os requisitos funcionais. A letra "D" indica que o requisito da linha depende do requisito da coluna, isto é, não pode ser implementado sem ele. A letra "R" indica que os dois requisitos estão relacionados, porque um usa ou registra informações do outro, mas cada um pode ser implementado sem o outro. A célula vazia indica que não há ligação.
+
+<!-- cols: 10,6,6,6,6,6,6,6,6,6,6,6,6,6,6 -->
+| ID | RF001 | RF002 | RF003 | RF004 | RF005 | RF006 | RF007 | RF010 | RF013 | RF015 | RF018 | RF019 | RF020 | RF021 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RF001 | — | D | R | R | R |  |  |  |  |  |  | R |  |  |
+| RF002 | D | — |  | R |  |  |  |  |  |  |  | D |  |  |
+| RF003 | D |  | — |  |  |  | R | R |  |  |  | D |  |  |
+| RF004 | D | D |  | — | R | R | R | R |  | R |  |  | R |  |
+| RF005 | R |  |  | D | — | R | R |  | D |  | D | R |  |  |
+| RF006 |  |  |  | D | R | — |  | R |  | R | D |  |  |  |
+| RF007 |  |  | D | D | D |  | — | R |  |  | D | D |  |  |
+| RF010 |  |  | R | D |  | R | R | — |  | R | D |  | R |  |
+| RF013 |  |  |  |  | R |  |  |  | — |  | D | D |  | R |
+| RF015 |  |  |  | D |  | R |  | R |  | — | D |  |  |  |
+| RF018 |  |  |  |  | R | R | R | R | D | R | — | R | R | R |
+| RF019 | R | R | R |  | R |  | R |  | R |  | D | — | R | R |
+| RF020 |  |  |  | R |  |  |  | R |  |  | D | D | — |  |
+| RF021 |  |  |  |  |  |  |  |  | D |  | R | D |  | — |
+
+Nenhum requisito essencial depende de um requisito importante: o RF005, o RF010 e o RF015 usam o nível de urgência do RF006, e o RF010 usa a camada do Censo do RF020, quando eles existem, mas funcionam sem eles. Duas dependências são mútuas. A do RF001 com o RF002 é esperada, porque a localização faz parte do registro. A do RF013 com o RF018 é resolvida pelo RF021: o cadastro de usuários exige um usuário autenticado, e a autenticação exige um usuário cadastrado, por isso o primeiro usuário é criado na instalação, fora das telas do painel.
+
+[[quebra]]
+
 # Itens a definir
 
 Cada item abaixo é uma informação que a primeira entrevista não levantou. A coluna "Como resolver" indica a forma de obtê-la, e a lista serve de roteiro para as próximas entrevistas.
@@ -538,11 +606,11 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 | ID | O que falta definir | Responsável | Como resolver | Requisitos |
 |---|---|---|---|---|
 | TBD-01 | Qual perfil interno consulta a fila completa e atribui pontos a fiscais. | Cliente | Próxima entrevista com o cliente | RF005 |
-| TBD-02 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
-| TBD-03 | Qual perfil interno cadastra os usuários internos. | Cliente | Próxima entrevista com o cliente | RF013 |
+| TBD-02 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
+| TBD-03 | Qual perfil interno cadastra os usuários internos. | Cliente | Próxima entrevista com o cliente | RF013, RF021 |
 | TBD-04 | Qual perfil interno mantém as camadas de vulnerabilidade e importa os dados do Censo. | Cliente | Próxima entrevista com o cliente | RF006, RF020 |
-| TBD-05 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
-| TBD-06 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
+| TBD-05 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
+| TBD-06 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-07 | Qual perfil interno consulta o mapa, o painel e os indicadores. | Cliente | Próxima entrevista com o cliente | RF010, RF015 |
 | TBD-08 | Quais perfis internos acessam nome, telefone, coordenada exata e áudio do morador. | Cliente | Próxima entrevista com o cliente | RF001, RF002, RF003 |
 | TBD-09 | Qual perfil interno consulta o log de auditoria. | Cliente | Próxima entrevista com o cliente | RF019 |
@@ -553,18 +621,18 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 | ID | O que falta definir | Responsável | Como resolver | Requisitos |
 |---|---|---|---|---|
 | TBD-10 | Se o envio anônimo com prioridade reduzida, hipótese do analista, é mantido ou se a entrada fica só identificada, como registram as anotações da entrevista. | Cliente | Próxima entrevista com o cliente | RF001, RF005 |
-| TBD-11 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
+| TBD-11 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-12 | Removido: dependia de um requisito não funcional, retirado nesta revisão. | — | — | — |
 | TBD-13 | Se a imagem original sem desfoque deve ser guardada como prova, e com que acesso. | Cliente | Próxima entrevista com o cliente | RF003 |
 | TBD-14 | Substituído pelo TBD-22: a restrição do ofício por marcação contratual depende de o contrato fazer parte do escopo. | — | — | RF009 |
-| TBD-15 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
-| TBD-16 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
+| TBD-15 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
+| TBD-16 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-17 | Valores iniciais dos pesos das camadas de vulnerabilidade e dos pesos da fila. | Cliente | Próxima entrevista com o cliente | RF005, RF006 |
 | TBD-18 | Se o relato novo num ponto confirmado exige nova vistoria. | Cliente | Próxima entrevista com o cliente | RF004 |
-| TBD-19 | Se a autenticação usa credencial própria do sistema ou o login institucional da Prefeitura. | Cliente | Próxima entrevista com o cliente | RF018 |
+| TBD-19 | Se a autenticação usa credencial própria do sistema ou o login institucional da Prefeitura. | Cliente | Próxima entrevista com o cliente | RF018, RF021 |
 | TBD-20 | Prazo, em segundos, para o mapa refletir a alteração de um ponto. | Cliente | Próxima entrevista com o cliente | RF010 |
-| TBD-21 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
-| TBD-22 | Removido: o requisito saiu do escopo (seção 10.3). | — | — | — |
+| TBD-21 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
+| TBD-22 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-23 | Se o aplicativo funciona sem conexão. As anotações divergem: uma diz que não há plano para quem estiver sem internet, a outra registra uso off-line até a denúncia prosseguir. | Cliente | Próxima entrevista com o cliente | RF001, RNF13 |
 | TBD-24 | Removido: a integração com o Censo do IBGE e a transcrição por inteligência artificial foram tratadas como pedidos da entrevista. | — | — | RF003, RF020 |
 | TBD-25 | Quem valida a denúncia e como. A entrevista pede a validação; a vistoria de campo por um fiscal é hipótese do analista. | Cliente | Próxima entrevista com o cliente | RF005, RF007 |
@@ -578,12 +646,18 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 
 # Alterações em relação às versões anteriores
 
+## Mudanças da versão 7
+
+- Foram incluídas a matriz de avaliação de risco (Seção 6), que classifica os perigos RS001 a RS013 pela gravidade e pela probabilidade, e a matriz de rastreabilidade (Seção 7), que registra a ligação entre os requisitos funcionais, no formato do modelo de documento de requisitos da disciplina. As seções seguintes foram renumeradas de 8 a 12.
+- A matriz de rastreabilidade mostrou que nenhum requisito definia a criação do primeiro usuário interno, necessária para usar o RF013 e o RF018. Foi criado o RF021 (primeiro usuário), que também impede desativar o último usuário ativo com o perfil Prefeitura; o RF019 passou a registrar essa criação, e a matriz de permissões (seção 12.2) ganhou a ação correspondente.
+- Fora isso, os requisitos funcionais, não funcionais e de segurança não mudaram em relação à versão 6.
+
 ## Mudanças da versão 6
 
 - Os requisitos funcionais passaram a ser apresentados em tabelas com identificador, descrição e prioridade, no formato do modelo de documento de requisitos da disciplina. Cada descrição começa pelo enunciado no imperativo ("O sistema deve…") e traz os atores, os campos com tipo, tamanho, máscara e obrigatoriedade, as notas numeradas de preenchimento e, quando se aplicam, as regras de alteração, exclusão e pesquisa. A divisão de cada requisito em itens numerados (RF001.1, RF001.2 e assim por diante), adotada na versão 5, foi retirada.
 - Cada requisito passou a ter uma única prioridade, que vale para o requisito inteiro. Os requisitos que tinham partes essenciais e partes importantes (RF001, RF002, RF003, RF004 e RF019) ficaram essenciais.
 - Foram definidos, como hipótese do analista, os tamanhos e tipos que faltavam: nome do morador (120 caracteres), logradouro (150), bairro (80), fonte do dado das camadas (200), transcrição do áudio (2.000), os campos dos setores censitários (RF020) e os campos de evidência, fila e log.
-- O ciclo de vida do ponto, a matriz de permissões e as hipóteses fora do escopo, antes na Seção 2, passaram para os anexos (Seção 10).
+- O ciclo de vida do ponto, a matriz de permissões e as hipóteses fora do escopo, antes na Seção 2, passaram para os anexos (Seção 12).
 - Foram incluídos os requisitos não funcionais (Seção 4), divididos em requisitos de produto, organizacionais e externos, e os requisitos de segurança (Seção 5), no formato perigo e soluções do modelo. O limite de três telas do registro saiu do RF001 e passou a ser o RNF01.
 - As soluções dos requisitos de segurança acrescentaram regras aos requisitos funcionais, como hipótese do analista: limite de relatos por telefone e ausência de histórico no aparelho (RF001), marcação de evidência divergente e cuidados com o serviço de transcrição (RF003), foto só pela câmera e posição do fiscal na vistoria (RF007), registro da atribuição de pontos e da importação do Censo (RF019) e validação da importação do Censo (RF020).
 - Foram criados os itens a definir TBD-27 a TBD-30.
@@ -598,10 +672,10 @@ As subseções a seguir registram as mudanças de estrutura e as inconsistência
 - Os requisitos foram reescritos conforme a ISO/IEC/IEEE 29148:2018, com cada parágrafo de regras da versão 4 dividido em itens numerados. A versão 6 desfez essa divisão.
 - O título "Requisitos funcionais (casos de uso)" passou a "Requisitos funcionais", porque o documento não descreve casos de uso.
 - Os papéis "coordenador da fiscalização", "gestão" e "administrador" foram substituídos pelo perfil Prefeitura com TBD, porque não foram confirmados na entrevista.
-- Foram incluídos o ciclo de vida do ponto (seção 10.1), a matriz de permissões (seção 10.2), os itens a definir (Seção 6) e as referências (Seção 8).
-- Foram criados os grupos RF017 (consulta de protocolo), RF018 (autenticação) e RF019 (auditoria), que a versão 4 pressupunha sem especificar; o RF017 depois saiu do escopo (seção 10.3).
+- Foram incluídos o ciclo de vida do ponto (seção 12.1), a matriz de permissões (seção 12.2), os itens a definir (Seção 8) e as referências (Seção 10).
+- Foram criados os grupos RF017 (consulta de protocolo), RF018 (autenticação) e RF019 (auditoria), que a versão 4 pressupunha sem especificar; o RF017 depois saiu do escopo (seção 12.3).
 - Os requisitos não funcionais foram retirados desta revisão.
-- O escopo foi reduzido aos pedidos da entrevista e ao que eles exigem; as funções retiradas estão na seção 10.3.
+- O escopo foi reduzido aos pedidos da entrevista e ao que eles exigem; as funções retiradas estão na seção 12.3.
 - A fonte passou a ser indicada em cada requisito, e não mais no grupo, e prioridade, fonte e verificação são escritas por extenso nas tabelas.
 - A frase da versão 4 sobre o treinamento dos fiscais para reconhecer rosto ou placa não desfocados foi retirada, porque descreve um processo de trabalho e não um requisito do sistema.
 
@@ -627,15 +701,15 @@ As subseções a seguir registram as mudanças de estrutura e as inconsistência
 | 15 | Valores sem medida: "texto curto", "formato editável", "arquivo geográfico", "mesma foto", "tempo real". | Foram fixados como 100 caracteres (RF002), DOCX (RF009), GeoJSON ou CSV (RF008) e conteúdo idêntico (RF012). O prazo de atualização do painel ficou para o TBD-20 (RF010). Decisão do analista, aprovada pelo autor. |
 | 16 | A vistoria aceitava evidências sem obrigatoriedade, embora o ofício dependa delas. | Passa a ser obrigatória ao menos uma foto ou um vídeo quando o resultado for "confirmado" (RF007), e as observações ficam limitadas a 1.000 caracteres (RF007). Decisão do analista, aprovada pelo autor. |
 | 17 | A motivação do sistema era a fiscalização das metas do contrato de concessão pelo Marco Legal, assunto que não foi tratado na entrevista, cujo foco foi dar ao morador uma forma fácil de denunciar. | A seção 2.1 passou a ter o morador no centro. O cruzamento contratual (RF008) e os itens que dependem dele ficam a validar [TBD-22], com prioridade "importante". Decisão do analista, aprovada pelo autor. |
-| 18 | A versão 4 tratava a entrevista como feita com a Secretaria Municipal de Infraestrutura e Saneamento, atribuía a ela informações sem registro e apresentava como conferidas informações levantadas pelo analista. | O cliente não tem ligação com a prefeitura. A Seção 2 e a fonte de cada requisito foram refeitas a partir das anotações transcritas na Seção 9; o que não está nelas passou a "Analista". A integração com o Censo do IBGE (RF020) e a transcrição por inteligência artificial (RF003), pedidas na entrevista, foram incluídas. |
-| 19 | O documento tinha 205 requisitos funcionais, 163 deles hipóteses do analista, e 13 dos 20 grupos não atendiam a nenhum pedido da entrevista. | Ficaram os pedidos, os requisitos derivados deles (nova fonte "Derivado") e as hipóteses necessárias para especificá-los. Sete grupos e os requisitos isolados que nenhum pedido exige saíram do escopo (seção 10.3). Decisão do analista, aprovada pelo autor. |
+| 18 | A versão 4 tratava a entrevista como feita com a Secretaria Municipal de Infraestrutura e Saneamento, atribuía a ela informações sem registro e apresentava como conferidas informações levantadas pelo analista. | O cliente não tem ligação com a prefeitura. A Seção 2 e a fonte de cada requisito foram refeitas a partir das anotações transcritas na Seção 11; o que não está nelas passou a "Analista". A integração com o Censo do IBGE (RF020) e a transcrição por inteligência artificial (RF003), pedidas na entrevista, foram incluídas. |
+| 19 | O documento tinha 205 requisitos funcionais, 163 deles hipóteses do analista, e 13 dos 20 grupos não atendiam a nenhum pedido da entrevista. | Ficaram os pedidos, os requisitos derivados deles (nova fonte "Derivado") e as hipóteses necessárias para especificá-los. Sete grupos e os requisitos isolados que nenhum pedido exige saíram do escopo (seção 12.3). Decisão do analista, aprovada pelo autor. |
 
 # Referências
 
 - ISO/IEC/IEEE 29148:2018 – Systems and software engineering – Life cycle processes – Requirements engineering.
 - Brasil. Lei nº 13.709, de 14 de agosto de 2018 – Lei Geral de Proteção de Dados Pessoais (LGPD).
 - Brasil. Lei nº 14.026, de 15 de julho de 2020 – Atualiza o Marco Legal do Saneamento Básico.
-- Anotações da entrevista com o cliente, transcritas na Seção 9.
+- Anotações da entrevista com o cliente, transcritas na Seção 11.
 - Documento de Requisitos – SaneaMapa, versões 3, 4 e 5.
 
 [[quebra]]
@@ -707,6 +781,7 @@ A matriz de permissões mostra o que cada perfil pode fazer no sistema. Cada lin
 | Consultar a fila completa e atribuir pontos a fiscais | RF005 | — | — | Sim [TBD-01] |
 | Consultar mapa, painel e indicadores | RF010, RF015 | — | — | Sim [TBD-07] |
 | Cadastrar usuários internos | RF013 | — | — | Sim [TBD-03] |
+| Receber o primeiro acesso na instalação | RF021 | — | — | Sim [TBD-03] |
 | Manter camadas de vulnerabilidade e importar dados do Censo | RF006, RF020 | — | — | Sim [TBD-04] |
 | Consultar o log de auditoria | RF019 | — | — | Sim [TBD-09] |
 

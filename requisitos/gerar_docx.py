@@ -81,6 +81,9 @@ def tabela(linhas, percentuais):
         percentuais = [100 / colunas] * colunas
     larguras = [int(LARGURA_TABELA * p / sum(percentuais)) for p in percentuais]
     larguras[-1] = LARGURA_TABELA - sum(larguras[:-1])
+    # matriz (muitas colunas estreitas): fonte menor, margem menor e células centralizadas
+    matriz = colunas > 8
+    tamanho, margem = (14, 30) if matriz else (20, 80)
 
     bordas = "".join(
         f'<w:{lado} w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
@@ -90,7 +93,7 @@ def tabela(linhas, percentuais):
         "<w:tbl><w:tblPr>"
         f'<w:tblW w:w="{LARGURA_TABELA}" w:type="dxa"/><w:tblBorders>{bordas}</w:tblBorders>'
         '<w:tblLayout w:type="fixed"/>'
-        '<w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>'
+        f'<w:tblCellMar><w:left w:w="{margem}" w:type="dxa"/><w:right w:w="{margem}" w:type="dxa"/></w:tblCellMar>'
         '<w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/>'
         "</w:tblPr><w:tblGrid>"
         + "".join(f'<w:gridCol w:w="{w}"/>' for w in larguras)
@@ -104,8 +107,8 @@ def tabela(linhas, percentuais):
             tcpr = f'<w:tcW w:w="{largura}" w:type="dxa"/>' + (CINZA if cabecalho else "")
             celulas.append(
                 f"<w:tc><w:tcPr>{tcpr}</w:tcPr>"
-                + paragrafo(texto, alinhamento="center" if cabecalho else "left",
-                            tamanho=20, negrito=cabecalho, depois=40)
+                + paragrafo(texto, alinhamento="center" if cabecalho or matriz else "left",
+                            tamanho=tamanho, negrito=cabecalho, depois=40)
                 + "</w:tc>"
             )
         xml.append(f"<w:tr>{trpr}{''.join(celulas)}</w:tr>")
