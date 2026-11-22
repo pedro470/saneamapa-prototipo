@@ -6,7 +6,8 @@ Sistema de Registro e Notificação de Saneamento Básico com backend em **Java 
 
 - `saneamapa-app/`: Aplicação Spring Boot (API REST, segurança JWT, regras de domínio em POO, frontend estático em `src/main/resources/static/` e scripts SQL em `database/`).
 - `docker-compose.yml`: Orquestração da aplicação junto ao PostgreSQL.
-- `Documento de Requisitos - SaneaMapa v6.docx` e `requisitos/`: Documentação de requisitos do sistema.
+- `prd.md`, `docs/` e `specs/`: Documentação de produto (PRD), arquitetura e pilares de POO (`docs/arquitetura.md`), competências (`docs/skills.md`) e especificações funcionais (`specs/`).
+- `Documento de Requisitos - SaneaMapa v7.docx` e `requisitos/`: Especificação detalhada de requisitos do sistema.
 
 ## Como executar
 
