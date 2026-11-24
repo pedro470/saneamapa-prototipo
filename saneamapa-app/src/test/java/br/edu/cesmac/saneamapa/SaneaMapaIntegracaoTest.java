@@ -44,7 +44,6 @@ class SaneaMapaIntegracaoTest {
                 {
                   "tipoOcorrencia": "ESGOTO_CEU_ABERTO",
                   "descricao": "Esgoto vazando na esquina",
-                  "identificado": true,
                   "nomeMorador": "Morador Teste",
                   "telefoneMorador": "(82) 99999-1234",
                   "latitude": -9.64410,
@@ -72,7 +71,8 @@ class SaneaMapaIntegracaoTest {
                 {
                   "tipoOcorrencia": "ESGOTO_CEU_ABERTO",
                   "descricao": "Esgoto vazando novamente na rua do arame",
-                  "identificado": false,
+                  "nomeMorador": "Segundo Morador",
+                  "telefoneMorador": "(82) 98888-4321",
                   "latitude": -9.64412,
                   "longitude": -35.71556,
                   "precisaoMetros": 10,
@@ -90,7 +90,15 @@ class SaneaMapaIntegracaoTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.codigoPonto", is(codigoCriado)))
                 .andExpect(jsonPath("$.agrupadoEmPontoExistente", is(true)))
-                .andExpect(jsonPath("$.prioridadeReduzida", is(true)));
+                .andExpect(jsonPath("$.prioridadeReduzida").doesNotExist());
+
+        // 2b. RF001 (nota 5): relato sem nome e telefone é recusado, porque não há envio anônimo
+        mockMvc.perform(post("/api/morador/relatos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(segundoRelato
+                                .replace("\"nomeMorador\": \"Segundo Morador\",", "")
+                                .replace("\"telefoneMorador\": \"(82) 98888-4321\",", "")))
+                .andExpect(status().is4xxClientError());
 
         // 3. Endpoint público LGPD não expõe coordenadas nem urgência
         mockMvc.perform(get("/api/publico/pontos"))
@@ -174,7 +182,7 @@ class SaneaMapaIntegracaoTest {
         mockMvc.perform(get("/api/prefeitura/auditoria")
                         .header("Authorization", "Bearer " + tokenPref))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].tipoEvento", is("MUDANCA_STATUS_PONTO")));
+                .andExpect(jsonPath("$.itens[0].tipoEvento", is("MUDANCA_STATUS_PONTO")));
 
         // 8. Prefeitura valida erro de CPF duplicado no cadastro de usuário (RF013)
         String usuarioCpfDuplicado = """

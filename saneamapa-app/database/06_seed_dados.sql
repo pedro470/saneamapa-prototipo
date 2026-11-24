@@ -36,12 +36,12 @@ INSERT INTO item_fila_vistoria (ponto_id, data_entrada, pontuacao, fiscal_atribu
 (4, '2026-11-04 21:17:00-03', 31.00, NULL)
 ON CONFLICT (ponto_id) DO NOTHING;
 
-INSERT INTO relato (id, ponto_id, protocolo, data_hora_registro, tipo_ocorrencia, descricao, identificado, nome_morador, telefone_morador, situacao_envio, latitude, longitude, precisao_metros, logradouro, bairro, ponto_referencia, posicao_manual) VALUES
-(1, 1, 'SM-2026-004812', '2026-10-22 10:15:00-03', 'ESGOTO_CEU_ABERTO', 'Esgoto descendo pela rua até a creche.', TRUE, 'Maria José da Silva', '(82) 99876-5432', 'ENVIADO', -9.6712400, -35.7489300, 8, 'Rua São Domingos', 'Vergel do Lago', 'Em frente à creche municipal', FALSE),
-(2, 1, 'SM-2026-004899', '2026-11-07 14:19:00-03', 'ESGOTO_CEU_ABERTO', 'Fica empoçado o dia inteiro quando chove.', FALSE, NULL, NULL, 'ENVIADO', -9.6712500, -35.7489100, 12, 'Rua São Domingos', 'Vergel do Lago', 'Esquina da escola', FALSE),
-(3, 2, 'SM-2026-004610', '2026-10-24 09:00:00-03', 'RUA_SEM_ESGOTO',    'Vala aberta na frente das casas, cheiro forte.', FALSE, NULL, NULL, 'ENVIADO', -9.6801100, -35.7512000, 11, 'Travessa Santa Maria', 'Bom Parto', 'Perto do trapiche', FALSE),
-(4, 3, 'SM-2026-004720', '2026-10-25 11:30:00-03', 'CASA_SEM_AGUA',     'Quatro casas sem ligação, pegam água do vizinho.', TRUE, 'José Carlos Santos', '(82) 98811-4410', 'ENVIADO', -9.5530200, -35.7201100, 10, 'Rua Nova Esperança', 'Benedito Bentes', 'Quadra 4', FALSE),
-(5, 4, 'SM-2026-004880', '2026-11-06 18:45:00-03', 'ESGOTO_CEU_ABERTO', 'Esgoto correndo na vala da rua.', FALSE, NULL, NULL, 'ENVIADO', -9.6441000, -35.7155500, 40, 'Rua do Arame', 'Jacintinho', 'Perto do mercadinho', TRUE)
+INSERT INTO relato (id, ponto_id, protocolo, data_hora_registro, tipo_ocorrencia, descricao, nome_morador, telefone_morador, situacao_envio, latitude, longitude, precisao_metros, logradouro, bairro, ponto_referencia, posicao_manual) VALUES
+(1, 1, 'SM-2026-004812', '2026-10-22 10:15:00-03', 'ESGOTO_CEU_ABERTO', 'Esgoto descendo pela rua até a creche.', 'Maria José da Silva', '(82) 99876-5432', 'ENVIADO', -9.6712400, -35.7489300, 8, 'Rua São Domingos', 'Vergel do Lago', 'Em frente à creche municipal', FALSE),
+(2, 1, 'SM-2026-004899', '2026-11-07 14:19:00-03', 'ESGOTO_CEU_ABERTO', 'Fica empoçado o dia inteiro quando chove.', 'Edvaldo Ferreira', '(82) 99654-2210', 'ENVIADO', -9.6712500, -35.7489100, 12, 'Rua São Domingos', 'Vergel do Lago', 'Esquina da escola', FALSE),
+(3, 2, 'SM-2026-004610', '2026-10-24 09:00:00-03', 'RUA_SEM_ESGOTO',    'Vala aberta na frente das casas, cheiro forte.', 'Luciana Prado', '(82) 98102-7731', 'ENVIADO', -9.6801100, -35.7512000, 11, 'Travessa Santa Maria', 'Bom Parto', 'Perto do trapiche', FALSE),
+(4, 3, 'SM-2026-004720', '2026-10-25 11:30:00-03', 'CASA_SEM_AGUA',     'Quatro casas sem ligação, pegam água do vizinho.', 'José Carlos Santos', '(82) 98811-4410', 'ENVIADO', -9.5530200, -35.7201100, 10, 'Rua Nova Esperança', 'Benedito Bentes', 'Quadra 4', FALSE),
+(5, 4, 'SM-2026-004880', '2026-11-06 18:45:00-03', 'ESGOTO_CEU_ABERTO', 'Esgoto correndo na vala da rua.', 'Antônio Barbosa', '(82) 99230-5518', 'ENVIADO', -9.6441000, -35.7155500, 40, 'Rua do Arame', 'Jacintinho', 'Perto do mercadinho', TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO evidencia (id, relato_id, tipo_evidencia, origem, evidencia_divergente, arquivo_uso_caminho, data_hora_captura, latitude_captura, longitude_captura, duracao_segundos, desfoque_aplicado, som_removido, transcricao) VALUES

@@ -1,3 +1,27 @@
+        <label><span class="t-rotulo">Usuário</span><select class="campo" name="aud-usuario" onchange="filtrarAuditoria('usuarioId', this.value)">
+          <option value="">Todos</option>
+          <option value="SISTEMA" ${st.filtrosAudit.usuarioId==='SISTEMA'?'selected':''}>Automático do sistema</option>
+          ${st.usuarios.map(u=>`<option value="${u.id}" ${st.filtrosAudit.usuarioId==u.id?'selected':''}>${esc(u.nomeCompleto)}</option>`).join('')}
+        </select></label>
+        <label><span class="t-rotulo">Evento</span><select class="campo" name="aud-evento" onchange="filtrarAuditoria('tipoEvento', this.value)">
+          <option value="">Todos</option>
+          ${EVENTOS_AUDITORIA.map(([id, nome]) => `<option value="${id}" ${st.filtrosAudit.tipoEvento===id?'selected':''}>${nome}</option>`).join('')}
+        </select></label>
+        <label><span class="t-rotulo">De</span><input class="campo" name="aud-de" type="date" value="${esc(st.filtrosAudit.de)}" onchange="filtrarAuditoria('de', this.value)"></label>
+        <label><span class="t-rotulo">Até</span><input class="campo" name="aud-ate" type="date" value="${esc(st.filtrosAudit.ate)}" onchange="filtrarAuditoria('ate', this.value)"></label>
+      </div>
+      <p class="t-pequeno" style="color:var(--soft); margin:0;">${st.paginaAudit.totalItens} registro(s) no período · página ${st.paginaAudit.totalPaginas ? st.paginaAudit.pagina + 1 : 0} de ${st.paginaAudit.totalPaginas}</p>
+      <div class="tabela-rolar"><table class="tabela">
+        <thead><tr><th>Data e hora</th><th>Responsável</th><th>Evento</th><th>Detalhes</th></tr></thead>
+        <tbody>${st.logs.length ? st.logs.map(l => `<tr><td class="t-meta">${new Date(l.dataHora).toLocaleString('pt-BR')}</td><td>${esc(l.atorNome)}</td><td>${esc(l.eventoRotulo)}</td><td>${esc(l.detalhes)}</td></tr>`).join('')
+          : `<tr><td colspan="4" style="text-align:center; color:var(--soft); padding:20px;">Nenhum registro no período e filtros escolhidos.</td></tr>`}</tbody>
+      </table></div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="botao" ${st.paginaAudit.pagina > 0 ? '' : 'disabled'} onclick="paginaAuditoria(-1)">Mais recentes</button>
+        <button type="button" class="botao" ${st.paginaAudit.pagina + 1 < st.paginaAudit.totalPaginas ? '' : 'disabled'} onclick="paginaAuditoria(1)">Mais antigos</button>
+      </div>`;
+  }
+
 <!doctype html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -16,8 +40,18 @@
 <div id="root"></div>
 
 <script src="/js/avisos.js"></script>
+<script src="/js/acessibilidade.js"></script>
+<script src="/js/tipos-ocorrencia.js"></script>
 <script src="/js/mapa-saneamapa.js"></script>
 <script>
+// RF006, nota 3: peso sugerido por categoria (valores iniciais do TBD-17); a Prefeitura pode alterar.
+const PESO_SUGERIDO_CATEGORIA = {
+  PUBLICO_INFANTIL_ESCOLAR: 3,
+  GESTANTES_RECEM_NASCIDOS: 3,
+  VULNERABILIDADE_EPIDEMIOLOGICA: 3,
+  IDOSOS_CUIDADOS: 2,
+  COMUNIDADES_TRADICIONAIS_VULNERAVEIS: 2
+};
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 
 let st = {
@@ -43,13 +77,59 @@ let st = {
   alteracoes: [],
   erroUsuario: '',
   msgUsuario: '',
+  // Rascunhos dos formulários: o que foi digitado continua na tela quando o servidor recusa.
+  rascunhoUsuario: {},
+  editandoUsuarioId: null,
   erroCamada: '',
   msgCamada: '',
+  rascunhoCamada: {},
   importacoes: [],
   resImportacao: null,
   logs: [],
-  filtrosAudit: { usuarioId: '', tipoEvento: '', de: '', ate: '' }
+  paginaAudit: { pagina: 0, totalPaginas: 0, totalItens: 0 },
+  filtrosAudit: { usuarioId: '', tipoEvento: '', de: '', ate: '' },
+  filtrosInd: { dias: '', bairro: '' },
+  fiscalEscolhido: {},
+  msgRedefinicao: '',
+  redefinindo: false
 };
+
+const EVENTOS_AUDITORIA = [
+  ['ACESSO_CONTATO_MORADOR', 'Acesso a nome e telefone'],
+  ['ACESSO_COORDENADA_EXATA', 'Acesso à coordenada exata'],
+  ['AUDIO_OUVIDO', 'Áudio ouvido'],
+  ['EDICAO_FOTO', 'Edição de foto'],
+  ['CORRECAO_TRANSCRICAO', 'Correção de transcrição'],
+  ['ATRIBUICAO_PONTO', 'Atribuição de ponto'],
+  ['RETIRADA_ATRIBUICAO', 'Retirada de atribuição'],
+  ['MUDANCA_STATUS_PONTO', 'Mudança de status'],
+  ['ALTERACAO_USUARIO', 'Alteração de usuário'],
+  ['IMPORTACAO_CENSO', 'Importação do Censo'],
+  ['ROLLBACK_CENSO', 'Retorno a importação anterior do Censo']
+];
+
+const PERIODOS = [[7, 'Últimos 7 dias'], [30, 'Últimos 30 dias'], [90, 'Últimos 90 dias'], [365, 'Últimos 12 meses']];
+
+function opcoesPeriodo(valorAtual) {
+  return `<option value="">Todo o período</option>` + PERIODOS.map(([d, n]) =>
+    `<option value="${d}" ${String(valorAtual) === String(d) ? 'selected' : ''}>${n}</option>`).join('');
+}
+
+function tipoComIcone(id, rotulo) {
+  const t = SaneaMapaTipos.porId(id);
+  return `<span class="tipo-com-icone">${SaneaMapaTipos.icone(id, 18, t.cor)}${esc(rotulo || t.nome)}</span>`;
+}
+
+function tomUrgencia(nivel) {
+  return nivel === 'CRITICA' ? 'critico' : nivel === 'ELEVADA' ? 'atencao' : 'neutro';
+}
+
+function dataIsoHoje(deslocDias = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + deslocDias);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 function urlMidiaAutenticada(caminho) {
   if (!caminho || !caminho.startsWith('/api/midias/')) return '';
@@ -108,7 +188,30 @@ function sair() {
   encerrarSessao('');
 }
 
-async function carregarAba(aba) {
+async function esqueciSenha() {
+  st.erroLogin = '';
+  st.msgRedefinicao = '';
+  if (!st.email || !st.email.includes('@')) {
+    st.erroLogin = 'Digite seu e-mail institucional no campo acima e clique de novo em "Esqueci minha senha".';
+    render();
+    return;
+  }
+  st.redefinindo = true;
+  render();
+  try {
+    const res = await api('/api/auth/redefinir-senha', { method: 'POST', body: JSON.stringify({ email: st.email }) });
+    st.msgRedefinicao = res.mensagem;
+    SaneaMapaA11y.anunciar(res.mensagem);
+  } catch (err) {
+    st.erroLogin = err.message;
+  } finally {
+    st.redefinindo = false;
+    render();
+  }
+}
+
+async function carregarAba(aba, focarTitulo = false) {
+  const mudouAba = st.aba !== aba;
   st.aba = aba;
   if (aba === 'mapa') {
     const q = new URLSearchParams();
@@ -136,8 +239,8 @@ async function carregarAba(aba) {
     }
   } else if (aba === 'indicadores') {
     const q = new URLSearchParams();
-    if (st.filtros.dias) q.set('dias', st.filtros.dias);
-    if (st.filtros.bairro) q.set('bairro', st.filtros.bairro);
+    if (st.filtrosInd.dias) q.set('dias', st.filtrosInd.dias);
+    if (st.filtrosInd.bairro) q.set('bairro', st.filtrosInd.bairro);
     st.indicadores = await api('/api/prefeitura/indicadores?' + q.toString());
   } else if (aba === 'usuarios') {
     [st.usuarios, st.alteracoes] = await Promise.all([
@@ -153,14 +256,33 @@ async function carregarAba(aba) {
     if (st.filtrosAudit.usuarioId === 'SISTEMA') q.set('apenasSistema', 'true');
     else if (st.filtrosAudit.usuarioId) q.set('usuarioId', st.filtrosAudit.usuarioId);
     if (st.filtrosAudit.tipoEvento) q.set('tipoEvento', st.filtrosAudit.tipoEvento);
-    if (st.filtrosAudit.de) q.set('de', st.filtrosAudit.de);
-    if (st.filtrosAudit.ate) q.set('ate', st.filtrosAudit.ate);
-    [st.logs, st.usuarios] = await Promise.all([
+    // Sem período escolhido, a consulta mostra os últimos 30 dias (o log só cresce).
+    if (!st.filtrosAudit.de) st.filtrosAudit.de = dataIsoHoje(-30);
+    if (!st.filtrosAudit.ate) st.filtrosAudit.ate = dataIsoHoje(0);
+    q.set('de', st.filtrosAudit.de);
+    q.set('ate', st.filtrosAudit.ate);
+    q.set('pagina', String(st.paginaAudit.pagina || 0));
+    const [pagina, usuarios] = await Promise.all([
       api('/api/prefeitura/auditoria?' + q.toString()),
       api('/api/prefeitura/usuarios')
     ]);
+    st.logs = pagina.itens;
+    st.paginaAudit = { pagina: pagina.pagina, totalPaginas: pagina.totalPaginas, totalItens: pagina.totalItens };
+    st.usuarios = usuarios;
   }
   render();
+  if (mudouAba || focarTitulo) SaneaMapaA11y.focarTitulo(document.querySelector('main.area'));
+}
+
+function filtrarAuditoria(campo, valor) {
+  st.filtrosAudit[campo] = valor;
+  st.paginaAudit.pagina = 0;
+  carregarAba('auditoria');
+}
+
+function paginaAuditoria(delta) {
+  st.paginaAudit.pagina = Math.max(0, (st.paginaAudit.pagina || 0) + delta);
+  carregarAba('auditoria');
 }
 
 async function selecionarPonto(id, manterLogs = false) {
@@ -170,12 +292,22 @@ async function selecionarPonto(id, manterLogs = false) {
   render();
 }
 
-async function atribuirFiscal(pontoId, fiscalId) {
-  await api(`/api/prefeitura/pontos/${pontoId}/atribuicao`, {
-    method: 'PUT',
-    body: JSON.stringify({ fiscalId: fiscalId ? Number(fiscalId) : null })
-  });
-  await carregarAba('mapa');
+async function atribuirFiscal(pontoId) {
+  const escolhido = st.fiscalEscolhido[pontoId];
+  const fiscalId = escolhido === undefined ? null : escolhido;
+  try {
+    await api(`/api/prefeitura/pontos/${pontoId}/atribuicao`, {
+      method: 'PUT',
+      body: JSON.stringify({ fiscalId: fiscalId ? Number(fiscalId) : null })
+    });
+    delete st.fiscalEscolhido[pontoId];
+    await carregarAba('mapa');
+    SaneaMapaA11y.anunciar(fiscalId ? 'Fiscal atribuído ao ponto.' : 'Atribuição retirada do ponto.');
+  } catch (err) {
+    if (err.tratado) return;
+    SaneaMapaAvisos.mostrarErro(err.message);
+    await carregarAba('mapa');
+  }
 }
 
 async function revelarCoord() {
@@ -197,29 +329,73 @@ async function ouvirAudio(evId) {
   await selecionarPonto(st.pontoSelId, true);
 }
 
-async function criarUsuario(e) {
+async function salvarUsuario(e) {
   e.preventDefault();
   st.erroUsuario = ''; st.msgUsuario = '';
   const f = new FormData(e.target);
+  st.rascunhoUsuario = {
+    cpf: f.get('cpf') || '', nome: f.get('nome') || '', email: f.get('email') || '',
+    celular: f.get('celular') || '', senha: f.get('senha') || '', perfil: f.get('perfil') || 'FISCAL',
+    ativo: f.get('ativo') === 'on'
+  };
+  const r = st.rascunhoUsuario;
   try {
-    await api('/api/prefeitura/usuarios', {
-      method: 'POST',
-      body: JSON.stringify({
-        cpf: f.get('cpf'), nomeCompleto: f.get('nome'), email: f.get('email'),
-        celular: f.get('celular'), senha: f.get('senha'), perfil: f.get('perfil'), ativo: f.get('ativo') === 'on'
-      })
-    });
-    st.msgUsuario = 'Usuário cadastrado com sucesso.';
+    if (st.editandoUsuarioId) {
+      await api(`/api/prefeitura/usuarios/${st.editandoUsuarioId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ nomeCompleto: r.nome, email: r.email, celular: r.celular, perfil: r.perfil, ativo: r.ativo })
+      });
+      st.msgUsuario = 'Cadastro atualizado. A alteração foi registrada no histórico.';
+    } else {
+      await api('/api/prefeitura/usuarios', {
+        method: 'POST',
+        body: JSON.stringify({
+          cpf: r.cpf, nomeCompleto: r.nome, email: r.email,
+          celular: r.celular, senha: r.senha, perfil: r.perfil, ativo: r.ativo
+        })
+      });
+      st.msgUsuario = 'Usuário cadastrado com sucesso.';
+    }
+    // Só limpa o formulário quando o servidor aceitou.
+    st.rascunhoUsuario = {};
+    st.editandoUsuarioId = null;
     await carregarAba('usuarios');
+    SaneaMapaA11y.anunciar(st.msgUsuario);
   } catch (err) {
+    if (err.tratado) return;
     st.erroUsuario = err.message;
     render();
+    SaneaMapaA11y.anunciar(err.message, true);
   }
 }
 
+function editarUsuario(id) {
+  const u = st.usuarios.find(x => x.id === id);
+  if (!u) return;
+  st.editandoUsuarioId = id;
+  st.erroUsuario = ''; st.msgUsuario = '';
+  st.rascunhoUsuario = { cpf: u.cpfMascarado, nome: u.nomeCompleto, email: u.email, celular: u.celular, senha: '', perfil: u.perfil, ativo: u.ativo };
+  render();
+  document.getElementById('form-usuario')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelector('#form-usuario [name="nome"]')?.focus({ preventScroll: true });
+}
+
+function cancelarEdicaoUsuario() {
+  st.editandoUsuarioId = null;
+  st.rascunhoUsuario = {};
+  st.erroUsuario = '';
+  render();
+}
+
 async function alternarUsuario(id) {
-  await api(`/api/prefeitura/usuarios/${id}/alternar-ativo`, { method: 'PATCH' });
-  st.msgUsuario = 'Situação do usuário atualizada.';
+  try {
+    await api(`/api/prefeitura/usuarios/${id}/alternar-ativo`, { method: 'PATCH' });
+    st.msgUsuario = 'Situação do usuário atualizada.';
+    st.erroUsuario = '';
+  } catch (err) {
+    if (err.tratado) return;
+    st.erroUsuario = err.message;
+  }
   await carregarAba('usuarios');
 }
 
@@ -228,6 +404,7 @@ async function criarCamada(e) {
   st.erroCamada = ''; st.msgCamada = '';
   const f = new FormData(e.target);
   const tipoGeom = f.get('tipoGeometria');
+  st.rascunhoCamada = Object.fromEntries(f.entries());
   try {
     await api('/api/prefeitura/camadas', {
       method: 'POST',
@@ -245,16 +422,26 @@ async function criarCamada(e) {
       })
     });
     st.msgCamada = 'Camada salva e urgência dos pontos recalculada.';
+    st.rascunhoCamada = {};
     await carregarAba('camadas');
+    SaneaMapaA11y.anunciar(st.msgCamada);
   } catch (err) {
+    if (err.tratado) return;
     st.erroCamada = err.message;
     render();
+    SaneaMapaA11y.anunciar(err.message, true);
   }
 }
 
 async function alternarCamada(id) {
-  await api(`/api/prefeitura/camadas/${id}/alternar-ativa`, { method: 'PATCH' });
-  st.msgCamada = 'Camada atualizada e urgências recalculadas.';
+  try {
+    await api(`/api/prefeitura/camadas/${id}/alternar-ativa`, { method: 'PATCH' });
+    st.msgCamada = 'Camada atualizada e urgências recalculadas.';
+    st.erroCamada = '';
+  } catch (err) {
+    if (err.tratado) return;
+    st.erroCamada = err.message;
+  }
   await carregarAba('camadas');
 }
 
@@ -264,14 +451,26 @@ async function importarCenso(e) {
   if (!file) return;
   const fd = new FormData();
   fd.append('arquivo', file);
-  st.resImportacao = await api('/api/prefeitura/censo/importar', { method: 'POST', body: fd });
+  try {
+    st.resImportacao = await api('/api/prefeitura/censo/importar', { method: 'POST', body: fd });
+  } catch (err) {
+    if (err.tratado) return;
+    st.resImportacao = { sucesso: false, mensagem: err.message, erros: [] };
+  }
   await carregarAba('censo');
+  SaneaMapaA11y.anunciar(st.resImportacao.mensagem, !st.resImportacao.sucesso);
 }
 
 async function voltarCenso(id) {
-  await api(`/api/prefeitura/censo/importacoes/${id}/voltar`, { method: 'POST' });
-  st.resImportacao = { sucesso: true, mensagem: 'Camada do Censo restaurada para a importação selecionada.', erros: [] };
+  try {
+    await api(`/api/prefeitura/censo/importacoes/${id}/voltar`, { method: 'POST' });
+    st.resImportacao = { sucesso: true, mensagem: 'Camada do Censo restaurada para a importação selecionada.', erros: [] };
+  } catch (err) {
+    if (err.tratado) return;
+    st.resImportacao = { sucesso: false, mensagem: err.message, erros: [] };
+  }
   await carregarAba('censo');
+  SaneaMapaA11y.anunciar(st.resImportacao.mensagem, !st.resImportacao.sucesso);
 }
 
 function inicializarMapaPrefeitura() {
@@ -319,9 +518,9 @@ function renderDetalhePonto() {
     <article class="caixa detalhe-horizontal">
       <div class="tarja">
         <h2>${esc(r.codigoExibicao)}</h2>
-        <span class="chip">${esc(r.tipoRotulo)}</span>
+        <span class="chip">${tipoComIcone(r.tipoOcorrencia, r.tipoRotulo)}</span>
         <span class="estado">${esc(r.statusRotulo)}</span>
-        <span class="estado">Urgência ${esc(r.nivelRotulo)}</span>
+        <span class="estado" data-tom="${tomUrgencia(r.nivelUrgencia)}">Urgência ${esc(r.nivelRotulo)}</span>
         ${r.reincidencia ? `<span class="estado" data-tom="atencao">Reincidência</span>` : ''}
         <span class="conta">${r.quantidadeRelatos} relato(s)</span>
       </div>
@@ -340,11 +539,11 @@ function renderDetalhePonto() {
             <b>Relatos vinculados (${d.relatos.length})</b>
             ${d.relatos.map(rel => `
               <div class="t-pequeno" style="border-bottom:1px solid var(--line); padding-bottom:4px;">
-                <b>${esc(rel.protocolo)}</b> (${rel.identificado?'Identificado':'Anônimo'}): ${esc(rel.descricao||'Sem descrição')}
+                <b>${esc(rel.protocolo)}</b>: ${esc(rel.descricao||'Sem descrição')}
                 ${rel.logradouro || rel.pontoReferencia ? `<br><span style="color:var(--soft);">${esc([rel.logradouro, rel.bairro, rel.pontoReferencia].filter(Boolean).join(' · '))}</span>` : ''}
               </div>`).join('')}
             ${st.contatos ? st.contatos.contatos.map(c=>`<div class="t-pequeno"><b>${esc(c.nomeMorador)}</b> · ${esc(c.telefoneMorador)}</div>`).join('') + `<span class="t-pequeno" style="color:var(--soft);">${esc(st.contatos.avisoAuditoria)}</span>`
-              : `<button type="button" class="botao quieto" style="justify-self:start;padding:0;" onclick="revelarContatos()">Ver nome e telefone dos identificados (acesso registrado)</button>`}
+              : `<button type="button" class="botao quieto" style="justify-self:start;padding:0;" onclick="revelarContatos()">Ver nome e telefone dos moradores (acesso registrado)</button>`}
           </div>
 
           <div class="detalhe-bloco">
@@ -352,11 +551,16 @@ function renderDetalhePonto() {
             ${naFila ? `
               <label style="display:grid; gap:6px;">
                 <span class="t-pequeno" style="color:var(--soft);">Selecione o fiscal para vistoriar este ponto:</span>
-                <select class="campo" onchange="atribuirFiscal(${r.id}, this.value)">
+                <select class="campo" id="sel-fiscal-${r.id}" onchange="st.fiscalEscolhido[${r.id}] = this.value">
                   <option value="">Sem fiscal atribuído (retirar)</option>
-                  ${st.fiscais.map(f => `<option value="${f.id}" ${r.fiscalId===f.id?'selected':''}>${esc(f.nomeCompleto)}</option>`).join('')}
+                  ${st.fiscais.map(f => {
+                    const escolhido = st.fiscalEscolhido[r.id] !== undefined ? String(st.fiscalEscolhido[r.id]) === String(f.id) : r.fiscalId === f.id;
+                    return `<option value="${f.id}" ${escolhido ? 'selected' : ''}>${esc(f.nomeCompleto)}</option>`;
+                  }).join('')}
                 </select>
-              </label>` : `<span class="t-pequeno">Vistoriado por <b>${esc(r.fiscalNome)}</b></span>`}
+              </label>
+              <button type="button" class="botao" style="justify-self:start;" onclick="if (st.fiscalEscolhido[${r.id}] === undefined) st.fiscalEscolhido[${r.id}] = document.getElementById('sel-fiscal-${r.id}').value; atribuirFiscal(${r.id})">Atribuir</button>
+              <span class="t-pequeno" style="color:var(--soft);">Atual: ${esc(r.fiscalNome)}</span>` : `<span class="t-pequeno">Vistoriado por <b>${esc(r.fiscalNome)}</b></span>`}
           </div>
         </div>
 
@@ -366,6 +570,13 @@ function renderDetalhePonto() {
             ${d.evidencias.map(renderEvidenciaPainel).join('')}
           </div>
         </div>
+
+        <div style="display:grid; gap:8px;">
+          <h3 style="margin:0; font-size:15px;">Histórico do ponto</h3>
+          ${(d.historico || []).length ? `<ol style="margin:0; padding-left:18px; display:grid; gap:4px;">
+            ${d.historico.map(h => `<li class="t-pequeno"><span class="t-meta">${new Date(h.dataHora).toLocaleString('pt-BR')}</span> · <b>${esc(h.tipoEvento)}</b> · ${esc(h.atorNome)}${h.detalhes ? ` — ${esc(h.detalhes)}` : ''}</li>`).join('')}
+          </ol>` : '<span class="t-pequeno" style="color:var(--soft);">Nenhum evento registrado para este ponto.</span>'}
+        </div>
       </div>
     </article>`;
 }
@@ -373,19 +584,21 @@ function renderDetalhePonto() {
 function render() {
   const root = document.getElementById('root');
   if (!st.token) {
-    root.innerHTML = `
+    SaneaMapaA11y.redesenhar(root, `
       <div style="min-height:100vh; display:grid; place-items:center; background:var(--trilho); padding:24px;">
         <main style="width:100%; max-width:420px; background:var(--surface); border-radius:var(--radius-caixa); padding:36px 28px; display:grid; gap:18px;">
           <div><h1 class="t-titulo-pagina" style="margin:0;">SaneaMapa</h1><p class="lede" style="margin:0;">Painel da Prefeitura</p></div>
-          ${st.erroLogin ? `<div class="chamada" data-tom="critico"><span class="rotulo">Acesso negado</span><span class="t-pequeno">${esc(st.erroLogin)}</span></div>` : ''}
+          ${st.erroLogin ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Acesso negado</span><span class="t-pequeno">${esc(st.erroLogin)}</span></div>` : ''}
+          ${st.msgRedefinicao ? `<div class="chamada" data-tom="neutro" role="status"><span class="rotulo">Redefinição de senha</span><span class="t-pequeno">${esc(st.msgRedefinicao)}</span></div>` : ''}
           <form onsubmit="login(event)" style="display:grid; gap:12px;">
-            <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@exemplo.gov.br" required></label>
-            <label class="field-group"><span class="t-rotulo">Senha</span><input class="campo" type="password" value="${esc(st.senha)}" oninput="st.senha=this.value" placeholder="Digite sua senha" required></label>
+            <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" name="email" autocomplete="username" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@exemplo.gov.br" required></label>
+            <label class="field-group"><span class="t-rotulo">Senha</span><input class="campo" type="password" name="senha" autocomplete="current-password" value="${esc(st.senha)}" oninput="st.senha=this.value" placeholder="Digite sua senha" required></label>
             <button class="botao primario" type="submit">Entrar</button>
           </form>
+          <button type="button" class="botao quieto" style="justify-self:start; padding:0;" ${st.redefinindo ? 'disabled' : ''} onclick="esqueciSenha()">${st.redefinindo ? 'Enviando pedido...' : 'Esqueci minha senha'}</button>
           <a href="/index.html" class="t-pequeno">Voltar ao portal</a>
         </main>
-      </div>`;
+      </div>`);
     return;
   }
 
@@ -426,7 +639,9 @@ function render() {
           <option value="ELEVADA" ${st.filtros.urgencia==='ELEVADA'?'selected':''}>Elevada</option>
           <option value="NORMAL" ${st.filtros.urgencia==='NORMAL'?'selected':''}>Normal</option>
         </select></label>
-        <label><span class="t-rotulo">Bairro</span><input class="campo" placeholder="Ex.: Vergel do Lago" value="${esc(st.filtros.bairro)}" onchange="st.filtros.bairro=this.value; carregarAba('mapa');"></label>
+        <label><span class="t-rotulo">Bairro</span><input class="campo" name="filtro-bairro" placeholder="Ex.: Vergel do Lago" value="${esc(st.filtros.bairro)}" onchange="st.filtros.bairro=this.value; carregarAba('mapa');"></label>
+        <label><span class="t-rotulo">Período do último relato</span><select class="campo" name="filtro-dias" onchange="st.filtros.dias=this.value; carregarAba('mapa');">${opcoesPeriodo(st.filtros.dias)}</select></label>
+        <label><span class="t-rotulo">Mínimo de relatos</span><input class="campo" name="filtro-min-relatos" type="number" min="1" placeholder="Ex.: 3" value="${esc(st.filtros.minRelatos)}" onchange="st.filtros.minRelatos=this.value; carregarAba('mapa');"></label>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center;">
         <b class="t-rotulo">Camadas do mapa:</b>
@@ -447,11 +662,11 @@ function render() {
                 <tr style="${st.pontoSelId===p.id?'background:var(--accent-soft);':''}">
                   <td>${p.posicaoFila ?? '—'}</td>
                   <td><button type="button" class="botao quieto" style="padding:0;" onclick="selecionarPonto(${p.id})"><b>${esc(p.codigoExibicao)}</b></button></td>
-                  <td>${esc(p.tipoRotulo)}</td>
+                  <td>${tipoComIcone(p.tipoOcorrencia, p.tipoRotulo)}</td>
                   <td>${esc(p.trechoRua)}<br><span class="t-meta" style="color:var(--soft);">${esc(p.bairro)}</span></td>
                   <td>${p.quantidadeRelatos}</td>
                   <td>${p.diasEspera} d</td>
-                  <td>${esc(p.nivelRotulo)}</td>
+                  <td><span class="estado" data-tom="${tomUrgencia(p.nivelUrgencia)}">${esc(p.nivelRotulo)}</span></td>
                   <td>${p.pontuacao ?? '—'}</td>
                   <td><span class="estado">${esc(p.statusRotulo)}</span></td>
                   <td>${esc(p.fiscalNome)}</td>
@@ -468,7 +683,11 @@ function render() {
         ${itens.map(i => `<li><span>${esc(i.rotulo)}</span><b>${i.quantidade}</b><span class="linha-2"><span class="barra-ind" style="width:${ind.totalPontos ? Math.round(i.quantidade/ind.totalPontos*100) : 0}%"></span></span></li>`).join('')}
       </ul></div></article>`;
     mainHtml = `
-      <header class="cabecalho" style="max-width:none;"><h1 class="t-titulo-pagina">Indicadores</h1><p class="lede">Consolidado de ${ind.totalPontos} ponto(s) registrados.</p></header>
+      <header class="cabecalho" style="max-width:none;"><h1 class="t-titulo-pagina">Indicadores</h1><p class="lede">Consolidado de ${ind.totalPontos} ponto(s)${st.filtrosInd.dias || st.filtrosInd.bairro ? ' no filtro escolhido' : ' registrados'}.</p></header>
+      <div class="formulario" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+        <label><span class="t-rotulo">Período do último relato</span><select class="campo" name="ind-dias" onchange="st.filtrosInd.dias=this.value; carregarAba('indicadores');">${opcoesPeriodo(st.filtrosInd.dias)}</select></label>
+        <label><span class="t-rotulo">Bairro</span><input class="campo" name="ind-bairro" placeholder="Todos os bairros" value="${esc(st.filtrosInd.bairro)}" onchange="st.filtrosInd.bairro=this.value; carregarAba('indicadores');"></label>
+      </div>
       <div class="grade-caixas">
         ${quadro('Por status', ind.porStatus)}
         ${quadro('Por tipo', ind.porTipo)}
@@ -478,23 +697,29 @@ function render() {
   } else if (st.aba === 'usuarios') {
     mainHtml = `
       <header class="cabecalho" style="max-width:none;"><h1 class="t-titulo-pagina">Usuários</h1><p class="lede">Contas individuais da equipe municipal. Para preservar o histórico de auditoria, utilize a desativação de acesso.</p></header>
-      ${st.erroUsuario ? `<div class="chamada" data-tom="critico"><span class="rotulo">Erro no cadastro</span><span class="t-pequeno">${esc(st.erroUsuario)}</span></div>` : ''}
-      ${st.msgUsuario ? `<div class="chamada" data-tom="positivo"><span class="rotulo">Sucesso</span><span class="t-pequeno">${esc(st.msgUsuario)}</span></div>` : ''}
+      ${st.erroUsuario ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Erro no cadastro</span><span class="t-pequeno">${esc(st.erroUsuario)}</span></div>` : ''}
+      ${st.msgUsuario ? `<div class="chamada" data-tom="positivo" role="status"><span class="rotulo">Sucesso</span><span class="t-pequeno">${esc(st.msgUsuario)}</span></div>` : ''}
       <div class="tabela-rolar"><table class="tabela">
         <thead><tr><th>Nome</th><th>CPF</th><th>E-mail</th><th>Celular</th><th>Perfil</th><th>Situação</th><th>Ação</th></tr></thead>
-        <tbody>${st.usuarios.map(u => `<tr><td>${esc(u.nomeCompleto)}</td><td class="t-meta">${esc(u.cpfMascarado)}</td><td>${esc(u.email)}</td><td>${esc(u.celular)}</td><td>${esc(u.perfil)}</td><td><span class="estado">${u.ativo?'Ativo':'Desativado'}</span></td><td><button type="button" class="botao quieto" onclick="alternarUsuario(${u.id})">${u.ativo?'Desativar':'Reativar'}</button></td></tr>`).join('')}</tbody>
+        <tbody>${st.usuarios.map(u => `<tr><td>${esc(u.nomeCompleto)}</td><td class="t-meta">${esc(u.cpfMascarado)}</td><td>${esc(u.email)}</td><td>${esc(u.celular)}</td><td>${esc(u.perfil)}</td><td><span class="estado">${u.ativo?'Ativo':'Desativado'}</span></td><td style="white-space:nowrap;"><button type="button" class="botao quieto" aria-label="Editar ${esc(u.nomeCompleto)}" onclick="editarUsuario(${u.id})">Editar</button> <button type="button" class="botao quieto" aria-label="${u.ativo?'Desativar':'Reativar'} ${esc(u.nomeCompleto)}" onclick="alternarUsuario(${u.id})">${u.ativo?'Desativar':'Reativar'}</button></td></tr>`).join('')}</tbody>
       </table></div>
-      <section class="secao"><header><h2>Novo usuário</h2></header>
-        <form class="formulario" onsubmit="criarUsuario(event)">
-          <label><span class="t-rotulo">CPF</span><input class="campo" name="cpf" placeholder="000.000.000-00" required></label>
-          <label><span class="t-rotulo">Nome completo</span><input class="campo" name="nome" required></label>
-          <label><span class="t-rotulo">E-mail</span><input class="campo" name="email" type="email" required></label>
-          <label><span class="t-rotulo">Celular</span><input class="campo" name="celular" placeholder="(82) 99999-0000" required></label>
-          <label><span class="t-rotulo">Senha inicial</span><input class="campo" name="senha" type="password" placeholder="Mínimo 8 caracteres com números" required></label>
-          <label><span class="t-rotulo">Perfil</span><select class="campo" name="perfil"><option value="FISCAL">Fiscal</option><option value="PREFEITURA">Prefeitura</option></select></label>
-          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="ativo" checked> Ativo</label>
-          <div class="acoes"><button class="botao primario" type="submit">Salvar usuário</button></div>
-        </form>
+      <section class="secao" id="form-usuario"><header><h2>${st.editandoUsuarioId ? 'Editar usuário' : 'Novo usuário'}</h2></header>
+        ${(() => {
+          const r = st.rascunhoUsuario || {};
+          const editando = !!st.editandoUsuarioId;
+          const perfil = r.perfil || 'FISCAL';
+          const ativo = r.ativo === undefined ? true : r.ativo;
+          return `<form class="formulario" onsubmit="salvarUsuario(event)">
+            <label><span class="t-rotulo">CPF</span><input class="campo" name="cpf" placeholder="000.000.000-00" value="${esc(r.cpf)}" ${editando ? 'readonly aria-describedby="cpf-fixo"' : 'required'}>${editando ? '<span id="cpf-fixo" class="t-pequeno" style="color:var(--soft);">O CPF não pode ser alterado.</span>' : ''}</label>
+            <label><span class="t-rotulo">Nome completo</span><input class="campo" name="nome" autocomplete="off" value="${esc(r.nome)}" required></label>
+            <label><span class="t-rotulo">E-mail</span><input class="campo" name="email" type="email" autocomplete="off" value="${esc(r.email)}" required></label>
+            <label><span class="t-rotulo">Celular</span><input class="campo" name="celular" placeholder="(82) 99999-0000" value="${esc(r.celular)}" required></label>
+            ${editando ? '' : `<label><span class="t-rotulo">Senha inicial</span><input class="campo" name="senha" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres com números" value="${esc(r.senha)}" required></label>`}
+            <label><span class="t-rotulo">Perfil</span><select class="campo" name="perfil"><option value="FISCAL" ${perfil === 'FISCAL' ? 'selected' : ''}>Fiscal</option><option value="PREFEITURA" ${perfil === 'PREFEITURA' ? 'selected' : ''}>Prefeitura</option></select></label>
+            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="ativo" ${ativo ? 'checked' : ''}> Ativo</label>
+            <div class="acoes"><button class="botao primario" type="submit">${editando ? 'Salvar alterações' : 'Salvar usuário'}</button>${editando ? ' <button type="button" class="botao" onclick="cancelarEdicaoUsuario()">Cancelar edição</button>' : ''}</div>
+          </form>`;
+        })()}
       </section>
       <section class="secao"><header><h2>Alterações recentes</h2></header>
         <div class="tabela-rolar"><table class="tabela">
@@ -505,29 +730,36 @@ function render() {
   } else if (st.aba === 'camadas') {
     mainHtml = `
       <header class="cabecalho" style="max-width:none;"><h1 class="t-titulo-pagina">Camadas de vulnerabilidade</h1><p class="lede">Territórios sensíveis utilizados na priorização automática de atendimentos.</p></header>
-      ${st.erroCamada ? `<div class="chamada" data-tom="critico"><span class="rotulo">Erro</span><span class="t-pequeno">${esc(st.erroCamada)}</span></div>` : ''}
-      ${st.msgCamada ? `<div class="chamada" data-tom="positivo"><span class="rotulo">Atualizado</span><span class="t-pequeno">${esc(st.msgCamada)}</span></div>` : ''}
+      ${st.erroCamada ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Erro</span><span class="t-pequeno">${esc(st.erroCamada)}</span></div>` : ''}
+      ${st.msgCamada ? `<div class="chamada" data-tom="positivo" role="status"><span class="rotulo">Atualizado</span><span class="t-pequeno">${esc(st.msgCamada)}</span></div>` : ''}
       <div class="tabela-rolar"><table class="tabela">
         <thead><tr><th>Nome</th><th>Categoria</th><th>Geometria</th><th>Peso</th><th>Fonte</th><th>Situação</th><th>Pontos afetados</th><th>Ação</th></tr></thead>
         <tbody>${st.camadas.map(c => `<tr><td>${esc(c.nome)}</td><td>${esc(c.categoriaRotulo)}</td><td>${esc(c.geometriaDescricao)}</td><td>${c.pesoUrgencia}</td><td>${esc(c.fonteDado)}</td><td><span class="estado">${c.ativa?'Ativa':'Desativada'}</span></td><td>${c.pontosAfetados}</td><td><button type="button" class="botao quieto" onclick="alternarCamada(${c.id})">${c.ativa?'Desativar':'Ativar'}</button></td></tr>`).join('')}</tbody>
       </table></div>
       <section class="secao"><header><h2>Nova camada</h2></header>
         <form class="formulario" onsubmit="criarCamada(event)">
-          <label><span class="t-rotulo">Nome</span><input class="campo" name="nome" required></label>
-          <label><span class="t-rotulo">Categoria</span><select class="campo" name="categoria">
-            <option value="PUBLICO_INFANTIL_ESCOLAR">Público infantil e escolar</option>
-            <option value="IDOSOS_CUIDADOS">Idosos e cuidados</option>
-            <option value="GESTANTES_RECEM_NASCIDOS">Gestantes e recém-nascidos</option>
-            <option value="COMUNIDADES_TRADICIONAIS_VULNERAVEIS">Comunidades tradicionais</option>
-            <option value="VULNERABILIDADE_EPIDEMIOLOGICA">Vulnerabilidade epidemiológica (polígono)</option>
+          ${(() => {
+            const r = st.rascunhoCamada || {};
+            const v = (k, padrao) => esc(r[k] !== undefined ? r[k] : padrao);
+            const sel = (k, valor, padrao) => ((r[k] !== undefined ? r[k] : padrao) === valor ? 'selected' : '');
+            const pesoPadrao = String(PESO_SUGERIDO_CATEGORIA[r.categoria || 'PUBLICO_INFANTIL_ESCOLAR']);
+            return `
+          <label><span class="t-rotulo">Nome</span><input class="campo" name="nome" value="${v('nome', '')}" required></label>
+          <label><span class="t-rotulo">Categoria</span><select class="campo" name="categoria" onchange="this.form.peso.value = String(PESO_SUGERIDO_CATEGORIA[this.value])">
+            <option value="PUBLICO_INFANTIL_ESCOLAR" ${sel('categoria', 'PUBLICO_INFANTIL_ESCOLAR', 'PUBLICO_INFANTIL_ESCOLAR')}>Público infantil e escolar</option>
+            <option value="IDOSOS_CUIDADOS" ${sel('categoria', 'IDOSOS_CUIDADOS', 'PUBLICO_INFANTIL_ESCOLAR')}>Idosos e cuidados</option>
+            <option value="GESTANTES_RECEM_NASCIDOS" ${sel('categoria', 'GESTANTES_RECEM_NASCIDOS', 'PUBLICO_INFANTIL_ESCOLAR')}>Gestantes e recém-nascidos</option>
+            <option value="COMUNIDADES_TRADICIONAIS_VULNERAVEIS" ${sel('categoria', 'COMUNIDADES_TRADICIONAIS_VULNERAVEIS', 'PUBLICO_INFANTIL_ESCOLAR')}>Comunidades tradicionais</option>
+            <option value="VULNERABILIDADE_EPIDEMIOLOGICA" ${sel('categoria', 'VULNERABILIDADE_EPIDEMIOLOGICA', 'PUBLICO_INFANTIL_ESCOLAR')}>Vulnerabilidade epidemiológica (polígono)</option>
           </select></label>
-          <label><span class="t-rotulo">Geometria</span><select class="campo" name="tipoGeometria"><option value="PONTO_RAIO">Ponto com raio</option><option value="POLIGONO">Polígono</option></select></label>
-          <label><span class="t-rotulo">Latitude (ponto)</span><input class="campo" name="lat" value="-9.6441"></label>
-          <label><span class="t-rotulo">Longitude (ponto)</span><input class="campo" name="lon" value="-35.7155"></label>
-          <label><span class="t-rotulo">Raio (metros)</span><input class="campo" name="raio" value="150"></label>
-          <label><span class="t-rotulo">Polígono (coordenadas)</span><input class="campo" name="poligono" value="[[-9.65,-35.72],[-9.64,-35.72],[-9.64,-35.71],[-9.65,-35.71]]"></label>
-          <label><span class="t-rotulo">Peso (1 a 3)</span><select class="campo" name="peso"><option value="1">1 (Elevada)</option><option value="2" selected>2 (Elevada)</option><option value="3">3 (Crítica)</option></select></label>
-          <label><span class="t-rotulo">Fonte</span><input class="campo" name="fonte" value="Secretaria Municipal" required></label>
+          <label><span class="t-rotulo">Geometria</span><select class="campo" name="tipoGeometria"><option value="PONTO_RAIO" ${sel('tipoGeometria', 'PONTO_RAIO', 'PONTO_RAIO')}>Ponto com raio</option><option value="POLIGONO" ${sel('tipoGeometria', 'POLIGONO', 'PONTO_RAIO')}>Polígono</option></select></label>
+          <label><span class="t-rotulo">Latitude (ponto)</span><input class="campo" name="lat" value="${v('lat', '-9.6441')}"></label>
+          <label><span class="t-rotulo">Longitude (ponto)</span><input class="campo" name="lon" value="${v('lon', '-35.7155')}"></label>
+          <label><span class="t-rotulo">Raio (metros)</span><input class="campo" name="raio" value="${v('raio', '150')}"></label>
+          <label><span class="t-rotulo">Polígono (coordenadas)</span><input class="campo" name="poligono" value="${v('poligono', '[[-9.65,-35.72],[-9.64,-35.72],[-9.64,-35.71],[-9.65,-35.71]]')}"></label>
+          <label><span class="t-rotulo">Peso (1 a 3, sugerido pela categoria)</span><select class="campo" name="peso"><option value="1" ${sel('peso', '1', pesoPadrao)}>1 (Elevada)</option><option value="2" ${sel('peso', '2', pesoPadrao)}>2 (Elevada)</option><option value="3" ${sel('peso', '3', pesoPadrao)}>3 (Crítica)</option></select></label>
+          <label><span class="t-rotulo">Fonte</span><input class="campo" name="fonte" value="${v('fonte', 'Secretaria Municipal')}" required></label>`;
+          })()}
           <div class="acoes"><button class="botao primario" type="submit">Salvar camada</button></div>
         </form>
       </section>`;
@@ -538,7 +770,7 @@ function render() {
         <label><span class="t-rotulo">Arquivo CSV ou GeoJSON</span><input class="campo" type="file" name="arquivo" accept=".csv,.geojson,.json" required></label>
         <div class="acoes"><button class="botao primario" type="submit">Validar e importar</button></div>
       </form>
-      ${st.resImportacao ? `<div class="chamada" data-tom="${st.resImportacao.sucesso?'positivo':'critico'}"><span class="rotulo">${esc(st.resImportacao.mensagem)}</span>${(st.resImportacao.erros||[]).map(e=>`<span class="t-pequeno">• ${esc(e)}</span>`).join('')}</div>` : ''}
+      ${st.resImportacao ? `<div class="chamada" data-tom="${st.resImportacao.sucesso?'positivo':'critico'}" role="${st.resImportacao.sucesso?'status':'alert'}"><span class="rotulo">${esc(st.resImportacao.mensagem)}</span>${(st.resImportacao.erros||[]).map(e=>`<span class="t-pequeno">• ${esc(e)}</span>`).join('')}</div>` : ''}
       <div class="tabela-rolar"><table class="tabela">
         <thead><tr><th>Data</th><th>Arquivo</th><th>Setores</th><th>Responsável</th><th>Situação</th><th>Ação</th></tr></thead>
         <tbody>${st.importacoes.map(i => `<tr><td class="t-meta">${new Date(i.dataImportacao).toLocaleString('pt-BR')}</td><td>${esc(i.nomeArquivo)}</td><td>${i.quantidadeSetores}</td><td>${esc(i.importadoPorNome)}</td><td><span class="estado">${i.ativa?'Em uso':'Anterior'}</span></td><td>${!i.ativa?`<button type="button" class="botao" onclick="voltarCenso(${i.id})">Restaurar versão</button>`:''}</td></tr>`).join('')}</tbody>
@@ -570,7 +802,7 @@ function render() {
       </table></div>`;
   }
 
-  root.innerHTML = `
+  SaneaMapaA11y.redesenhar(root, `
     <div class="app">
       <nav class="trilho">
         <div class="trilho-marca-wrap"><span class="marca-app">SaneaMapa</span><span class="t-meta trilho-submarca">Painel da Prefeitura</span></div>
@@ -582,7 +814,7 @@ function render() {
         </div>
       </nav>
       <main class="area">${mainHtml}</main>
-    </div>`;
+    </div>`);
 
   if (st.aba === 'mapa') {
     inicializarMapaPrefeitura();

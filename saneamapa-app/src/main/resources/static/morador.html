@@ -25,36 +25,48 @@
   <div class="celular" id="app"></div>
 </div>
 
+<script src="/js/avisos.js"></script>
+<script src="/js/acessibilidade.js"></script>
+<script src="/js/tipos-ocorrencia.js"></script>
 <script src="/js/mapa-saneamapa.js"></script>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 
-const TIPOS = [
-  { id: 'CASA_SEM_AGUA', nome: 'Casa sem ligação de água' },
-  { id: 'AGUA_FORA_PADRAO', nome: 'Água fora do padrão' },
-  { id: 'RUA_SEM_ESGOTO', nome: 'Rua sem rede de esgoto' },
-  { id: 'ESGOTO_CEU_ABERTO', nome: 'Esgoto a céu aberto' }
-];
-const OFFLINE_KEY = 'saneamapa_pendentes_v6';
+const TIPOS = SaneaMapaTipos.TIPOS;
+const OFFLINE_KEY_LEGADO = 'saneamapa_pendentes_v6';
 const TERMO_KEY = 'saneamapa_termo_aceito_v6';
+// RF001 (nota 5, Obs3): o aparelho guarda só o nome e o telefone do último relato, para preencher o próximo.
+const CONTATO_KEY = 'saneamapa_contato_morador';
+function lerContatoSalvo() {
+  try { return JSON.parse(localStorage.getItem(CONTATO_KEY) || '{}') || {}; } catch { return {}; }
+}
+function salvarContato(nome, telefone) {
+  try { localStorage.setItem(CONTATO_KEY, JSON.stringify({ nome, telefone })); } catch { /* armazenamento bloqueado: só não preenche o próximo */ }
+}
+const LIMITE_PENDENTES = 20;
 
 let mapaCtrl = null;
 let gravador = null;
 let gravadorChunks = [];
 let gravadorTimer = null;
+let sincronizando = false;
 
 let state = {
   tela: localStorage.getItem(TERMO_KEY) ? 1 : 0, // 0 termo, 1 problema/mídia, 2 mapa/local, 3 dados, 4 protocolo
   tipoOcorrencia: 'ESGOTO_CEU_ABERTO',
-  evidencias: [], // { tipo, origem, arquivoCaminho, previewUrl, nome, tamanhoBytes, dataHoraCaptura, duracaoSegundos, uploadando }
+  evidencias: [], // { tipo, origem, arquivoCaminho, file, previewUrl, nome, dataHoraCaptura, duracaoSegundos, uploadando, aguardandoEnvio }
   erroMidia: '',
+  avisoMidia: '',
   gravandoAudio: false,
   segundosAudio: 0,
   buscaEndereco: '',
   resultadosBusca: [],
   buscandoEndereco: false,
-  latitude: -9.66599,
-  longitude: -35.73500,
+  // RF002: o local começa vazio; só vale depois de GPS, busca, toque no mapa ou digitação.
+  latitude: null,
+  longitude: null,
+  localEscolhido: false,
+  gpsPedido: false,
   precisaoMetros: null,
   posicaoManual: false,
   logradouro: '',
@@ -62,38 +74,149 @@ let state = {
   pontoReferencia: '',
   gpsStatus: '',
   descricao: '',
-  identificado: true,
-  nomeMorador: '',
-  telefoneMorador: '',
+  nomeMorador: lerContatoSalvo().nome || '',
+  telefoneMorador: lerContatoSalvo().telefone || '',
   erroEnvio: '',
   enviando: false,
-  resposta: null
+  resposta: null,
+  qtdPendentes: 0,
+  avisoSincronizacao: ''
 };
 
-function getPendentes() {
-  try { return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]'); } catch { return []; }
+/* ---------- Fila sem conexão (RF001^7, RNF13): relato + arquivos guardados no IndexedDB ---------- */
+const FilaLocal = (() => {
+  let dbPromise = null;
+  function abrir() {
+    if (!dbPromise) {
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open('saneamapa', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('pendentes', { keyPath: 'id', autoIncrement: true });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => { dbPromise = null; reject(req.error); };
+      });
+    }
+    return dbPromise;
+  }
+  async function executar(modo, fn) {
+    const db = await abrir();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('pendentes', modo);
+      const req = fn(tx.objectStore('pendentes'));
+      tx.oncomplete = () => resolve(req ? req.result : undefined);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+  return {
+    listar: () => executar('readonly', s => s.getAll()),
+    contar: () => executar('readonly', s => s.count()),
+    adicionar: item => executar('readwrite', s => s.add(item)),
+    salvar: item => executar('readwrite', s => s.put(item)),
+    remover: id => executar('readwrite', s => s.delete(id))
+  };
+})();
+
+async function atualizarContagemPendentes() {
+  try { state.qtdPendentes = await FilaLocal.contar(); } catch { state.qtdPendentes = 0; }
 }
-function savePendentes(lista) {
-  localStorage.setItem(OFFLINE_KEY, JSON.stringify(lista.slice(0, 20)));
+
+// Relatos guardados pela versão anterior (localStorage, sem os arquivos) entram na nova fila.
+async function migrarPendentesLegados() {
+  let antigos = [];
+  try { antigos = JSON.parse(localStorage.getItem(OFFLINE_KEY_LEGADO) || '[]'); } catch { antigos = []; }
+  if (!antigos.length) return;
+  try {
+    for (const payload of antigos) {
+      const evidencias = (payload.evidencias || []).map(e => ({ ...e, arquivo: null }));
+      await FilaLocal.adicionar({ payload: { ...payload, evidencias: undefined }, evidencias });
+    }
+    localStorage.removeItem(OFFLINE_KEY_LEGADO);
+  } catch (e) {
+    console.warn('Não foi possível migrar os relatos pendentes antigos.', e);
+  }
+}
+
+/**
+ * Envia um item da fila. Devolve 'ok', 'rede' (sem conexão ou servidor fora: tenta depois)
+ * ou { motivo } quando o servidor recusou de vez (4xx, incluindo protocolo já registrado).
+ */
+async function enviarItemPendente(item) {
+  for (const ev of item.evidencias) {
+    if (ev.arquivoCaminho || ev.descartada) continue;
+    if (!ev.arquivo) { ev.descartada = true; continue; }
+    const fd = new FormData();
+    fd.append('arquivo', ev.arquivo, ev.nome || 'arquivo');
+    fd.append('tipo', ev.tipo);
+    if (ev.duracaoSegundos) fd.append('duracaoSegundos', String(ev.duracaoSegundos));
+    let resp;
+    try {
+      resp = await fetch('/api/morador/midias', { method: 'POST', body: fd });
+    } catch {
+      await FilaLocal.salvar(item);
+      return 'rede';
+    }
+    if (resp.status >= 500) { await FilaLocal.salvar(item); return 'rede'; }
+    if (!resp.ok) { ev.descartada = true; continue; }
+    const data = await resp.json().catch(() => ({}));
+    ev.arquivoCaminho = data.arquivoCaminho;
+    ev.arquivo = null;
+    await FilaLocal.salvar(item); // não reenvia o mesmo arquivo se a conexão cair no meio
+  }
+
+  const prontas = item.evidencias.filter(e => e.arquivoCaminho);
+  if (!prontas.length) return { motivo: 'nenhum arquivo do relato foi aceito pelo servidor' };
+
+  const corpo = {
+    ...item.payload,
+    evidencias: prontas.map(ev => ({
+      tipo: ev.tipo, origem: ev.origem, arquivoCaminho: ev.arquivoCaminho,
+      dataHoraCaptura: ev.dataHoraCaptura, latitudeCaptura: ev.latitudeCaptura,
+      longitudeCaptura: ev.longitudeCaptura, duracaoSegundos: ev.duracaoSegundos || null
+    }))
+  };
+  let r;
+  try {
+    r = await fetch('/api/morador/relatos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+  } catch {
+    return 'rede';
+  }
+  if (r.ok) return 'ok';
+  if (r.status >= 500) return 'rede';
+  const data = await r.json().catch(() => ({}));
+  return { motivo: data.erro || `recusado pelo servidor (erro ${r.status})` };
 }
 
 async function tentarSincronizarPendentes() {
-  if (!navigator.onLine) return;
-  const pendentes = getPendentes();
-  if (!pendentes.length) return;
-  const restantes = [];
-  for (const item of pendentes) {
-    try {
-      const r = await fetch('/api/morador/relatos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item)
-      });
-      if (!r.ok) restantes.push(item);
-    } catch { restantes.push(item); }
+  if (sincronizando || !navigator.onLine) return;
+  sincronizando = true;
+  const enviados = [];
+  const recusados = [];
+  try {
+    const itens = await FilaLocal.listar();
+    for (const item of itens) {
+      const resultado = await enviarItemPendente(item);
+      if (resultado === 'rede') break;
+      await FilaLocal.remover(item.id);
+      if (resultado === 'ok') enviados.push(item.payload.protocolo);
+      else recusados.push(`${item.payload.protocolo}: ${resultado.motivo}`);
+    }
+  } catch (e) {
+    console.warn('Falha ao sincronizar relatos pendentes.', e);
+  } finally {
+    sincronizando = false;
   }
-  savePendentes(restantes);
+  await atualizarContagemPendentes();
+  const partes = [];
+  if (enviados.length) partes.push(`${enviados.length} relato(s) guardado(s) no aparelho foram enviados (${enviados.join(', ')}).`);
+  if (recusados.length) partes.push(`Não foram aceitos e saíram da fila: ${recusados.join('; ')}.`);
+  if (partes.length) {
+    state.avisoSincronizacao = partes.join(' ');
+    SaneaMapaA11y.anunciar(state.avisoSincronizacao);
+  }
   render();
 }
 
+/* ---------- Mídias ---------- */
 function obterDuracaoMidia(file, isVideo) {
   return new Promise(resolve => {
     const url = URL.createObjectURL(file);
@@ -114,6 +237,7 @@ function obterDuracaoMidia(file, isVideo) {
 
 async function processarArquivosSelecionados(fileList, origem) {
   state.erroMidia = '';
+  state.avisoMidia = '';
   const arquivos = Array.from(fileList || []);
   if (!arquivos.length) return;
 
@@ -142,21 +266,27 @@ async function processarArquivosSelecionados(fileList, origem) {
       }
     }
 
-    const previewUrl = URL.createObjectURL(file);
     const item = {
       tipo,
       origem,
       arquivoCaminho: '',
-      previewUrl,
+      file,
+      previewUrl: URL.createObjectURL(file),
       nome: file.name,
       dataHoraCaptura: file.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString(),
       latitudeCaptura: state.latitude,
       longitudeCaptura: state.longitude,
       duracaoSegundos: duracao,
-      uploadando: true
+      uploadando: navigator.onLine,
+      aguardandoEnvio: !navigator.onLine
     };
     state.evidencias.push(item);
     render();
+    if (!navigator.onLine) {
+      state.avisoMidia = 'Sem internet: o arquivo fica guardado no aparelho e será enviado junto com o relato.';
+      render();
+      continue;
+    }
 
     try {
       const fd = new FormData();
@@ -165,18 +295,24 @@ async function processarArquivosSelecionados(fileList, origem) {
       if (duracao) fd.append('duracaoSegundos', String(duracao));
       const resp = await fetch('/api/morador/midias', { method: 'POST', body: fd });
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        state.evidencias = state.evidencias.filter(x => x !== item);
-        URL.revokeObjectURL(previewUrl);
-        state.erroMidia = (data.erro || 'Não foi possível enviar o arquivo.') + (data.orientacao ? ' ' + data.orientacao : '');
-      } else {
+      if (resp.ok) {
         item.arquivoCaminho = data.arquivoCaminho;
         item.uploadando = false;
+      } else if (resp.status >= 500) {
+        item.uploadando = false;
+        item.aguardandoEnvio = true;
+        state.avisoMidia = 'O servidor não respondeu: o arquivo fica guardado no aparelho e será enviado junto com o relato.';
+      } else {
+        // Recusa definitiva (formato, tamanho): o arquivo sai da lista e o motivo aparece.
+        state.evidencias = state.evidencias.filter(x => x !== item);
+        URL.revokeObjectURL(item.previewUrl);
+        state.erroMidia = (data.erro || 'Não foi possível enviar o arquivo.') + (data.orientacao ? ' ' + data.orientacao : '');
       }
     } catch {
-      state.evidencias = state.evidencias.filter(x => x !== item);
-      URL.revokeObjectURL(previewUrl);
-      state.erroMidia = 'Falha ao enviar a mídia para o servidor. Verifique sua conexão e tente novamente.';
+      // Falha de rede: mantém o arquivo no aparelho em vez de descartá-lo.
+      item.uploadando = false;
+      item.aguardandoEnvio = true;
+      state.avisoMidia = 'Sem conexão com o servidor: o arquivo fica guardado no aparelho e será enviado junto com o relato.';
     }
     render();
   }
@@ -206,7 +342,6 @@ async function alternarGravacaoAudio() {
     gravador.onstop = async () => {
       clearInterval(gravadorTimer);
       stream.getTracks().forEach(t => t.stop());
-      const dur = Math.max(1, state.segundosAudio);
       state.gravandoAudio = false;
       state.segundosAudio = 0;
       const blob = new Blob(gravadorChunks, { type: gravador.mimeType || 'audio/webm' });
@@ -236,15 +371,22 @@ function removerEvidencia(idx) {
   render();
 }
 
+/* ---------- Local (RF002) ---------- */
+function definirLocal(lat, lng, manual) {
+  state.latitude = lat;
+  state.longitude = lng;
+  state.localEscolhido = Number.isFinite(lat) && Number.isFinite(lng);
+  if (manual) state.posicaoManual = true;
+}
+
 function capturarGpsReal() {
+  state.gpsPedido = true;
   state.gpsStatus = 'Obtendo sua localização atual...';
-  const statusEl = document.getElementById('gps-status-el');
-  if (statusEl) statusEl.textContent = state.gpsStatus;
+  atualizarCamposLocalNoDom();
 
   if (!navigator.geolocation) {
-    state.posicaoManual = true;
-    state.gpsStatus = 'GPS não disponível neste navegador. Toque no mapa ou arraste o marcador.';
-    if (statusEl) statusEl.textContent = state.gpsStatus;
+    state.gpsStatus = 'GPS não disponível neste navegador. Busque o endereço ou toque no mapa para marcar o local.';
+    atualizarCamposLocalNoDom();
     return;
   }
 
@@ -253,21 +395,19 @@ function capturarGpsReal() {
       const lat = Number(pos.coords.latitude.toFixed(6));
       const lng = Number(pos.coords.longitude.toFixed(6));
       const acc = Math.round(pos.coords.accuracy || 15);
-      state.latitude = lat;
-      state.longitude = lng;
+      definirLocal(lat, lng, false);
       state.precisaoMetros = acc;
+      // Leitura imprecisa conta como posição aproximada (marcação "posição informada manualmente").
       state.posicaoManual = acc > 25;
-      state.gpsStatus = `Localização obtida (precisão aproximada de ${acc} m).`;
+      state.gpsStatus = `Localização obtida pelo GPS (precisão aproximada de ${acc} m). Confira o pino no mapa.`;
       if (mapaCtrl) mapaCtrl.setPosition(lat, lng, true);
       atualizarCamposLocalNoDom();
     },
     () => {
-      state.posicaoManual = true;
-      state.gpsStatus = 'Não foi possível acessar o GPS. Busque o endereço ou marque o local no mapa.';
-      const el = document.getElementById('gps-status-el');
-      if (el) el.textContent = state.gpsStatus;
+      state.gpsStatus = 'Não foi possível acessar o GPS. Busque o endereço ou toque no mapa para marcar o local.';
+      atualizarCamposLocalNoDom();
     },
-    { timeout: 10000, enableHighAccuracy: true }
+    { timeout: 30000, enableHighAccuracy: true }
   );
 }
 
@@ -301,8 +441,19 @@ function escolherResultadoBusca(idx) {
   state.resultadosBusca = [];
   const listaEl = document.getElementById('resultados-busca');
   if (listaEl) listaEl.innerHTML = '';
-  state.posicaoManual = true;
+  definirLocal(item.lat, item.lng, true);
+  state.gpsStatus = 'Local marcado pelo endereço buscado. Confira o pino no mapa.';
   if (mapaCtrl) mapaCtrl.setPosition(item.lat, item.lng, true);
+  atualizarCamposLocalNoDom();
+}
+
+function digitarCoordenada() {
+  const lat = parseFloat(document.getElementById('inp-lat')?.value);
+  const lng = parseFloat(document.getElementById('inp-lng')?.value);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  definirLocal(lat, lng, true);
+  if (mapaCtrl) mapaCtrl.setPosition(lat, lng, true);
+  atualizarCamposLocalNoDom();
 }
 
 function atualizarCamposLocalNoDom() {
@@ -311,27 +462,39 @@ function atualizarCamposLocalNoDom() {
   const ruaEl = document.getElementById('inp-rua');
   const bairroEl = document.getElementById('inp-bairro');
   const statusEl = document.getElementById('gps-status-el');
-  if (latEl) latEl.value = state.latitude;
-  if (lngEl) lngEl.value = state.longitude;
+  const continuarEl = document.getElementById('btn-continuar-local');
+  if (latEl) latEl.value = state.latitude ?? '';
+  if (lngEl) lngEl.value = state.longitude ?? '';
   if (ruaEl && state.logradouro) ruaEl.value = state.logradouro;
   if (bairroEl && state.bairro) bairroEl.value = state.bairro;
   if (statusEl && state.gpsStatus) statusEl.textContent = state.gpsStatus;
+  if (continuarEl) continuarEl.disabled = !state.localEscolhido;
 }
 
 async function inicializarMapaPasso2() {
+  const criadoComLocal = state.localEscolhido;
   mapaCtrl = await SaneaMapaGeo.criarSeletorLocalizacao({
     containerId: 'mapa-seletor',
-    searchInputId: 'busca-endereco-inp',
-    lat: state.latitude,
-    lng: state.longitude,
+    lat: state.localEscolhido ? state.latitude : null,
+    lng: state.localEscolhido ? state.longitude : null,
     onSelect: info => {
-      state.latitude = info.lat;
-      state.longitude = info.lng;
+      // Toque ou arraste no mapa é escolha do morador: posição informada manualmente (RF002^3).
+      if (info.origem === 'usuario') {
+        definirLocal(info.lat, info.lng, true);
+        state.gpsStatus = 'Local marcado no mapa.';
+      }
       if (info.logradouro) state.logradouro = info.logradouro;
       if (info.bairro) state.bairro = info.bairro;
       atualizarCamposLocalNoDom();
     }
   });
+  if (!mapaCtrl) {
+    state.gpsStatus = state.gpsStatus || 'Sem mapa: use o GPS para marcar o local.';
+    atualizarCamposLocalNoDom();
+  } else if (!criadoComLocal && state.localEscolhido) {
+    // O GPS respondeu enquanto o mapa carregava: mostra o pino sem mudar a origem da posição.
+    mapaCtrl.setPosition(state.latitude, state.longitude, false);
+  }
 }
 
 function aplicarMascaraTelefone(valor) {
@@ -342,91 +505,161 @@ function aplicarMascaraTelefone(valor) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-async function enviarRelato() {
-  state.erroEnvio = '';
-  const prontas = state.evidencias.filter(e => !e.uploadando && e.arquivoCaminho);
-  if (!prontas.length) {
-    state.erroEnvio = 'Aguarde o envio da mídia ou anexe ao menos uma foto, vídeo ou áudio.';
-    render();
-    return;
-  }
-
-  const payload = {
-    protocolo: 'SM-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+/* ---------- Envio ---------- */
+function montarPayloadSemEvidencias() {
+  return {
+    protocolo: 'SM-' + Math.random().toString(36).substring(2, 8).toUpperCase().padEnd(6, '0'),
     dataHoraRegistro: new Date().toISOString(),
     tipoOcorrencia: state.tipoOcorrencia,
     descricao: state.descricao,
-    identificado: state.identificado,
-    nomeMorador: state.identificado ? state.nomeMorador : null,
-    telefoneMorador: state.identificado ? state.telefoneMorador : null,
+    nomeMorador: state.nomeMorador.trim(),
+    telefoneMorador: state.telefoneMorador,
     latitude: state.latitude,
     longitude: state.longitude,
     precisaoMetros: state.precisaoMetros || 15,
     logradouro: state.logradouro,
     bairro: state.bairro,
     pontoReferencia: state.pontoReferencia,
-    posicaoManual: state.posicaoManual,
-    evidencias: prontas.map(ev => ({
-      tipo: ev.tipo,
-      origem: ev.origem,
-      arquivoCaminho: ev.arquivoCaminho,
-      dataHoraCaptura: ev.dataHoraCaptura,
-      latitudeCaptura: ev.latitudeCaptura,
-      longitudeCaptura: ev.longitudeCaptura,
-      duracaoSegundos: ev.duracaoSegundos || null
-    }))
+    posicaoManual: state.posicaoManual
   };
+}
+
+async function guardarNoAparelho(payload, evidencias, motivo) {
+  await atualizarContagemPendentes();
+  if (state.qtdPendentes >= LIMITE_PENDENTES) {
+    state.erroEnvio = `Limite de ${LIMITE_PENDENTES} relatos guardados sem internet atingido no aparelho. Conecte-se para enviar os pendentes.`;
+    render();
+    return;
+  }
+  try {
+    await FilaLocal.adicionar({
+      payload,
+      evidencias: evidencias.map(ev => ({
+        tipo: ev.tipo, origem: ev.origem, nome: ev.nome,
+        arquivoCaminho: ev.arquivoCaminho || '',
+        arquivo: ev.arquivoCaminho ? null : ev.file,
+        dataHoraCaptura: ev.dataHoraCaptura,
+        latitudeCaptura: ev.latitudeCaptura,
+        longitudeCaptura: ev.longitudeCaptura,
+        duracaoSegundos: ev.duracaoSegundos || null
+      }))
+    });
+  } catch (e) {
+    state.erroEnvio = 'Não foi possível guardar o relato no aparelho (armazenamento bloqueado ou cheio). Tente enviar quando tiver internet.';
+    render();
+    return;
+  }
+  await atualizarContagemPendentes();
+  state.resposta = {
+    protocolo: payload.protocolo,
+    pendente: true,
+    mensagem: `${motivo} O relato e os arquivos ficaram guardados no aparelho e serão enviados assim que a conexão voltar.`
+  };
+  state.tela = 4;
+  render();
+  SaneaMapaA11y.focarTitulo(document.getElementById('app'));
+  SaneaMapaA11y.anunciar(`Relato guardado no aparelho. Protocolo ${payload.protocolo}.`);
+}
+
+async function enviarRelato() {
+  state.erroEnvio = '';
+  if (!state.localEscolhido) {
+    state.erroEnvio = 'Volte ao passo 2 e marque o local do problema.';
+    render();
+    return;
+  }
+  const evidencias = state.evidencias.filter(e => !e.uploadando && (e.arquivoCaminho || e.aguardandoEnvio));
+  if (!evidencias.length) {
+    state.erroEnvio = 'Aguarde o envio da mídia ou anexe ao menos uma foto, vídeo ou áudio.';
+    render();
+    return;
+  }
+
+  if (!state.nomeMorador.trim()) {
+    state.erroEnvio = 'Informe seu nome.';
+    render();
+    return;
+  }
+  if (!/^\(\d{2}\) \d{4,5}-\d{4}$/.test(state.telefoneMorador)) {
+    state.erroEnvio = 'Informe o telefone com DDD, no formato (82) 99999-9999.';
+    render();
+    return;
+  }
+
+  const payload = montarPayloadSemEvidencias();
+  salvarContato(payload.nomeMorador, payload.telefoneMorador);
 
   if (!navigator.onLine) {
-    const pendentes = getPendentes();
-    if (pendentes.length >= 20) {
-      state.erroEnvio = 'Limite de 20 relatos pendentes sem internet atingido no aparelho.';
-      render();
-      return;
-    }
-    pendentes.push(payload);
-    savePendentes(pendentes);
-    state.resposta = {
-      protocolo: payload.protocolo,
-      pendente: true,
-      prioridadeReduzida: !state.identificado,
-      mensagem: 'Relato salvo no aparelho enquanto você está sem conexão. Ele será enviado assim que a internet voltar.'
-    };
-    state.tela = 4;
-    render();
+    await guardarNoAparelho(payload, evidencias, 'Você está sem internet.');
+    return;
+  }
+  if (evidencias.some(e => !e.arquivoCaminho)) {
+    await guardarNoAparelho(payload, evidencias, 'Alguns arquivos ainda não chegaram ao servidor.');
+    tentarSincronizarPendentes();
     return;
   }
 
   state.enviando = true;
   render();
+  let res;
   try {
-    const res = await fetch('/api/morador/relatos', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    res = await fetch('/api/morador/relatos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        evidencias: evidencias.map(ev => ({
+          tipo: ev.tipo, origem: ev.origem, arquivoCaminho: ev.arquivoCaminho,
+          dataHoraCaptura: ev.dataHoraCaptura, latitudeCaptura: ev.latitudeCaptura,
+          longitudeCaptura: ev.longitudeCaptura, duracaoSegundos: ev.duracaoSegundos || null
+        }))
+      })
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      state.erroEnvio = `${data.erro || 'Erro ao enviar relato.'} ${data.orientacao || ''}`;
-      state.enviando = false;
-      render();
-      return;
-    }
-    state.resposta = { ...data, pendente: false };
-    state.enviando = false;
-    state.tela = 4;
-    render();
   } catch {
-    state.erroEnvio = 'Não foi possível conectar ao servidor no momento. Tente novamente em instantes.';
+    // Rede ruim com navigator.onLine verdadeiro: guarda em vez de perder o relato.
     state.enviando = false;
-    render();
+    await guardarNoAparelho(payload, evidencias, 'A conexão falhou durante o envio.');
+    return;
   }
+  const data = await res.json().catch(() => ({}));
+  state.enviando = false;
+  if (res.status >= 500) {
+    await guardarNoAparelho(payload, evidencias, 'O servidor não respondeu.');
+    return;
+  }
+  if (!res.ok) {
+    state.erroEnvio = `${data.erro || 'Erro ao enviar relato.'} ${data.orientacao || ''}`;
+    render();
+    SaneaMapaA11y.anunciar(state.erroEnvio, true);
+    return;
+  }
+  state.resposta = { ...data, pendente: false };
+  state.tela = 4;
+  render();
+  SaneaMapaA11y.focarTitulo(document.getElementById('app'));
+  SaneaMapaA11y.anunciar(`Denúncia registrada. Protocolo ${data.protocolo}.`);
 }
 
 function irParaTela(t) {
   state.tela = t;
   mapaCtrl = null;
   render();
+  SaneaMapaA11y.focarTitulo(document.getElementById('app'));
+  // RF002^1: ao chegar ao passo do local, o GPS é pedido automaticamente uma vez.
+  if (t === 2 && !state.localEscolhido && !state.gpsPedido) capturarGpsReal();
 }
 
+function novoRelato() {
+  state.evidencias.forEach(e => e.previewUrl && URL.revokeObjectURL(e.previewUrl));
+  Object.assign(state, {
+    evidencias: [], descricao: '', erroEnvio: '', erroMidia: '', avisoMidia: '',
+    latitude: null, longitude: null, localEscolhido: false, gpsPedido: false,
+    precisaoMetros: null, posicaoManual: false, logradouro: '', bairro: '', pontoReferencia: '', gpsStatus: ''
+  });
+  irParaTela(1);
+}
+
+/* ---------- Telas ---------- */
 function renderMidiaItem(ev, idx) {
   let preview = '';
   if (ev.tipo === 'FOTO') {
@@ -436,33 +669,37 @@ function renderMidiaItem(ev, idx) {
   } else {
     preview = `<audio class="midia-preview-audio" src="${esc(ev.previewUrl || ev.arquivoCaminho)}" controls></audio>`;
   }
+  const situacao = ev.uploadando ? 'Enviando arquivo...'
+    : ev.aguardandoEnvio ? `Guardado no aparelho, será enviado com o relato: ${ev.nome}`
+    : `Arquivo anexado: ${ev.nome}`;
   return `
     <div class="midia-item">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <span class="t-pequeno"><b>${ev.tipo}</b> · ${ev.origem === 'CAMERA' ? 'Câmera' : ev.origem === 'MICROFONE' ? 'Microfone' : 'Galeria'}${ev.duracaoSegundos ? ` · ${ev.duracaoSegundos}s` : ''}</span>
-        <button type="button" class="botao quieto" style="padding:2px 8px; min-height:28px;" onclick="removerEvidencia(${idx})">Remover</button>
+        <button type="button" class="botao quieto" style="padding:2px 8px; min-height:28px;" aria-label="Remover ${esc(ev.nome)}" onclick="removerEvidencia(${idx})">Remover</button>
       </div>
       ${preview}
-      ${ev.uploadando ? `<span class="t-pequeno" style="color:var(--soft);">Enviando arquivo...</span>` : `<span class="t-pequeno" style="color:var(--soft);">Arquivo anexado: ${esc(ev.nome)}</span>`}
+      <span class="t-pequeno" style="color:var(--soft);">${esc(situacao)}</span>
     </div>`;
 }
 
 function render() {
   const el = document.getElementById('app');
-  const pendentesCount = getPendentes().length;
+  const pendentesCount = state.qtdPendentes;
   const titulos = ['Termo de uso', 'Qual é o problema?', 'Onde fica?', 'Seus dados', 'Protocolo'];
 
   const header = `<header class="cab-cel">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
       <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-        ${state.tela >= 1 && state.tela <= 3 ? `<button type="button" class="botao quieto" style="padding:4px 8px;" onclick="irParaTela(${state.tela - 1})">←</button>` : ''}
+        ${state.tela >= 1 && state.tela <= 3 ? `<button type="button" class="botao quieto" style="padding:4px 8px;" aria-label="Voltar ao passo anterior" onclick="irParaTela(${state.tela - 1})">←</button>` : ''}
         <h1 style="margin:0; font-family:var(--font-display); font-size:21px;">${titulos[state.tela]}</h1>
       </div>
       <a href="/index.html" class="t-pequeno" style="flex-shrink:0;">Início</a>
     </div>
     ${state.tela >= 1 && state.tela <= 3 ? `<span class="t-pequeno" style="color:var(--soft);">Passo ${state.tela} de 3</span>` : ''}
-    ${!navigator.onLine ? `<span class="estado" data-tom="atencao">Sem internet — o envio ficará salvo no aparelho (${pendentesCount}/20)</span>` : ''}
-    ${navigator.onLine && pendentesCount > 0 ? `<button type="button" class="botao" onclick="tentarSincronizarPendentes()">Enviar ${pendentesCount} relato(s) pendente(s)</button>` : ''}
+    ${!navigator.onLine ? `<span class="estado" data-tom="atencao">Sem internet — o envio ficará salvo no aparelho (${pendentesCount}/${LIMITE_PENDENTES})</span>` : ''}
+    ${navigator.onLine && pendentesCount > 0 ? `<button type="button" class="botao" onclick="tentarSincronizarPendentes()">Enviar ${pendentesCount} relato(s) guardado(s) no aparelho</button>` : ''}
+    ${state.avisoSincronizacao ? `<div class="chamada" data-tom="neutro"><span class="t-pequeno">${esc(state.avisoSincronizacao)}</span><button type="button" class="botao quieto" style="justify-self:start;padding:0;" onclick="state.avisoSincronizacao=''; render();">Fechar aviso</button></div>` : ''}
   </header>`;
 
   let body = '<main class="corpo-cel">';
@@ -481,15 +718,15 @@ function render() {
   } else if (state.tela === 1) {
     const algumaUploadando = state.evidencias.some(e => e.uploadando);
     body += `
-      <div class="grade-tipos">
-        ${TIPOS.map(t => `<button type="button" class="tipo-btn" aria-pressed="${state.tipoOcorrencia === t.id}" onclick="state.tipoOcorrencia='${t.id}'; render();">${t.nome}</button>`).join('')}
+      <div class="grade-tipos" role="group" aria-label="Tipo de ocorrência">
+        ${TIPOS.map(t => `<button type="button" class="tipo-btn" aria-pressed="${state.tipoOcorrencia === t.id}" onclick="state.tipoOcorrencia='${t.id}'; render();">${SaneaMapaTipos.icone(t.id, 28, t.cor)}<span>${esc(t.nome)}</span></button>`).join('')}
       </div>
       <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:8px;">
         <span class="t-rotulo">Anexar fotos, vídeo ou áudio (mínimo 1)</span>
-        <input id="inp-foto-cam" class="input-oculto" type="file" accept="image/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
-        <input id="inp-video-cam" class="input-oculto" type="file" accept="video/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
-        <input id="inp-galeria" class="input-oculto" type="file" accept="image/*,video/*" multiple onchange="processarArquivosSelecionados(this.files, 'GALERIA'); this.value='';">
-        <input id="inp-audio-fallback" class="input-oculto" type="file" accept="audio/*" onchange="processarArquivosSelecionados(this.files, 'MICROFONE'); this.value='';">
+        <input id="inp-foto-cam" class="input-oculto" tabindex="-1" aria-hidden="true" type="file" accept="image/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
+        <input id="inp-video-cam" class="input-oculto" tabindex="-1" aria-hidden="true" type="file" accept="video/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
+        <input id="inp-galeria" class="input-oculto" tabindex="-1" aria-hidden="true" type="file" accept="image/*,video/*" multiple onchange="processarArquivosSelecionados(this.files, 'GALERIA'); this.value='';">
+        <input id="inp-audio-fallback" class="input-oculto" tabindex="-1" aria-hidden="true" type="file" accept="audio/*" onchange="processarArquivosSelecionados(this.files, 'MICROFONE'); this.value='';">
 
         <div class="grid-2">
           <button type="button" class="btn-acao-midia" onclick="document.getElementById('inp-foto-cam').click()">Tirar foto</button>
@@ -501,7 +738,8 @@ function render() {
             ${state.gravandoAudio ? `Parar gravação (${state.segundosAudio}s / 60s)` : 'Gravar áudio (até 60s)'}
           </button>
         </div>
-        ${state.erroMidia ? `<div class="chamada" data-tom="critico"><span class="rotulo">Arquivo não aceito</span><span class="t-pequeno">${esc(state.erroMidia)}</span></div>` : ''}
+        ${state.erroMidia ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Arquivo não aceito</span><span class="t-pequeno">${esc(state.erroMidia)}</span></div>` : ''}
+        ${state.avisoMidia ? `<div class="chamada" data-tom="atencao" role="status"><span class="t-pequeno">${esc(state.avisoMidia)}</span></div>` : ''}
         <div class="midia-lista">
           ${state.evidencias.map((ev, i) => renderMidiaItem(ev, i)).join('')}
         </div>
@@ -510,75 +748,72 @@ function render() {
   } else if (state.tela === 2) {
     body += `
       <div class="field-group">
-        <span class="t-rotulo">Buscar endereço ou referência</span>
+        <label class="t-rotulo" for="busca-endereco-inp">Buscar endereço ou referência</label>
         <div class="busca-linha">
-          <input id="busca-endereco-inp" class="campo" type="text" placeholder="Ex.: Rua São Domingos, Vergel do Lago" value="${esc(state.buscaEndereco)}" oninput="state.buscaEndereco=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault(); executarBuscaEndereco();}">
+          <input id="busca-endereco-inp" class="campo" type="text" autocomplete="street-address" placeholder="Ex.: Rua São Domingos, Vergel do Lago" value="${esc(state.buscaEndereco)}" oninput="state.buscaEndereco=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault(); executarBuscaEndereco();}">
           <button type="button" class="botao" onclick="executarBuscaEndereco()">Buscar</button>
         </div>
-        <div id="resultados-busca" style="display:grid; grid-template-columns:minmax(0,1fr); gap:6px;"></div>
+        <div id="resultados-busca" aria-live="polite" style="display:grid; grid-template-columns:minmax(0,1fr); gap:6px;"></div>
       </div>
 
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button type="button" class="botao" onclick="capturarGpsReal()">Usar meu GPS atual</button>
-        <span id="gps-status-el" class="t-pequeno" style="color:var(--soft);">${esc(state.gpsStatus || 'Toque no mapa ou arraste o pino para ajustar o local exato.')}</span>
+        <span id="gps-status-el" role="status" class="t-pequeno" style="color:var(--soft);">${esc(state.gpsStatus || 'Use o GPS, busque o endereço ou toque no mapa para marcar o local.')}</span>
       </div>
 
-      <div id="mapa-seletor" class="mapa-container"></div>
+      <div id="mapa-seletor" class="mapa-container" aria-label="Mapa para marcar o local do problema"></div>
 
       <div class="grid-2">
-        <label class="field-group"><span class="t-rotulo">Latitude</span><input id="inp-lat" class="campo" type="number" step="0.000001" value="${state.latitude}" onchange="state.latitude=parseFloat(this.value)||state.latitude; if(mapaCtrl) mapaCtrl.setPosition(state.latitude, state.longitude, true);"></label>
-        <label class="field-group"><span class="t-rotulo">Longitude</span><input id="inp-lng" class="campo" type="number" step="0.000001" value="${state.longitude}" onchange="state.longitude=parseFloat(this.value)||state.longitude; if(mapaCtrl) mapaCtrl.setPosition(state.latitude, state.longitude, true);"></label>
+        <label class="field-group"><span class="t-rotulo">Latitude</span><input id="inp-lat" class="campo" type="number" step="0.000001" value="${state.latitude ?? ''}" onchange="digitarCoordenada()"></label>
+        <label class="field-group"><span class="t-rotulo">Longitude</span><input id="inp-lng" class="campo" type="number" step="0.000001" value="${state.longitude ?? ''}" onchange="digitarCoordenada()"></label>
       </div>
-      <label class="field-group"><span class="t-rotulo">Rua / Logradouro</span><input id="inp-rua" class="campo" maxlength="150" value="${esc(state.logradouro)}" oninput="state.logradouro=this.value" placeholder="Preenchido automaticamente pelo mapa"></label>
-      <label class="field-group"><span class="t-rotulo">Bairro</span><input id="inp-bairro" class="campo" maxlength="80" value="${esc(state.bairro)}" oninput="state.bairro=this.value" placeholder="Ex.: Vergel do Lago"></label>
+      <label class="field-group"><span class="t-rotulo">Rua / Logradouro</span><input id="inp-rua" class="campo" maxlength="150" autocomplete="address-line1" value="${esc(state.logradouro)}" oninput="state.logradouro=this.value" placeholder="Preenchido automaticamente pelo mapa"></label>
+      <label class="field-group"><span class="t-rotulo">Bairro</span><input id="inp-bairro" class="campo" maxlength="80" autocomplete="address-level3" value="${esc(state.bairro)}" oninput="state.bairro=this.value" placeholder="Ex.: Vergel do Lago"></label>
       <label class="field-group"><span class="t-rotulo">Ponto de referência (opcional)</span><input class="campo" maxlength="100" value="${esc(state.pontoReferencia)}" oninput="state.pontoReferencia=this.value" placeholder="Ex.: em frente à escola"></label>`;
-    footer += `<button type="button" class="botao primario" onclick="irParaTela(3)">Continuar</button>`;
+    footer += `<button type="button" id="btn-continuar-local" class="botao primario" ${state.localEscolhido ? '' : 'disabled'} onclick="irParaTela(3)">Continuar</button>
+      ${state.localEscolhido ? '' : '<span class="t-pequeno" style="color:var(--soft);">Marque o local pelo GPS, pela busca ou no mapa para continuar.</span>'}`;
   } else if (state.tela === 3) {
     body += `
       <label class="field-group"><span class="t-rotulo">Descrição (opcional, até 300 caracteres)</span>
         <textarea class="campo" rows="3" maxlength="300" oninput="state.descricao=this.value" placeholder="Descreva brevemente o problema encontrado">${esc(state.descricao)}</textarea>
       </label>
-      <label style="display:flex; align-items:flex-start; gap:10px; padding:12px; background:var(--sunk); border-radius:var(--radius-sm); cursor:pointer;">
-        <input type="checkbox" ${state.identificado ? 'checked' : ''} onchange="state.identificado=this.checked; render();">
-        <span><b>Me identificar (recomendado)</b><br><span class="t-pequeno" style="color:var(--soft);">Relatos identificados ajudam a equipe no contato em campo e recebem maior prioridade na fila.</span></span>
-      </label>
-      ${state.identificado ? `
-        <label class="field-group"><span class="t-rotulo">Seu nome completo</span><input class="campo" maxlength="120" value="${esc(state.nomeMorador)}" oninput="state.nomeMorador=this.value" placeholder="Digite seu nome"></label>
-        <label class="field-group"><span class="t-rotulo">Telefone com DDD</span><input class="campo" maxlength="15" value="${esc(state.telefoneMorador)}" oninput="state.telefoneMorador=aplicarMascaraTelefone(this.value); this.value=state.telefoneMorador;" placeholder="(82) 99999-9999"></label>
-      ` : `
-        <div class="chamada" data-tom="atencao"><span class="rotulo">Envio anônimo</span>
-          <span class="t-pequeno">Nenhum nome ou telefone será salvo, mas o atendimento pode ter prioridade menor na fila.</span>
-          <button type="button" class="botao" onclick="state.identificado=true; render();">Quero me identificar</button>
-        </div>
-      `}
-      ${state.erroEnvio ? `<div class="chamada" data-tom="critico"><span class="rotulo">Não foi possível enviar</span><span class="t-pequeno">${esc(state.erroEnvio)}</span></div>` : ''}`;
+      <label class="field-group"><span class="t-rotulo">Seu nome completo</span><input class="campo" maxlength="120" autocomplete="name" required value="${esc(state.nomeMorador)}" oninput="state.nomeMorador=this.value" placeholder="Digite seu nome"></label>
+      <label class="field-group"><span class="t-rotulo">Telefone com DDD</span><input class="campo" type="tel" maxlength="15" autocomplete="tel-national" required value="${esc(state.telefoneMorador)}" oninput="state.telefoneMorador=aplicarMascaraTelefone(this.value); this.value=state.telefoneMorador;" placeholder="(82) 99999-9999"></label>
+      <p class="t-pequeno" style="color:var(--soft);">Seu nome e telefone servem para a prefeitura falar com você na vistoria e para evitar denúncias repetidas. Só a equipe da prefeitura os vê, e eles nunca aparecem no mapa.</p>
+      ${state.erroEnvio ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Não foi possível enviar</span><span class="t-pequeno">${esc(state.erroEnvio)}</span></div>` : ''}`;
     footer += `<button type="button" class="botao primario" ${state.enviando ? 'disabled' : ''} onclick="enviarRelato()">${state.enviando ? 'Enviando denúncia...' : 'Enviar denúncia'}</button>`;
   } else if (state.tela === 4) {
     const r = state.resposta;
     body += `
       <div class="chamada" data-tom="${r.pendente ? 'atencao' : 'positivo'}">
-        <span class="rotulo">${r.pendente ? 'Relato salvo para envio posterior' : 'Denúncia registrada com sucesso'}</span>
+        <span class="rotulo">${r.pendente ? 'Relato guardado para envio posterior' : 'Denúncia registrada com sucesso'}</span>
         <span class="t-corpo">Protocolo: <b class="t-meta">${esc(r.protocolo)}</b></span>
         ${r.codigoPonto ? `<span class="t-pequeno">Ponto de acompanhamento: <b>${esc(r.codigoPonto)}</b></span>` : ''}
         <span class="t-pequeno">${esc(r.mensagem)}</span>
-        ${r.prioridadeReduzida ? `<span class="t-pequeno">Observação: relatos anônimos entram com prioridade reduzida na fila.</span>` : ''}
       </div>
-      <p class="t-pequeno" style="color:var(--soft);">Anote seu número de protocolo. Por privacidade, o histórico não permanece salvo no dispositivo após o envio.</p>`;
-    footer += `<button type="button" class="botao primario" onclick="state.evidencias=[]; state.descricao=''; state.erroEnvio=''; irParaTela(1);">Fazer novo relato</button>`;
+      <p class="t-pequeno" style="color:var(--soft);">Anote seu número de protocolo. Por privacidade, o relato não fica salvo no aparelho após o envio; só seu nome e telefone, para o próximo relato.</p>`;
+    footer += `<button type="button" class="botao primario" onclick="novoRelato()">Fazer novo relato</button>`;
   }
 
   body += '</main>';
   footer += '</footer>';
-  el.innerHTML = header + body + footer;
+  SaneaMapaA11y.redesenhar(el, header + body + footer);
 
   if (state.tela === 2) {
     inicializarMapaPasso2();
   }
 }
 
-window.addEventListener('online', tentarSincronizarPendentes);
+window.addEventListener('online', () => { render(); tentarSincronizarPendentes(); });
 window.addEventListener('offline', render);
-render();
+
+(async () => {
+  render();
+  await migrarPendentesLegados();
+  await atualizarContagemPendentes();
+  render();
+  tentarSincronizarPendentes();
+})();
 </script>
 </body>
 </html>

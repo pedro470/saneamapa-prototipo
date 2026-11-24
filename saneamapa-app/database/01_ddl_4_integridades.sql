@@ -116,9 +116,8 @@ CREATE TABLE IF NOT EXISTS relato (
     data_hora_registro TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     tipo_ocorrencia    VARCHAR(30)    NOT NULL,
     descricao          VARCHAR(2350),
-    identificado       BOOLEAN        NOT NULL DEFAULT TRUE,
-    nome_morador       VARCHAR(120),
-    telefone_morador   VARCHAR(15),
+    nome_morador       VARCHAR(120)   NOT NULL,
+    telefone_morador   VARCHAR(15)    NOT NULL,
     situacao_envio     VARCHAR(15)    NOT NULL DEFAULT 'ENVIADO',
     latitude           NUMERIC(10, 7) NOT NULL,
     longitude          NUMERIC(10, 7) NOT NULL,
@@ -145,14 +144,11 @@ CREATE TABLE IF NOT EXISTS relato (
     CONSTRAINT chk_relato_precisao
         CHECK (precisao_metros >= 0),
 
-    -- Integridade Semântica (LGPD RF001: anônimo NÃO armazena nome/telefone; identificado exige ambos válidos)
-    CONSTRAINT chk_relato_lgpd_identificacao
+    -- Integridade Semântica (RF001, nota 5: toda denúncia é identificada, com nome preenchido e telefone com DDD)
+    CONSTRAINT chk_relato_identificacao
         CHECK (
-            (identificado = TRUE
-             AND nome_morador IS NOT NULL AND length(trim(nome_morador)) > 0
-             AND telefone_morador IS NOT NULL AND telefone_morador ~ '^\(\d{2}\) \d{4,5}-\d{4}$')
-            OR
-            (identificado = FALSE AND nome_morador IS NULL AND telefone_morador IS NULL)
+            length(trim(nome_morador)) > 0
+            AND telefone_morador ~ '^\(\d{2}\) \d{4,5}-\d{4}$'
         )
 );
 

@@ -30,9 +30,8 @@ public final class RelatoDtos {
             OffsetDateTime dataHoraRegistro,
             @NotNull(message = "Escolha o tipo de ocorrência.") TipoOcorrencia tipoOcorrencia,
             @Size(max = 300, message = "Descrição deve ter no máximo 300 caracteres.") String descricao,
-            boolean identificado,
-            @Size(max = 120) String nomeMorador,
-            @Size(max = 15) String telefoneMorador,
+            @NotBlank(message = "Informe seu nome.") @Size(max = 120) String nomeMorador,
+            @NotBlank(message = "Informe seu telefone com DDD.") @Size(max = 15) String telefoneMorador,
             @NotNull(message = "Latitude é obrigatória.") BigDecimal latitude,
             @NotNull(message = "Longitude é obrigatória.") BigDecimal longitude,
             Integer precisaoMetros,
@@ -48,7 +47,6 @@ public final class RelatoDtos {
             OffsetDateTime dataHoraRegistro,
             String codigoPonto,
             boolean agrupadoEmPontoExistente,
-            boolean prioridadeReduzida,
             String mensagem
     ) {}
 }

@@ -24,7 +24,7 @@ window.SaneaMapaGeo = (function () {
       s.src = src;
       s.async = true;
       s.onload = resolve;
-      s.onerror = reject;
+      s.onerror = () => { s.remove(); reject(new Error('Falha ao carregar ' + src)); };
       document.head.appendChild(s);
     });
   }
@@ -43,10 +43,42 @@ window.SaneaMapaGeo = (function () {
       leafletPromise = (async () => {
         carregarCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
         await carregarScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+        if (!window.L) throw new Error('Leaflet não carregou');
         return window.L;
-      })();
+      })().catch(err => {
+        leafletPromise = null; // permite tentar de novo quando a internet voltar
+        throw err;
+      });
     }
     return leafletPromise;
+  }
+
+  // Um mapa por contêiner: ao redesenhar a tela, o mapa anterior é desmontado (map.remove)
+  // para não acumular camadas, ouvintes e tiles na memória ao longo do dia.
+  const mapasAtivos = {};
+
+  function novoMapa(L, container, containerId) {
+    if (mapasAtivos[containerId]) {
+      try { mapasAtivos[containerId].remove(); } catch (e) { /* contêiner já saiu da página */ }
+      delete mapasAtivos[containerId];
+    }
+    container.innerHTML = '';
+    const map = L.map(container);
+    mapasAtivos[containerId] = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    return map;
+  }
+
+  /** Carrega o Leaflet; se falhar (sem internet), escreve uma alternativa no lugar do mapa e devolve null. */
+  async function leafletOuAviso(container, alternativa) {
+    try {
+      return await garantirMapa();
+    } catch (e) {
+      container.innerHTML = `<div class="mapa-indisponivel" role="status">Mapa indisponível sem internet. ${esc(alternativa || '')}</div>`;
+      return null;
+    }
   }
 
   async function geocodificarReverso(lat, lng) {
@@ -63,7 +95,7 @@ window.SaneaMapaGeo = (function () {
           enderecoCompleto: data.display_name || ''
         };
       }
-    } catch (e) { /* silencioso */ }
+    } catch (e) { /* sem internet: o morador preenche rua e bairro à mão */ }
     return { logradouro: '', bairro: '', enderecoCompleto: '' };
   }
 
@@ -82,42 +114,55 @@ window.SaneaMapaGeo = (function () {
           rotulo: item.display_name
         }));
       }
-    } catch (e) { /* silencioso */ }
+    } catch (e) { /* sem internet: a tela mostra "nenhum endereço encontrado" */ }
     return [];
   }
 
+  /**
+   * Seletor do morador. Sem lat/lng, o mapa abre em Maceió SEM marcador: o local só existe depois
+   * de uma ação (GPS, busca ou toque). onSelect recebe { origem: 'usuario' | 'programa' }.
+   */
   async function criarSeletorLocalizacao({ containerId, lat, lng, onSelect }) {
     const container = document.getElementById(containerId);
     if (!container) return null;
-    const L = await garantirMapa();
+    const L = await leafletOuAviso(container, 'Use o botão do GPS e preencha rua, bairro e ponto de referência.');
+    if (!L) return null;
 
-    let curLat = Number(lat) || -9.66599;
-    let curLng = Number(lng) || -35.73500;
+    const temPosicao = lat != null && lng != null && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng));
+    const curLat = temPosicao ? Number(lat) : -9.66599;
+    const curLng = temPosicao ? Number(lng) : -35.73500;
 
-    async function notificarMovimento(novaLat, novaLng, resolver = true) {
-      curLat = Number(novaLat.toFixed(6));
-      curLng = Number(novaLng.toFixed(6));
-      const info = resolver ? await geocodificarReverso(curLat, curLng) : { logradouro: '', bairro: '', enderecoCompleto: '' };
+    async function notificarMovimento(novaLat, novaLng, resolver, origem) {
+      const latFix = Number(novaLat.toFixed(6));
+      const lngFix = Number(novaLng.toFixed(6));
+      const info = resolver ? await geocodificarReverso(latFix, lngFix) : { logradouro: '', bairro: '', enderecoCompleto: '' };
       if (typeof onSelect === 'function') {
-        onSelect({ lat: curLat, lng: curLng, ...info });
+        onSelect({ lat: latFix, lng: lngFix, origem, ...info });
       }
     }
 
-    container.innerHTML = '';
-    const map = L.map(container).setView([curLat, curLng], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-    const marker = L.marker([curLat, curLng], { draggable: true }).addTo(map);
+    const map = novoMapa(L, container, containerId);
+    map.setView([curLat, curLng], temPosicao ? 16 : 13);
+    let marker = null;
+
+    function posicionarMarcador(latLng) {
+      if (!marker) {
+        marker = L.marker(latLng, { draggable: true, keyboard: true, title: 'Local do problema' }).addTo(map);
+        marker.on('dragend', () => {
+          const p = marker.getLatLng();
+          notificarMovimento(p.lat, p.lng, true, 'usuario');
+        });
+      } else {
+        marker.setLatLng(latLng);
+      }
+    }
+
+    if (temPosicao) posicionarMarcador([curLat, curLng]);
 
     map.on('click', ev => {
-      marker.setLatLng(ev.latlng);
+      posicionarMarcador(ev.latlng);
       map.panTo(ev.latlng);
-      notificarMovimento(ev.latlng.lat, ev.latlng.lng, true);
-    });
-    marker.on('dragend', () => {
-      const p = marker.getLatLng();
-      notificarMovimento(p.lat, p.lng, true);
+      notificarMovimento(ev.latlng.lat, ev.latlng.lng, true, 'usuario');
     });
 
     setTimeout(() => map.invalidateSize(), 150);
@@ -126,28 +171,27 @@ window.SaneaMapaGeo = (function () {
       setPosition(nLat, nLng, resolver = true) {
         const latNum = Number(nLat);
         const lngNum = Number(nLng);
-        marker.setLatLng([latNum, lngNum]);
+        posicionarMarcador([latNum, lngNum]);
         map.setView([latNum, lngNum], 17);
-        notificarMovimento(latNum, lngNum, resolver);
+        notificarMovimento(latNum, lngNum, resolver, 'programa');
       }
     };
   }
 
-  // RS008: a posição do fiscal só vem do GPS (setFiscalPosition). O mapa não aceita clique para movê-la.
-  async function criarMapaFiscal({ containerId, pontoLat, pontoLng, fiscalLat, fiscalLng }) {
+  // RS008: a posição do fiscal só vem do GPS (setFiscalPosition). O clique no mapa serve apenas
+  // para marcar a posição corrigida do ponto (RF007^2), quando o fiscal liga essa opção.
+  async function criarMapaFiscal({ containerId, pontoLat, pontoLng, fiscalLat, fiscalLng, correcaoLat, correcaoLng, onCliqueMapa }) {
     const container = document.getElementById(containerId);
     if (!container) return null;
-    const L = await garantirMapa();
+    const L = await leafletOuAviso(container, 'A distância continua sendo conferida pelo GPS ao salvar.');
+    if (!L) return null;
     const pLat = Number(pontoLat);
     const pLng = Number(pontoLng);
 
-    container.innerHTML = '';
-    const map = L.map(container).setView([pLat, pLng], 17);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    const map = novoMapa(L, container, containerId);
+    map.setView([pLat, pLng], 17);
 
-    L.marker([pLat, pLng]).addTo(map).bindPopup('Local informado pelo cidadão');
+    L.marker([pLat, pLng], { title: 'Local informado pelo cidadão' }).addTo(map).bindPopup('Local informado pelo cidadão');
 
     const circulo = L.circle([pLat, pLng], {
       radius: 100,
@@ -156,6 +200,7 @@ window.SaneaMapaGeo = (function () {
     }).addTo(map);
 
     let fiscalMarker = null;
+    let correcaoMarker = null;
 
     function posicionarFiscal(latNum, lngNum) {
       if (!fiscalMarker) {
@@ -173,8 +218,28 @@ window.SaneaMapaGeo = (function () {
       circulo.setStyle({ color: d <= 100 ? '#059669' : '#b91c1c' });
     }
 
+    function posicionarCorrecao(latVal, lngVal) {
+      if (latVal == null || lngVal == null) {
+        if (correcaoMarker) { correcaoMarker.remove(); correcaoMarker = null; }
+        return;
+      }
+      const ll = [Number(latVal), Number(lngVal)];
+      if (!correcaoMarker) {
+        correcaoMarker = L.circleMarker(ll, {
+          radius: 8, color: '#ffffff', weight: 2, fillColor: '#f59e0b', fillOpacity: 1
+        }).addTo(map).bindPopup('Nova posição do ponto');
+      } else {
+        correcaoMarker.setLatLng(ll);
+      }
+    }
+
     if (fiscalLat != null && fiscalLng != null) {
       posicionarFiscal(Number(fiscalLat), Number(fiscalLng));
+    }
+    posicionarCorrecao(correcaoLat, correcaoLng);
+
+    if (typeof onCliqueMapa === 'function') {
+      map.on('click', ev => onCliqueMapa(Number(ev.latlng.lat.toFixed(6)), Number(ev.latlng.lng.toFixed(6))));
     }
 
     setTimeout(() => map.invalidateSize(), 150);
@@ -185,28 +250,62 @@ window.SaneaMapaGeo = (function () {
         const lngNum = Number(lngVal);
         posicionarFiscal(latNum, lngNum);
         map.panTo([latNum, lngNum]);
+      },
+      setCorrecao(latVal, lngVal) {
+        posicionarCorrecao(latVal, lngVal);
       }
     };
   }
 
-  const COR_TIPO = {
-    CASA_SEM_AGUA: '#2e51b9',
-    AGUA_FORA_PADRAO: '#97570d',
-    RUA_SEM_ESGOTO: '#5c33a8',
-    ESGOTO_CEU_ABERTO: '#890028'
-  };
+  const Tipos = () => window.SaneaMapaTipos;
+
+  // RF010/RF006: cor e ícone dizem o tipo; a borda (e o "!") diz a urgência.
+  function iconePonto(L, p, selecionado) {
+    const tipo = Tipos() ? Tipos().porId(p.tipoOcorrencia) : { cor: '#1f2937' };
+    const urg = p.nivelUrgencia || 'NORMAL';
+    const tam = urg === 'CRITICA' ? 36 : 30;
+    const svg = Tipos() ? Tipos().icone(p.tipoOcorrencia, 16, '#ffffff') : '';
+    return L.divIcon({
+      className: '',
+      html: `<span class="marcador-ponto" data-urgencia="${esc(urg)}" data-selecionado="${selecionado}" style="--cor:${esc(tipo.cor)}">${svg}</span>`,
+      iconSize: [tam, tam],
+      iconAnchor: [tam / 2, tam / 2]
+    });
+  }
+
+  function adicionarLegenda(L, map, camadasAtivas) {
+    const T = Tipos();
+    if (!T) return;
+    const legenda = L.control({ position: 'bottomright' });
+    legenda.onAdd = () => {
+      const div = L.DomUtil.create('div', 'legenda-mapa');
+      div.setAttribute('role', 'region');
+      div.setAttribute('aria-label', 'Legenda do mapa');
+      let html = '';
+      if (camadasAtivas.pontos) {
+        html += '<b>Tipo (cor e ícone)</b>' + T.TIPOS.map(t =>
+          `<span class="item"><span class="bola" style="background:${t.cor}">${T.icone(t.id, 12, '#ffffff')}</span>${esc(t.nome)}</span>`).join('');
+        html += '<b>Urgência (borda)</b>' + T.URGENCIAS.map(u =>
+          `<span class="item"><span class="anel" style="border:3px solid ${u.id === 'NORMAL' ? '#ffffff' : u.cor}; box-shadow:0 0 0 1px #94a3b8;"></span>${esc(u.nome)}${u.id === 'CRITICA' ? ' (com “!”)' : ''}</span>`).join('');
+      }
+      if (camadasAtivas.vuln) html += '<span class="item"><span class="anel" style="background:#d97706;opacity:.5"></span>Área vulnerável</span>';
+      if (camadasAtivas.censo) html += '<span class="item"><span class="anel" style="background:#0f766e;opacity:.5"></span>Setor do Censo (mais escuro = menos rede)</span>';
+      if (camadasAtivas.calor) html += '<span class="item"><span class="anel" style="background:#890028;opacity:.35"></span>Concentração de relatos</span>';
+      div.innerHTML = html;
+      return div;
+    };
+    legenda.addTo(map);
+  }
 
   async function criarMapaPrefeitura({ containerId, pontos, camadasVuln, setoresCenso, camadasAtivas, selectedId, onSelectPonto }) {
     const container = document.getElementById(containerId);
     if (!container) return null;
-    const L = await garantirMapa();
+    const L = await leafletOuAviso(container, 'A fila abaixo continua disponível.');
+    if (!L) return null;
     const centro = { lat: -9.655, lng: -35.735 };
 
-    container.innerHTML = '';
-    const map = L.map(container).setView([centro.lat, centro.lng], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    const map = novoMapa(L, container, containerId);
+    map.setView([centro.lat, centro.lng], 12);
 
     if (camadasAtivas.vuln) {
       (camadasVuln || []).filter(c => c.ativa).forEach(c => {
@@ -227,7 +326,9 @@ window.SaneaMapaGeo = (function () {
               fillOpacity: 0.14,
               weight: 1.5
             }).addTo(map).bindPopup(`${esc(c.nome)} (peso ${esc(c.pesoUrgencia)})`);
-          } catch (e) {}
+          } catch (e) {
+            console.warn('Camada com polígono inválido ignorada no mapa:', c.nome, e);
+          }
         }
       });
     }
@@ -244,17 +345,24 @@ window.SaneaMapaGeo = (function () {
       });
     }
 
+    // RF020: cada setor é desenhado pelo seu polígono real ([[lat, lon], ...]).
     if (camadasAtivas.censo) {
-      (setoresCenso || []).forEach((s, idx) => {
-        const pt = (pontos || []).find(p => (p.bairro || '').toLowerCase() === (s.bairro || '').toLowerCase());
-        const lat = pt ? Number(pt.latitudeAproximada) : -9.63 - idx * 0.015;
-        const lng = pt ? Number(pt.longitudeAproximada) : -35.73 + idx * 0.01;
-        L.circleMarker([lat, lng], {
-          radius: 9,
+      (setoresCenso || []).forEach(s => {
+        let coords;
+        try {
+          coords = JSON.parse(s.poligonoCoordenadas);
+        } catch (e) {
+          console.warn('Setor do Censo com polígono inválido ignorado no mapa:', s.codigoSetor, e);
+          return;
+        }
+        const menorCobertura = Math.min(Number(s.pctRedeAgua ?? 100), Number(s.pctRedeEsgoto ?? 100));
+        L.polygon(coords, {
           color: '#0f766e',
-          fillColor: '#14b8a6',
-          fillOpacity: 0.6
-        }).addTo(map).bindPopup(`Censo ${esc(s.bairro)}: Água ${esc(s.pctRedeAgua)}% · Esgoto ${esc(s.pctRedeEsgoto)}%`);
+          weight: 1.5,
+          fillColor: '#0f766e',
+          fillOpacity: 0.08 + (100 - menorCobertura) / 100 * 0.45
+        }).addTo(map).bindPopup(
+          `Setor ${esc(s.codigoSetor)} (${esc(s.bairro)})<br>Água: ${esc(s.pctRedeAgua)}% · Esgoto: ${esc(s.pctRedeEsgoto)}% dos domicílios na rede geral`);
       });
     }
 
@@ -266,17 +374,19 @@ window.SaneaMapaGeo = (function () {
         const lng = Number(p.longitudeAproximada);
         coordsPontos.push([lat, lng]);
         const sel = p.id === selectedId;
-        const m = L.circleMarker([lat, lng], {
-          radius: sel ? 13 : 10,
-          color: sel ? '#f59e0b' : '#ffffff',
-          weight: sel ? 3 : 2,
-          fillColor: COR_TIPO[p.tipoOcorrencia] || '#1f2937',
-          fillOpacity: 0.95
+        const tipoNome = Tipos() ? Tipos().porId(p.tipoOcorrencia).nome : p.tipoRotulo;
+        const m = L.marker([lat, lng], {
+          icon: iconePonto(L, p, sel),
+          keyboard: true,
+          title: `${p.codigoExibicao} · ${tipoNome} · urgência ${p.nivelRotulo || ''}`,
+          zIndexOffset: p.nivelUrgencia === 'CRITICA' ? 500 : 0
         }).addTo(map);
-        m.bindTooltip(`${esc(p.codigoExibicao)} · ${esc(p.quantidadeRelatos)} relato(s)`);
+        m.bindTooltip(`${esc(p.codigoExibicao)} · ${esc(tipoNome)} · ${esc(p.quantidadeRelatos)} relato(s) · urgência ${esc(p.nivelRotulo)}`);
         m.on('click', () => onSelectPonto && onSelectPonto(p.id));
       });
     }
+
+    adicionarLegenda(L, map, camadasAtivas);
 
     if (coordsPontos.length === 1) {
       map.setView(coordsPontos[0], 15);

@@ -3,16 +3,12 @@ package br.edu.cesmac.saneamapa.service;
 import br.edu.cesmac.saneamapa.domain.exception.RecursoNaoEncontradoException;
 import br.edu.cesmac.saneamapa.domain.model.CamadaVulnerabilidade;
 import br.edu.cesmac.saneamapa.domain.model.GeometriaCamada;
-import br.edu.cesmac.saneamapa.domain.model.ItemFilaVistoria;
 import br.edu.cesmac.saneamapa.domain.model.Ponto;
-import br.edu.cesmac.saneamapa.domain.service.CalculadoraPontuacaoFila;
 import br.edu.cesmac.saneamapa.domain.service.ServicoClassificacaoUrgencia;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.CamadaDto;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.CriarCamadaRequest;
 import br.edu.cesmac.saneamapa.repository.CamadaVulnerabilidadeRepository;
-import br.edu.cesmac.saneamapa.repository.ItemFilaVistoriaRepository;
 import br.edu.cesmac.saneamapa.repository.PontoRepository;
-import br.edu.cesmac.saneamapa.repository.RelatoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,23 +19,17 @@ public class CamadaVulnerabilidadeService {
 
     private final CamadaVulnerabilidadeRepository camadaRepository;
     private final PontoRepository pontoRepository;
-    private final ItemFilaVistoriaRepository filaRepository;
-    private final RelatoRepository relatoRepository;
     private final ServicoClassificacaoUrgencia servicoUrgencia;
-    private final CalculadoraPontuacaoFila calculadoraPontuacao;
+    private final PontoFilaService pontoFilaService;
 
     public CamadaVulnerabilidadeService(CamadaVulnerabilidadeRepository camadaRepository,
                                         PontoRepository pontoRepository,
-                                        ItemFilaVistoriaRepository filaRepository,
-                                        RelatoRepository relatoRepository,
                                         ServicoClassificacaoUrgencia servicoUrgencia,
-                                        CalculadoraPontuacaoFila calculadoraPontuacao) {
+                                        PontoFilaService pontoFilaService) {
         this.camadaRepository = camadaRepository;
         this.pontoRepository = pontoRepository;
-        this.filaRepository = filaRepository;
-        this.relatoRepository = relatoRepository;
         this.servicoUrgencia = servicoUrgencia;
-        this.calculadoraPontuacao = calculadoraPontuacao;
+        this.pontoFilaService = pontoFilaService;
     }
 
     @Transactional(readOnly = true)
@@ -80,23 +70,19 @@ public class CamadaVulnerabilidadeService {
         return toDto(camada, pontoRepository.findAll());
     }
 
+    /**
+     * RF006: recalcula a urgência de todos os pontos e, em seguida, a pontuação da fila em lote
+     * (antes eram várias consultas por ponto dentro da mesma requisição).
+     */
     @Transactional
     public int recalcularUrgenciaDeTodosOsPontos() {
         List<CamadaVulnerabilidade> ativas = camadaRepository.findByAtivaTrue();
         List<Ponto> pontos = pontoRepository.findAll();
         for (Ponto p : pontos) {
             servicoUrgencia.classificarPonto(p, ativas);
-            pontoRepository.save(p);
-            if (p.getStatus().estaNaFila()) {
-                ItemFilaVistoria item = filaRepository.findByPontoId(p.getId()).orElse(null);
-                if (item != null) {
-                    long naFilaBairro = pontoRepository.contarNaFilaPorBairro(p.getBairro());
-                    boolean temIdentificado = relatoRepository.existsByPontoIdAndIdentificadoTrue(p.getId());
-                    item.atualizarPontuacao(calculadoraPontuacao.calcular(p, naFilaBairro, temIdentificado));
-                    filaRepository.save(item);
-                }
-            }
         }
+        pontoRepository.saveAll(pontos);
+        pontoFilaService.recalcularPontuacoesDaFila();
         return pontos.size();
     }
 

@@ -23,7 +23,7 @@ import java.util.List;
 
 /**
  * Relato enviado pelo morador (RF001, RF002).
- * Encapsula a regra LGPD de anonimato: relatos anônimos não armazenam nome nem telefone.
+ * Toda denúncia é identificada (RF001, nota 5): nome e telefone são obrigatórios.
  */
 @Entity
 @Table(name = "relato")
@@ -46,13 +46,10 @@ public class Relato extends EntidadeAuditavel {
     @Column(length = 2350)
     private String descricao;
 
-    @Column(nullable = false)
-    private boolean identificado = true;
-
-    @Column(name = "nome_morador", length = 120)
+    @Column(name = "nome_morador", nullable = false, length = 120)
     private String nomeMorador;
 
-    @Column(name = "telefone_morador", length = 15)
+    @Column(name = "telefone_morador", nullable = false, length = 15)
     private String telefoneMorador;
 
     @Enumerated(EnumType.STRING)
@@ -87,36 +84,29 @@ public class Relato extends EntidadeAuditavel {
     }
 
     public Relato(Ponto ponto, String protocolo, OffsetDateTime dataHoraRegistro, TipoOcorrencia tipoOcorrencia,
-                  String descricao, boolean identificado, String nomeMorador, String telefoneMorador,
+                  String descricao, String nomeMorador, String telefoneMorador,
                   BigDecimal latitude, BigDecimal longitude, int precisaoMetros,
                   String logradouro, String bairro, String pontoReferencia, boolean posicaoManual) {
-        if (identificado) {
-            if (nomeMorador == null || nomeMorador.isBlank()) {
-                throw new RegraNegocioException(
-                    "Nome do morador é obrigatório no relato identificado.",
-                    "Preencha seu nome ou desmarque a opção de identificação."
-                );
-            }
-            if (!CpfUtils.isTelefoneValido(telefoneMorador)) {
-                throw new RegraNegocioException(
-                    "Telefone com DDD inválido.",
-                    "Informe o telefone com DDD no formato (xx) xxxxx-xxxx ou (xx) xxxx-xxxx."
-                );
-            }
-            this.nomeMorador = nomeMorador.trim();
-            this.telefoneMorador = telefoneMorador.trim();
-        } else {
-            // LGPD / RF001: relato anônimo não grava nome nem telefone
-            this.nomeMorador = null;
-            this.telefoneMorador = null;
+        if (nomeMorador == null || nomeMorador.isBlank()) {
+            throw new RegraNegocioException(
+                "Nome do morador é obrigatório.",
+                "Preencha seu nome. Ele só é visto pela equipe da prefeitura."
+            );
         }
+        if (!CpfUtils.isTelefoneValido(telefoneMorador)) {
+            throw new RegraNegocioException(
+                "Telefone com DDD inválido.",
+                "Informe o telefone com DDD no formato (xx) xxxxx-xxxx ou (xx) xxxx-xxxx."
+            );
+        }
+        this.nomeMorador = nomeMorador.trim();
+        this.telefoneMorador = telefoneMorador.trim();
 
         this.ponto = ponto;
         this.protocolo = protocolo;
         this.dataHoraRegistro = dataHoraRegistro != null ? dataHoraRegistro : OffsetDateTime.now();
         this.tipoOcorrencia = tipoOcorrencia;
         this.descricao = descricao != null ? descricao.trim() : null;
-        this.identificado = identificado;
         this.situacaoEnvio = SituacaoEnvio.ENVIADO;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -148,7 +138,6 @@ public class Relato extends EntidadeAuditavel {
     public OffsetDateTime getDataHoraRegistro() { return dataHoraRegistro; }
     public TipoOcorrencia getTipoOcorrencia() { return tipoOcorrencia; }
     public String getDescricao() { return descricao; }
-    public boolean isIdentificado() { return identificado; }
     public String getNomeMorador() { return nomeMorador; }
     public String getTelefoneMorador() { return telefoneMorador; }
     public SituacaoEnvio getSituacaoEnvio() { return situacaoEnvio; }

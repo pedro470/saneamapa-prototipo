@@ -71,7 +71,7 @@ public class RelatoService {
     public RelatoCriadoResponse registrarRelato(CriarRelatoRequest req) {
         OffsetDateTime agora = dataHoraConfiavel(req.dataHoraRegistro());
 
-        if (req.identificado() && req.telefoneMorador() != null) {
+        if (req.telefoneMorador() != null) {
             // RS001: a janela de 24 h usa a hora em que o servidor recebeu os relatos (criado_em),
             // e não a hora informada pelo aparelho, que poderia ser recuada para escapar do limite.
             long recentes = relatoRepository.countByTelefoneMoradorAndCriadoEmAfter(
@@ -80,7 +80,7 @@ public class RelatoService {
             if (recentes >= LIMITE_RELATOS_24H_TELEFONE) {
                 throw new RegraNegocioException(
                         "Limite de 5 relatos em 24 horas atingido para este telefone (RS001).",
-                        "Aguarde completar 24 horas desde os envios anteriores antes de registrar novo relato identificado."
+                        "Aguarde completar 24 horas desde os envios anteriores antes de registrar novo relato."
                 );
             }
         }
@@ -119,7 +119,7 @@ public class RelatoService {
         // Só é aceito no formato esperado; fora dele, o servidor gera um.
         String protocolo = (req.protocolo() != null && PROTOCOLO_VALIDO.matcher(req.protocolo().trim()).matches())
                 ? req.protocolo().trim()
-                : gerarProtocolo(req.identificado());
+                : gerarProtocolo();
 
         Relato relato = new Relato(
                 ponto,
@@ -127,7 +127,6 @@ public class RelatoService {
                 agora,
                 req.tipoOcorrencia(),
                 req.descricao(),
-                req.identificado(),
                 req.nomeMorador(),
                 req.telefoneMorador(),
                 req.latitude(),
@@ -151,8 +150,7 @@ public class RelatoService {
 
         if (ponto.getStatus().estaNaFila()) {
             long naFilaBairro = pontoRepository.contarNaFilaPorBairro(ponto.getBairro());
-            boolean temIdentificado = relatoRepository.existsByPontoIdAndIdentificadoTrue(ponto.getId());
-            BigDecimal pontuacao = calculadoraPontuacao.calcular(ponto, naFilaBairro, temIdentificado);
+            BigDecimal pontuacao = calculadoraPontuacao.calcular(ponto, naFilaBairro);
             ItemFilaVistoria item = filaRepository.findByPontoId(ponto.getId())
                     .orElse(new ItemFilaVistoria(ponto, pontuacao));
             item.atualizarPontuacao(pontuacao);
@@ -170,7 +168,6 @@ public class RelatoService {
                 relato.getDataHoraRegistro(),
                 ponto.getCodigoExibicao(),
                 agrupado,
-                !req.identificado(),
                 agrupado
                         ? "Relato vinculado ao ponto " + ponto.getCodigoExibicao() + "."
                         : "Novo ponto " + ponto.getCodigoExibicao() + " criado e enviado para a fila."
@@ -218,8 +215,8 @@ public class RelatoService {
         return informada;
     }
 
-    private String gerarProtocolo(boolean identificado) {
+    private String gerarProtocolo() {
         String sufixo = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        return (identificado ? "SM-" : "SM-ANON-") + sufixo;
+        return "SM-" + sufixo;
     }
 }

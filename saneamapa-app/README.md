@@ -8,7 +8,7 @@ Implementação completa do sistema **SaneaMapa** (*Sistema de Registro e Notifi
 - `src/main/java/br/edu/cesmac/saneamapa/`:
   - `domain/model/`: Entidades ricas seguindo os **4 Pilares de POO**:
     - **Abstração**: `EntidadeAuditavel` (`@MappedSuperclass`), `Evidencia` (classe abstrata), `GeometriaCamada` (interface), `CalculadoraPontuacaoFila` (interface).
-    - **Encapsulamento**: Regras de negócio protegidas dentro de `Ponto` (ciclo de vida), `Relato` (anonimato LGPD), `Usuario` (validação de CPF e bloqueio após 5 falhas), `Vistoria` (raio <= 100 m e câmera obrigatória) e `LogAuditoria` (imutabilidade).
+    - **Encapsulamento**: Regras de negócio protegidas dentro de `Ponto` (ciclo de vida), `Relato` (identificação obrigatória: nome e telefone), `Usuario` (validação de CPF e bloqueio após 5 falhas), `Vistoria` (raio <= 100 m e câmera obrigatória) e `LogAuditoria` (imutabilidade).
     - **Herança**: `EvidenciaFoto`, `EvidenciaVideo`, `EvidenciaAudio` estendem `Evidencia` (`SINGLE_TABLE`); hierarquia `SaneaMapaException`.
     - **Polimorfismo**: `validarRegrasCaptura()`, `aplicarTratamentoInicial()`, `descreverTratamento()` em `Evidencia`; `contemPonto()` em `GeometriaPontoRaio` e `GeometriaPoligono`.
   - `service/`: Regras de aplicação (agrupamento em 50 m, fila ponderada, LGPD, importação CSV/GeoJSON do Censo IBGE com rollback, auditoria).

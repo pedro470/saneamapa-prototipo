@@ -54,7 +54,6 @@ public final class PainelDtos {
             Long id,
             String protocolo,
             OffsetDateTime dataHora,
-            boolean identificado,
             String descricao,
             String logradouro,
             String bairro,

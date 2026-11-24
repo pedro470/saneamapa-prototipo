@@ -17,6 +17,8 @@
 </div>
 
 <script src="/js/avisos.js"></script>
+<script src="/js/acessibilidade.js"></script>
+<script src="/js/tipos-ocorrencia.js"></script>
 <script src="/js/mapa-saneamapa.js"></script>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
@@ -42,7 +44,13 @@ let st = {
   midiasCamera: [], // { arquivoCaminho, previewUrl, tipo, nome }
   uploadandoCamera: false,
   erroVistoria: '',
-  retornoOk: ''
+  retornoOk: '',
+  msgEvidencia: '',
+  erroEvidencia: '',
+  // RF007^2: posição corrigida do ponto (opcional), marcada no mapa ou pela posição do GPS.
+  corrigirPosicao: false,
+  latCorrecao: null,
+  lonCorrecao: null
 };
 
 function urlMidiaAutenticada(caminho) {
@@ -114,12 +122,24 @@ async function abrirPonto(id) {
   st.audioPlayers = {};
   st.midiasCamera = [];
   st.observacoes = '';
+  st.msgEvidencia = '';
+  st.erroEvidencia = '';
+  st.corrigirPosicao = false;
+  st.latCorrecao = null;
+  st.lonCorrecao = null;
   st.detalhe = await api('/api/fiscal/pontos/' + id);
   st.tipoValidado = st.detalhe.resumo.tipoOcorrencia;
   // RS008: a posição do fiscal vem só do GPS; começa vazia em vez de copiar a do ponto.
   st.latFiscal = null;
   st.lonFiscal = null;
   st.distanciaAtual = null;
+  render();
+  SaneaMapaA11y.focarTitulo(document.getElementById('app'));
+}
+
+// Atualiza só os dados do ponto (evidências, relatos), sem tocar no que o fiscal já preencheu.
+async function recarregarDetalhe() {
+  st.detalhe = await api('/api/fiscal/pontos/' + st.detalhe.resumo.id);
   render();
 }
 
@@ -185,9 +205,36 @@ async function inicializarMapaFiscal() {
     pontoLat: r.latitudeAproximada,
     pontoLng: r.longitudeAproximada,
     fiscalLat: st.latFiscal,
-    fiscalLng: st.lonFiscal
+    fiscalLng: st.lonFiscal,
+    correcaoLat: st.corrigirPosicao ? st.latCorrecao : null,
+    correcaoLng: st.corrigirPosicao ? st.lonCorrecao : null,
+    onCliqueMapa: (lat, lng) => { if (st.corrigirPosicao) definirCorrecao(lat, lng); }
   });
   atualizarCamposPosicaoNoDom();
+}
+
+function definirCorrecao(lat, lng) {
+  st.latCorrecao = lat;
+  st.lonCorrecao = lng;
+  if (mapaFiscalCtrl) mapaFiscalCtrl.setCorrecao(lat, lng);
+  const el = document.getElementById('texto-correcao');
+  if (el) el.textContent = `Nova posição do ponto: ${lat}, ${lng}`;
+}
+
+function alternarCorrecao(ligar) {
+  st.corrigirPosicao = ligar;
+  if (!ligar) { st.latCorrecao = null; st.lonCorrecao = null; }
+  render();
+}
+
+async function corrigirPelaMinhaPosicao() {
+  try {
+    await lerGpsFiscal();
+    definirCorrecao(st.latFiscal, st.lonFiscal);
+  } catch (err) {
+    st.erroVistoria = err.message;
+    render();
+  }
 }
 
 async function revelarContatos() {
@@ -207,15 +254,37 @@ async function ouvirAudio(evId) {
 async function novoDesfoque(evId) {
   const regiao = prompt('Descreva a região onde aplicar novo desfoque (ex.: canto esquerdo, placa ao fundo):');
   if (!regiao || !regiao.trim()) return;
-  const res = await api(`/api/fiscal/evidencias/${evId}/desfoque`, { method: 'POST', body: JSON.stringify({ regiao }) });
-  alert(res.mensagem);
-  await abrirPonto(st.detalhe.resumo.id);
+  st.msgEvidencia = '';
+  st.erroEvidencia = '';
+  try {
+    const res = await api(`/api/fiscal/evidencias/${evId}/desfoque`, { method: 'POST', body: JSON.stringify({ regiao }) });
+    st.msgEvidencia = res.mensagem;
+    // Antes recarregava o ponto inteiro (abrirPonto) e apagava observações, mídias e GPS da vistoria.
+    await recarregarDetalhe();
+    SaneaMapaA11y.anunciar(res.mensagem);
+  } catch (err) {
+    if (err.tratado) return;
+    st.erroEvidencia = err.message;
+    render();
+    SaneaMapaA11y.anunciar(err.message, true);
+  }
 }
 
 async function salvarTranscricao(evId) {
   const texto = document.getElementById('transc-' + evId)?.value || '';
-  const res = await api(`/api/fiscal/evidencias/${evId}/transcricao`, { method: 'PUT', body: JSON.stringify({ transcricao: texto }) });
-  alert(res.mensagem);
+  st.msgEvidencia = '';
+  st.erroEvidencia = '';
+  try {
+    const res = await api(`/api/fiscal/evidencias/${evId}/transcricao`, { method: 'PUT', body: JSON.stringify({ transcricao: texto }) });
+    st.msgEvidencia = res.mensagem;
+    await recarregarDetalhe();
+    SaneaMapaA11y.anunciar(res.mensagem);
+  } catch (err) {
+    if (err.tratado) return;
+    st.erroEvidencia = err.message;
+    render();
+    SaneaMapaA11y.anunciar(err.message, true);
+  }
 }
 
 async function capturarMidiaCamera(fileList) {
@@ -255,6 +324,9 @@ function removerMidiaCamera(idx) {
 async function salvarVistoria() {
   st.erroVistoria = '';
   try {
+    if (st.corrigirPosicao && (st.latCorrecao == null || st.lonCorrecao == null)) {
+      throw new Error('Marque no mapa a nova posição do ponto ou desligue a correção de posição.');
+    }
     // RS008: a posição enviada é a do GPS lida agora, no momento de salvar.
     await lerGpsFiscal();
     const caminhos = st.midiasCamera.map(m => m.arquivoCaminho);
@@ -265,6 +337,8 @@ async function salvarVistoria() {
         tipoOcorrenciaValidado: st.tipoValidado,
         latitudeFiscal: st.latFiscal,
         longitudeFiscal: st.lonFiscal,
+        novaLatitudePonto: st.corrigirPosicao ? st.latCorrecao : null,
+        novaLongitudePonto: st.corrigirPosicao ? st.lonCorrecao : null,
         observacoes: st.observacoes,
         midiasCamera: caminhos,
         origensMidia: caminhos.map(() => 'CAMERA')
@@ -272,9 +346,13 @@ async function salvarVistoria() {
     });
     st.retornoOk = `Vistoria registrada no ponto ${res.codigoPonto}: ${res.novoStatus} (distância medida: ${res.distanciaMetros} m).`;
     await carregarPontos();
+    SaneaMapaA11y.focarTitulo(document.getElementById('app'));
+    SaneaMapaA11y.anunciar(st.retornoOk);
   } catch (err) {
+    if (err.tratado) return;
     st.erroVistoria = err.message;
     render();
+    SaneaMapaA11y.anunciar('Vistoria não salva. ' + err.message, true);
   }
 }
 
@@ -316,25 +394,25 @@ function renderEvidenciaMorador(ev) {
 function render() {
   const el = document.getElementById('app');
   if (!st.token) {
-    el.innerHTML = `
+    SaneaMapaA11y.redesenhar(el, `
       <main class="corpo-cel" style="padding-top:44px;">
         <div>
           <h1 style="margin:0; font-family:var(--font-display);">SaneaMapa</h1>
           <p class="t-corpo" style="color:var(--soft); margin:4px 0 0;">Área de vistoria em campo</p>
         </div>
-        ${st.erroLogin ? `<div class="chamada" data-tom="critico"><span class="rotulo">Acesso recusado</span><span class="t-pequeno">${esc(st.erroLogin)}</span></div>` : ''}
+        ${st.erroLogin ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Acesso recusado</span><span class="t-pequeno">${esc(st.erroLogin)}</span></div>` : ''}
         <form onsubmit="entrar(event)" style="display:grid; grid-template-columns:minmax(0,1fr); gap:12px;">
           <label class="field-group"><span class="t-rotulo">E-mail institucional</span><input class="campo" type="email" value="${esc(st.email)}" oninput="st.email=this.value" placeholder="nome@exemplo.gov.br" required></label>
           <label class="field-group"><span class="t-rotulo">Senha</span><input class="campo" type="password" value="${esc(st.senha)}" oninput="st.senha=this.value" placeholder="Digite sua senha" required></label>
           <button class="botao primario" type="submit">Entrar</button>
         </form>
         <a href="/index.html" class="t-pequeno">Voltar ao portal</a>
-      </main>`;
+      </main>`);
     return;
   }
 
   if (!st.detalhe) {
-    el.innerHTML = `
+    SaneaMapaA11y.redesenhar(el, `
       <header class="cab-cel">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <h1 style="margin:0; font-family:var(--font-display); font-size:21px;">Pontos atribuídos</h1>
@@ -343,55 +421,63 @@ function render() {
         <span class="t-pequeno" style="color:var(--soft);">${esc(st.usuario?.nome)} · ${st.pontos.length} ponto(s) designado(s)</span>
       </header>
       <main class="corpo-cel">
-        ${st.retornoOk ? `<div class="chamada" data-tom="positivo"><span class="rotulo">Vistoria registrada</span><span class="t-pequeno">${esc(st.retornoOk)}</span></div>` : ''}
+        ${st.retornoOk ? `<div class="chamada" data-tom="positivo" role="status"><span class="rotulo">Vistoria registrada</span><span class="t-pequeno">${esc(st.retornoOk)}</span></div>` : ''}
         ${st.pontos.length === 0 ? `<div class="chamada" data-tom="neutro"><span class="rotulo">Nenhum ponto atribuído</span><span class="t-pequeno">Quando a Prefeitura designar uma ocorrência real para você, ela aparecerá aqui com as fotos, vídeos e a localização enviada pelo cidadão.</span></div>` : ''}
         ${st.pontos.map((p, idx) => `
           <article class="card-ponto">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <b>#${idx + 1} · ${esc(p.codigoExibicao)}</b>
-              <span class="etiqueta">${esc(p.tipoRotulo)}</span>
+              <span class="tipo-com-icone t-pequeno">${SaneaMapaTipos.icone(p.tipoOcorrencia, 18, SaneaMapaTipos.porId(p.tipoOcorrencia).cor)}${esc(p.tipoRotulo)}</span>
             </div>
             <span class="t-pequeno">${esc(p.trechoRua)} · ${esc(p.bairro)} · ${p.quantidadeRelatos} relato(s)</span>
             <span class="t-pequeno">Prioridade: <b>${esc(p.nivelRotulo)}</b></span>
             <button type="button" class="botao primario" onclick="abrirPonto(${p.id})">Iniciar vistoria</button>
           </article>
         `).join('')}
-      </main>`;
+      </main>`);
     return;
   }
 
   const d = st.detalhe;
   const r = d.resumo;
-  el.innerHTML = `
+  SaneaMapaA11y.redesenhar(el, `
     <header class="cab-cel">
       <div style="display:flex; align-items:center; gap:8px;">
-        <button type="button" class="botao quieto" style="padding:4px 8px;" onclick="carregarPontos()">←</button>
+        <button type="button" class="botao quieto" style="padding:4px 8px;" aria-label="Voltar à lista de pontos" onclick="carregarPontos().then(() => SaneaMapaA11y.focarTitulo(document.getElementById('app')))">←</button>
         <h1 style="margin:0; font-family:var(--font-display); font-size:21px;">Vistoria ${esc(r.codigoExibicao)}</h1>
       </div>
       <span class="t-pequeno" style="color:var(--soft);">${esc(r.trechoRua)} · ${esc(r.bairro)}</span>
     </header>
     <main class="corpo-cel">
-      ${st.erroVistoria ? `<div class="chamada" data-tom="critico"><span class="rotulo">Vistoria não salva</span><span class="t-pequeno">${esc(st.erroVistoria)}</span></div>` : ''}
+      ${st.erroVistoria ? `<div class="chamada" data-tom="critico" role="alert"><span class="rotulo">Vistoria não salva</span><span class="t-pequeno">${esc(st.erroVistoria)}</span></div>` : ''}
 
       <section class="card-ponto">
         <b>Localização enviada pelo cidadão (raio máx. 100 m)</b>
         <span class="t-pequeno"><b>Endereço:</b> ${esc(r.trechoRua)} · ${esc(r.bairro)}</span>
         <span class="t-pequeno"><b>Coordenada do ponto:</b> <span class="t-meta">${r.latitudeAproximada}, ${r.longitudeAproximada}</span></span>
         <div id="mapa-fiscal" class="mapa-container" style="height:220px;"></div>
-        <span id="fiscal-dist" class="estado" data-tom="neutro">Sua posição ainda não foi lida pelo GPS.</span>
+        <span id="fiscal-dist" class="estado" data-tom="neutro" role="status">Sua posição ainda não foi lida pelo GPS.</span>
         <button type="button" class="botao" onclick="capturarGpsFiscal()">Conferir minha distância pelo GPS</button>
         <span class="t-pequeno">A posição é lida de novo pelo GPS ao salvar a vistoria e não pode ser digitada (RS008).</span>
         <div class="grid-2">
           <label class="field-group"><span class="t-pequeno">Latitude do fiscal (GPS)</span><input id="fiscal-lat" class="campo" type="text" value="${st.latFiscal ?? ''}" readonly></label>
           <label class="field-group"><span class="t-pequeno">Longitude do fiscal (GPS)</span><input id="fiscal-lon" class="campo" type="text" value="${st.lonFiscal ?? ''}" readonly></label>
         </div>
+        <label style="display:flex; gap:8px; align-items:flex-start;">
+          <input type="checkbox" ${st.corrigirPosicao ? 'checked' : ''} onchange="alternarCorrecao(this.checked)">
+          <span class="t-pequeno"><b>A posição do ponto está errada</b><br>Toque no mapa onde o problema realmente está, ou use sua posição atual. A correção atualiza o ponto (RF007).</span>
+        </label>
+        ${st.corrigirPosicao ? `
+          <span id="texto-correcao" class="t-pequeno" role="status">${st.latCorrecao != null ? `Nova posição do ponto: ${st.latCorrecao}, ${st.lonCorrecao}` : 'Toque no mapa para marcar a nova posição do ponto.'}</span>
+          <button type="button" class="botao" onclick="corrigirPelaMinhaPosicao()">Usar minha posição do GPS como nova posição</button>
+        ` : ''}
       </section>
 
       <section class="card-ponto">
         <b>Relatos enviados (${d.relatos.length})</b>
         ${d.relatos.map(rel => `
           <div style="padding:8px; background:var(--sunk); border-radius:var(--radius-sm); display:grid; gap:4px;">
-            <span class="t-pequeno"><b>${esc(rel.protocolo)}</b> · ${rel.identificado ? 'Identificado' : 'Anônimo'}</span>
+            <span class="t-pequeno"><b>${esc(rel.protocolo)}</b></span>
             ${rel.logradouro || rel.pontoReferencia ? `<span class="t-pequeno" style="color:var(--soft);">${esc([rel.logradouro, rel.bairro, rel.pontoReferencia].filter(Boolean).join(' · '))}</span>` : ''}
             <span class="t-pequeno">${esc(rel.descricao || 'Sem descrição adicional.')}</span>
           </div>
@@ -400,13 +486,15 @@ function render() {
 
       <section class="card-ponto">
         <b>Fotos, vídeos e áudios dos cidadãos (${d.evidencias.length})</b>
+        ${st.msgEvidencia ? `<div class="chamada" data-tom="positivo" role="status"><span class="t-pequeno">${esc(st.msgEvidencia)}</span></div>` : ''}
+        ${st.erroEvidencia ? `<div class="chamada" data-tom="critico" role="alert"><span class="t-pequeno">${esc(st.erroEvidencia)}</span></div>` : ''}
         <div class="midia-lista">
           ${d.evidencias.map(renderEvidenciaMorador).join('')}
         </div>
       </section>
 
       <section class="card-ponto">
-        <b>Contatos dos moradores identificados</b>
+        <b>Contatos dos moradores</b>
         ${st.contatos ? st.contatos.contatos.map(c => `<span class="t-pequeno">${esc(c.nomeMorador)} · ${esc(c.telefoneMorador)}</span>`).join('') + `<span class="t-pequeno" style="color:var(--soft);">${esc(st.contatos.avisoAuditoria)}</span>`
           : `<button type="button" class="botao" onclick="revelarContatos()">Ver nome e telefone (acesso registrado)</button>`}
       </section>
@@ -452,7 +540,7 @@ function render() {
 
         <button type="button" class="botao primario" ${st.uploadandoCamera ? 'disabled' : ''} onclick="salvarVistoria()">Salvar vistoria</button>
       </section>
-    </main>`;
+    </main>`);
 
   inicializarMapaFiscal();
 }

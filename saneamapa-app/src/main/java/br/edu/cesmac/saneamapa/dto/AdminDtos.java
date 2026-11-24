@@ -121,4 +121,13 @@ public final class AdminDtos {
             Long objetoId,
             String detalhes
     ) {}
+
+    public record PaginaAuditoriaDto(
+            List<LogAuditoriaDto> itens,
+            int pagina,
+            int totalPaginas,
+            long totalItens,
+            LocalDate de,
+            LocalDate ate
+    ) {}
 }

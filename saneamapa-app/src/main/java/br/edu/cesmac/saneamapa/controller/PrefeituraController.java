@@ -169,12 +169,13 @@ public class PrefeituraController {
     }
 
     @GetMapping("/auditoria")
-    public List<LogAuditoriaDto> consultarAuditoria(
+    public PaginaAuditoriaDto consultarAuditoria(
             @RequestParam(required = false) Long usuarioId,
             @RequestParam(defaultValue = "false") boolean apenasSistema,
             @RequestParam(required = false) TipoEventoAuditoria tipoEvento,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
-        return auditoriaService.pesquisar(usuarioId, apenasSistema, tipoEvento, de, ate);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate,
+            @RequestParam(defaultValue = "0") int pagina) {
+        return auditoriaService.pesquisar(usuarioId, apenasSistema, tipoEvento, de, ate, pagina);
     }
 }

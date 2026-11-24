@@ -62,7 +62,7 @@ AS $$
 DECLARE
     qtd_recentes INTEGER;
 BEGIN
-    IF NEW.identificado = TRUE AND NEW.telefone_morador IS NOT NULL THEN
+    IF NEW.telefone_morador IS NOT NULL THEN
         SELECT COUNT(*)
           INTO qtd_recentes
           FROM relato

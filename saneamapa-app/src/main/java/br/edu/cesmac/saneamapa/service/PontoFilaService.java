@@ -134,7 +134,7 @@ public class PontoFilaService {
 
         List<RelatoVinculadoDto> relatos = relatoRepository.findByPontoIdOrderByDataHoraRegistroDesc(pontoId).stream()
                 .map(r -> new RelatoVinculadoDto(r.getId(), r.getProtocolo(), r.getDataHoraRegistro(),
-                        r.isIdentificado(), r.getDescricao(), r.getLogradouro(), r.getBairro(), r.getPontoReferencia()))
+                        r.getDescricao(), r.getLogradouro(), r.getBairro(), r.getPontoReferencia()))
                 .toList();
 
         List<HistoricoEventoDto> historico = logRepository.findTop20ByTipoObjetoAndObjetoIdOrderByDataHoraDesc(
@@ -161,12 +161,11 @@ public class PontoFilaService {
     public AcessoContatosResponse revelarContatosIdentificados(Long pontoId, Long usuarioId) {
         Ponto ponto = buscarPonto(pontoId);
         List<ContatoIdentificadoDto> contatos = relatoRepository.findByPontoIdOrderByDataHoraRegistroDesc(pontoId).stream()
-                .filter(Relato::isIdentificado)
                 .map(r -> new ContatoIdentificadoDto(r.getId(), r.getNomeMorador(), r.getTelefoneMorador()))
                 .toList();
         auditoriaService.registrar(usuarioId, TipoEventoAuditoria.ACESSO_CONTATO_MORADOR,
                 TipoObjetoAuditoria.PONTO, ponto.getId(),
-                "Consulta a nome e telefone de " + contatos.size() + " relato(s) identificado(s) no ponto " + ponto.getCodigoExibicao());
+                "Consulta a nome e telefone de " + contatos.size() + " relato(s) do ponto " + ponto.getCodigoExibicao());
         return new AcessoContatosResponse(contatos, "Acesso aos dados pessoais registrado na auditoria LGPD.");
     }
 
@@ -257,13 +256,27 @@ public class PontoFilaService {
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void recalcularPontuacoesDiarias() {
-        for (ItemFilaVistoria item : filaRepository.listarFilaOrdenada()) {
-            Ponto p = item.getPonto();
-            long naFilaBairro = pontoRepository.contarNaFilaPorBairro(p.getBairro());
-            boolean temIdentificado = relatoRepository.existsByPontoIdAndIdentificadoTrue(p.getId());
-            item.atualizarPontuacao(calculadoraPontuacao.calcular(p, naFilaBairro, temIdentificado));
-            filaRepository.save(item);
+        recalcularPontuacoesDaFila();
+    }
+
+    /**
+     * Recalcula a pontuação de todos os itens da fila com consultas agregadas: a contagem por bairro
+     * é lida uma vez, em vez de uma consulta por ponto.
+     */
+    @Transactional
+    public void recalcularPontuacoesDaFila() {
+        List<ItemFilaVistoria> fila = filaRepository.listarFilaOrdenada();
+        Map<String, Long> naFilaPorBairro = new HashMap<>();
+        for (ItemFilaVistoria item : fila) {
+            String bairro = item.getPonto().getBairro();
+            if (bairro != null) naFilaPorBairro.merge(bairro, 1L, Long::sum);
         }
+        for (ItemFilaVistoria item : fila) {
+            Ponto p = item.getPonto();
+            long naFilaBairro = p.getBairro() != null ? naFilaPorBairro.getOrDefault(p.getBairro(), 0L) : 0L;
+            item.atualizarPontuacao(calculadoraPontuacao.calcular(p, naFilaBairro));
+        }
+        filaRepository.saveAll(fila);
     }
 
     private String montarResumoCenso(Ponto ponto) {

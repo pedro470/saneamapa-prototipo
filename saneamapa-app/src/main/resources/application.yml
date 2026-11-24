@@ -30,8 +30,10 @@ saneamapa:
     secret: ${JWT_SECRET:}
     expiration-minutes: 30
   fila:
+    # RF005, nota 1 (valores iniciais do TBD-17)
     peso-relatos: 6.0
+    limite-relatos: 10
     peso-dias-espera: 1.5
     peso-urgencia: 15.0
     peso-densidade-bairro: 2.0
-    bonus-identificado: 10.0
+    limite-densidade-bairro: 10

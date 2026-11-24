@@ -358,3 +358,60 @@ textarea.campo {
   box-shadow: 0 6px 24px rgba(12, 16, 24, 0.18);
 }
 .aviso-global[hidden] { display: none; }
+
+/* Texto só para leitor de tela (js/acessibilidade.js) */
+.somente-leitor {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+/* Ícone do tipo de ocorrência (RNF02) */
+.icone-tipo { flex: none; vertical-align: middle; }
+.tipo-com-icone { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Marcador do ponto no mapa: cor = tipo, borda = urgência (RF006/RF010) */
+.marcador-ponto {
+  --cor: #1f2937;
+  --borda: #ffffff;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--cor);
+  border: 3px solid var(--borda);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  display: grid; place-items: center;
+  box-sizing: border-box;
+  position: relative;
+}
+.marcador-ponto[data-urgencia="ELEVADA"] { --borda: #d97706; }
+.marcador-ponto[data-urgencia="CRITICA"] { --borda: #b91c1c; width: 36px; height: 36px; border-width: 4px; }
+.marcador-ponto[data-urgencia="CRITICA"]::after {
+  content: "!";
+  position: absolute; top: -8px; right: -8px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #b91c1c; color: #fff;
+  font: 700 11px/16px var(--font-body, sans-serif); text-align: center;
+  border: 1px solid #fff;
+}
+.marcador-ponto[data-selecionado="true"] { outline: 3px solid #f59e0b; outline-offset: 2px; }
+
+/* Legenda do mapa da Prefeitura */
+.legenda-mapa {
+  background: var(--surface, #fff);
+  color: var(--ink, #111);
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  font: 12px/1.35 var(--font-body, sans-serif);
+  display: grid; gap: 4px;
+  max-width: 220px;
+}
+.legenda-mapa b { font-size: 12px; }
+.legenda-mapa .item { display: flex; align-items: center; gap: 6px; }
+.legenda-mapa .bola { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; flex: none; box-sizing: border-box; }
+.legenda-mapa .anel { width: 16px; height: 16px; border-radius: 50%; background: #64748b; flex: none; box-sizing: border-box; }
+
+/* Mapa indisponível (sem internet ou CDN bloqueado) */
+.mapa-indisponivel { display: grid; place-items: center; padding: 16px; text-align: center; color: var(--soft, #555); font-size: 13px; }

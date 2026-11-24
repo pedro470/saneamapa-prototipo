@@ -62,7 +62,8 @@ public class AutenticacaoService {
     @Transactional(readOnly = true)
     public RedefinirSenhaResponse solicitarRedefinicao(String email) {
         return new RedefinirSenhaResponse(
-                "Se o e-mail " + email.trim() + " estiver cadastrado e ativo, as instruções de redefinição foram enviadas."
+                "Se o e-mail " + email.trim() + " estiver cadastrado e ativo, as instruções de redefinição serão enviadas para ele. "
+                        + "No protótipo, o envio do e-mail é simulado: peça a um usuário da Prefeitura para redefinir seu acesso."
         );
     }
 }

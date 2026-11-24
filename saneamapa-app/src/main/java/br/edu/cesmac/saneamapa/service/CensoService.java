@@ -6,6 +6,7 @@ import br.edu.cesmac.saneamapa.domain.exception.RecursoNaoEncontradoException;
 import br.edu.cesmac.saneamapa.domain.model.ImportacaoCenso;
 import br.edu.cesmac.saneamapa.domain.model.SetorCensitario;
 import br.edu.cesmac.saneamapa.domain.model.Usuario;
+import br.edu.cesmac.saneamapa.domain.service.GeoUtils;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.ImportacaoCensoDto;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.ImportarCensoResponse;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.SetorCensitarioDto;
@@ -164,9 +165,14 @@ public class CensoService {
             String bairro = cols[1].trim();
             String aguaStr = cols[2].trim().replace("%", "").replace(",", ".");
             String esgotoStr = cols[3].trim().replace("%", "").replace(",", ".");
-            String poligono = cols.length >= 5 && !cols[4].isBlank()
-                    ? cols[4].trim()
-                    : "[[-9.68,-35.75],[-9.67,-35.75],[-9.67,-35.74],[-9.68,-35.74]]";
+            // O polígono pode conter vírgulas: no CSV separado por ";" ele é a 5ª coluna inteira;
+            // no separado por "," é tudo o que vem depois da 4ª coluna.
+            String poligono = null;
+            if (cols.length >= 5) {
+                String sep = linha.contains(";") ? ";" : ",";
+                String[] partes = linha.split(sep, 5);
+                poligono = partes.length == 5 ? partes[4].trim() : null;
+            }
 
             validarECriarSetor(numLinha, codigo, bairro, aguaStr, esgotoStr, poligono, codigosVistos, setores, erros);
         }
@@ -188,9 +194,13 @@ public class CensoService {
             String bairro = props.path("bairro").asText("Maceió");
             String aguaStr = props.path("pct_agua").asText(props.path("agua").asText("0"));
             String esgotoStr = props.path("pct_esgoto").asText(props.path("esgoto").asText("0"));
-            String poligono = f.path("geometry").path("coordinates").toString();
-            if (poligono == null || poligono.isBlank() || "[]".equals(poligono)) {
-                poligono = "[[-9.68,-35.75],[-9.67,-35.75],[-9.67,-35.74],[-9.68,-35.74]]";
+            String poligono;
+            try {
+                // GeoJSON vem em [lon, lat]; o sistema guarda e consulta em [lat, lon].
+                poligono = GeoUtils.converterAnelGeoJson(f.path("geometry"));
+            } catch (IllegalArgumentException e) {
+                erros.add("Setor " + idx + ": " + e.getMessage() + ".");
+                continue;
             }
             validarECriarSetor(idx, codigo, bairro, aguaStr, esgotoStr, poligono, codigosVistos, setores, erros);
         }
@@ -205,6 +215,16 @@ public class CensoService {
         }
         if (!codigosVistos.add(codigo)) {
             erros.add("Linha " + linha + ": código de setor duplicado (" + codigo + ").");
+            return;
+        }
+        if (poligono == null || poligono.isBlank()) {
+            erros.add("Linha " + linha + ": polígono do setor ausente. Informe a 5ª coluna como [[lat,lon],...].");
+            return;
+        }
+        try {
+            GeoUtils.lerPoligono(poligono);
+        } catch (IllegalArgumentException e) {
+            erros.add("Linha " + linha + ": polígono inválido (" + e.getMessage() + ").");
             return;
         }
         try {

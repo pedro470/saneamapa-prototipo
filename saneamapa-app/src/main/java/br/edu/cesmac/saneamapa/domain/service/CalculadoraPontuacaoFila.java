@@ -9,5 +9,5 @@ import java.math.BigDecimal;
  */
 public interface CalculadoraPontuacaoFila {
 
-    BigDecimal calcular(Ponto ponto, long pontosNaFilaNoBairro, boolean possuiRelatoIdentificado);
+    BigDecimal calcular(Ponto ponto, long pontosNaFilaNoBairro);
 }
