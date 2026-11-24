@@ -17,7 +17,7 @@ Permitir que qualquer morador registre ocorrências de saneamento com evidência
 | Método | Rota | Acesso | Descrição |
 |---|---|---|---|
 | `POST` | `/api/morador/midias` | Público | Upload multipart (`arquivo`, `tipo`, `duracaoSegundos`). Retorna caminho `/api/midias/...` e metadados. |
-| `POST` | `/api/morador/relatos` | Público | Registra relato (`CriarRelatoRequest`) e retorna protocolo, código do ponto e flags (`agrupadoEmPontoExistente`, `prioridadeReduzida`). |
+| `POST` | `/api/morador/relatos` | Público | Registra relato (`CriarRelatoRequest`) e retorna protocolo, código do ponto e a flag `agrupadoEmPontoExistente`. |
 | `GET` | `/api/publico/pontos` | Público | Lista pontos resumidos em conformidade LGPD (sem coordenada exata, contatos, áudios ou urgência). |
 | `GET` | `/api/publico/config` | Público | Retorna motor do mapa (`openstreetmap`) e centro padrão (`Maceió, AL`). |
 | `GET` | `/api/midias/{nomeArquivo}` | `FISCAL` ou `PREFEITURA` | Serve mídias armazenadas apenas para equipe autenticada (bloqueado com HTTP 401 para o público). |
@@ -28,9 +28,9 @@ Permitir que qualquer morador registre ocorrências de saneamento com evidência
 
 ### 3.1. Identificação e LGPD (`Relato`)
 - Em [Relato.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/model/Relato.java):
-  - Quando `identificado = true`, exige `nomeMorador` não vazio e `telefoneMorador` no padrão `(xx) xxxxx-xxxx` ou `(xx) xxxx-xxxx` (`CpfUtils.isTelefoneValido`).
-  - Quando `identificado = false` (anônimo), força `nomeMorador = null` e `telefoneMorador = null`, e o relato recebe `prioridadeReduzida = true` na fila (`RS001`).
-  - No banco, a constraint `chk_relato_lgpd_identificacao` ([01_ddl_4_integridades.sql](saneamapa-app/database/01_ddl_4_integridades.sql)) reforça essa invariante.
+  - Toda denúncia é identificada (RF001, nota 5): não há envio anônimo. O construtor exige `nomeMorador` não vazio e `telefoneMorador` no padrão `(xx) xxxxx-xxxx` ou `(xx) xxxx-xxxx` (`CpfUtils.isTelefoneValido`); `CriarRelatoRequest` marca os dois campos com `@NotBlank`.
+  - No banco, `nome_morador` e `telefone_morador` são `NOT NULL`, e a constraint `chk_relato_identificacao` ([01_ddl_4_integridades.sql](saneamapa-app/database/01_ddl_4_integridades.sql)) exige nome preenchido e telefone com DDD.
+  - Antes do envio, [morador.html](saneamapa-app/src/main/resources/static/morador.html) informa para que servem nome e telefone (contato na vistoria e controle de denúncias repetidas) e quem os vê (equipe da prefeitura). O aparelho guarda só o nome e o telefone do último relato (`saneamapa_contato_morador`), para preencher o próximo.
 
 ### 3.2. Limite Anti-Abuso em 24h (`RS001`)
 - `RelatoService.registrarRelato` consulta relatos recentes pelo `telefoneMorador` usando a hora do servidor (`criado_em` nas últimas 24h), recusando a partir do 6º relato (`LIMITE_RELATOS_24H_TELEFONE = 5`).

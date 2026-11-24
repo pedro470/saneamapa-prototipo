@@ -19,7 +19,7 @@ Priorizar automaticamente os pontos pendentes em uma fila de vistoria com base e
 | `GET` | `/api/prefeitura/pontos` | `PREFEITURA` | Lista pontos filtrados por `tipo`, `status`, `bairro`, `dias`, `minRelatos` e `urgencia`, ordenados pela fila. |
 | `GET` | `/api/prefeitura/pontos/{pontoId}` | `PREFEITURA` | Retorna detalhe do ponto (relatos, evidências, vistorias, setores do Censo). |
 | `POST` | `/api/prefeitura/pontos/{pontoId}/coordenada-exata` | `PREFEITURA` | Revela latitude/longitude exatas registrando `ACESSO_COORDENADA_EXATA` na auditoria. |
-| `POST` | `/api/prefeitura/pontos/{pontoId}/contatos` | `PREFEITURA` | Revela nome/telefone dos relatos identificados registrando `ACESSO_CONTATO_MORADOR`. |
+| `POST` | `/api/prefeitura/pontos/{pontoId}/contatos` | `PREFEITURA` | Revela nome/telefone dos moradores dos relatos do ponto registrando `ACESSO_CONTATO_MORADOR`. |
 | `POST` | `/api/prefeitura/evidencias/{evidenciaId}/audio` | `PREFEITURA` | Libera reprodução de áudio registrando `AUDIO_OUVIDO`. |
 | `PUT` | `/api/prefeitura/pontos/{pontoId}/atribuicao` | `PREFEITURA` | Atribui ou retira `fiscalId` do ponto, gravando `ATRIBUICAO_PONTO` / `RETIRADA_ATRIBUICAO`. |
 | `GET` | `/api/prefeitura/indicadores` | `PREFEITURA` | Retorna totais por status, tipo de ocorrência, urgência e bairro (filtros `dias`, `bairro`). |
@@ -37,15 +37,16 @@ Priorizar automaticamente os pontos pendentes em uma fila de vistoria com base e
   - Se `categoria == VULNERABILIDADE_EPIDEMIOLOGICA`, exige obrigatoriamente `tipoGeometria == POLIGONO` (`RS012` — impede expor localização individual de pacientes).
   - Geometria `PONTO_RAIO` exige centro e raio > 0; `POLIGONO` exige coordenadas não vazias.
 - O método `obterGeometria()` retorna a interface `GeometriaCamada` ([GeometriaPontoRaio](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/model/GeometriaPontoRaio.java) ou [GeometriaPoligono](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/model/GeometriaPoligono.java)), permitindo a `ServicoClassificacaoUrgenciaImpl` verificar contenção espacial polimorficamente.
+- No painel, o formulário de camada sugere o peso pela categoria (RF006, nota 3): `3` para público infantil e escolar, gestantes e recém-nascidos e vulnerabilidade epidemiológica; `2` para idosos e cuidados e comunidades tradicionais. A Prefeitura pode alterar.
 - O ponto assume o **maior peso** dentre as camadas ativas que o contêm (`0 = NORMAL`, `1..2 = ELEVADA`, `3 = CRITICA`).
 
 ### 3.2. Cálculo da Pontuação da Fila (`RF005`)
 - Interface `CalculadoraPontuacaoFila` implementada por [CalculadoraPontuacaoPadrao.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/service/CalculadoraPontuacaoPadrao.java), com pesos configuráveis em `application.yml`:
-  - `quantidadeRelatos * pesoRelatos` (padrão `6.0`)
-  - `diasEspera * pesoDiasEspera` (padrão `1.5`)
+  - `min(quantidadeRelatos, limiteRelatos) * pesoRelatos` (padrão `6.0`, limite `10`)
+  - `diasEspera * pesoDiasEspera` (padrão `1.5`, sem limite)
   - `pesoUrgencia * pesoUrgenciaCamada` (padrão `15.0`)
-  - `pontosNaFilaNoBairro * pesoDensidadeBairro` (padrão `2.0`)
-  - `+ bonusIdentificado` (padrão `10.0` se houver ao menos um relato identificado)
+  - `min(pontosNaFilaNoBairro, limiteDensidadeBairro) * pesoDensidadeBairro` (padrão `2.0`, limite `10`)
+  - Os valores são os iniciais do TBD-17. Os limites impedem que uma grande quantidade de relatos passe à frente dos pontos urgentes (RS001), e a espera sem limite impede que um ponto fique parado na fila (RS009). Não há bônus por identificação, porque toda denúncia é identificada.
 - A pontuação é recalculada na criação/agrupamento de relato, na alteração de camadas e diariamente via rotina agendada (`PontoFilaService`).
 
 ### 3.3. Atribuição a Fiscal
