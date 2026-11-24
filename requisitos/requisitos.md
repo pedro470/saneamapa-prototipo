@@ -14,7 +14,7 @@ Convenções de marcação aceitas pelo gerador:
   :::                    ID | Descrição | Prioridade
   [[quebra]]             quebra de página
 -->
-<!-- versao: Versão 7 – novembro de 2026 -->
+<!-- versao: Versão 8 – novembro de 2026 -->
 <!-- cliente: Demanda da comunidade ao CESMAC -->
 
 # Introdução
@@ -34,7 +34,7 @@ Além desta seção introdutória, as seções seguintes estão organizadas como
 - **Seção 8 – Itens a definir:** lista as informações ainda não obtidas, com o responsável por cada uma e a forma de resolução.
 - **Seção 9 – Alterações em relação às versões anteriores:** registra o que mudou nesta versão e as inconsistências da versão 4, com a decisão adotada para cada uma.
 - **Seção 10 – Referências:** apresenta os documentos utilizados na elaboração deste documento.
-- **Seção 11 – Anotações da entrevista:** transcreve as anotações da entrevista com o cliente, que são a fonte dos requisitos marcados como "Entrevista".
+- **Seção 11 – Anotações da entrevista:** transcreve as anotações da entrevista com o cliente e as respostas dele às dúvidas levantadas depois, que são a fonte dos requisitos marcados como "Entrevista".
 - **Seção 12 – Anexos:** apresenta o ciclo de vida do ponto, a matriz de permissões e as hipóteses que ficaram fora do escopo.
 
 ## Convenções, termos e abreviações
@@ -56,7 +56,7 @@ Os requisitos funcionais são apresentados em tabelas com três colunas: o ident
 - **Campos:** os dados que a função recebe ou mantém, um por linha, no formato "Nome: Tipo; (máscara); obrigatoriedade". O número sobrescrito ao fim da linha remete à nota de mesmo número em "Regra e observações do preenchimento dos campos".
 - **Regra e observações do preenchimento dos campos:** as notas numeradas, com as validações e o comportamento de cada campo.
 - **Observações, Alteração, Exclusão e Pesquisa:** as regras do requisito que não se prendem a um campo, o que acontece quando um registro é alterado ou excluído e os critérios de busca.
-- **Fonte:** a origem de cada parte do requisito. "Entrevista" indica um pedido registrado nas anotações da entrevista com o cliente (Seção 11). "Legislação (LGPD)" indica a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). "Derivado" indica o que não foi pedido literalmente, mas sem o qual um pedido da entrevista não funciona ou o sistema não opera. "Analista" indica hipótese do analista, uma escolha entre alternativas possíveis que ainda precisa ser validada com o cliente.
+- **Fonte:** a origem de cada parte do requisito. "Entrevista" indica um pedido registrado nas anotações da entrevista com o cliente ou nas respostas dele às dúvidas (Seção 11). "Legislação (LGPD)" indica a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). "Derivado" indica o que não foi pedido literalmente, mas sem o qual um pedido da entrevista não funciona ou o sistema não opera. "Analista" indica hipótese do analista, uma escolha entre alternativas possíveis que ainda precisa ser validada com o cliente.
 
 Os requisitos não funcionais são apresentados numa tabela com o identificador, a categoria, a descrição, a prioridade e a fonte. A categoria segue a divisão em requisitos de produto (como o sistema se comporta: facilidade de uso, desempenho, confiabilidade, portabilidade, espaço e segurança), organizacionais (decorrentes de quem desenvolve e mantém o sistema) e externos (decorrentes de leis e normas). Cada descrição traz um valor verificável.
 
@@ -78,8 +78,6 @@ Os verbos "deve" e "não deve" indicam, respectivamente, obrigação e proibiç�
 
 Quando uma informação necessária não foi obtida, o requisito indica a lacuna com a marca [TBD-nn], e a Seção 8 registra o que falta, quem responde e como a lacuna será resolvida. Um requisito com TBD está especificado em tudo, exceto no item marcado.
 
-A entrevista não identificou os perfis internos da Prefeitura. Por isso, os requisitos se referem ao perfil Prefeitura, e cada ação atribuída a ele indica o TBD que definirá o perfil interno responsável.
-
 ### Prioridades dos requisitos
 
 Cada requisito recebe uma única prioridade, que vale para o requisito inteiro: se uma parte do requisito é essencial, todo o requisito é essencial. As prioridades são as seguintes.
@@ -94,7 +92,7 @@ Cada requisito recebe uma única prioridade, que vale para o requisito inteiro: 
 
 ## Origem da demanda e escopo
 
-**Origem da demanda.** O SaneaMapa responde a uma demanda de caráter social e educativo, sem fins lucrativos, apresentada como uma solicitação da comunidade ao CESMAC. O cliente não tem ligação com a prefeitura nem com qualquer secretaria municipal, e seus interesses ainda não estão bem definidos. Os requisitos se apoiam numa entrevista com esse cliente, registrada por dois integrantes do grupo. As duas anotações estão transcritas na Seção 11 e são a única fonte do que este documento atribui à "Entrevista".
+**Origem da demanda.** O SaneaMapa responde a uma demanda de caráter social e educativo, sem fins lucrativos, apresentada como uma solicitação da comunidade ao CESMAC. O cliente não tem ligação com a prefeitura nem com qualquer secretaria municipal, e seus interesses ainda não estão bem definidos. Os requisitos se apoiam numa entrevista com esse cliente, registrada por dois integrantes do grupo, e nas respostas do cliente às dúvidas levantadas depois dela. As anotações e as respostas estão transcritas na Seção 11 e são a única fonte do que este documento atribui à "Entrevista".
 
 **O que a entrevista pediu.** Segundo as anotações, o problema é que, "no papel", a rua está saneada, mas na prática não está. O objetivo é dar à própria comunidade o poder de questionar as áreas declaradas como saneadas. Para isso, o cliente pediu:
 
@@ -102,17 +100,16 @@ Cada requisito recebe uma única prioridade, que vale para o requisito inteiro: 
 - denúncia sem anonimato, com a pessoa se identificando;
 - transcrição dos áudios por inteligência artificial;
 - uma tela, ou painel, em que a prefeitura acompanha o status das denúncias e a quantidade de denúncias por localização;
-- a validação da denúncia, sem que a entrevista tenha dito por quem nem como (TBD-25);
+- a validação da denúncia, feita por um fiscal da prefeitura em vistoria no local, como o cliente confirmou depois da entrevista;
 - prioridade para grupos e situações de risco;
 - integração com o Censo do IBGE.
 
-O cliente comentou que já existem fontes alternativas, mas difíceis de usar e pouco ágeis. Ele espera que o morador tenha celular com acesso à internet; as duas anotações divergem quanto ao uso sem conexão (TBD-23).
+O cliente comentou que já existem fontes alternativas, mas difíceis de usar e pouco ágeis. Ele espera que o morador tenha celular com acesso à internet. As duas anotações divergiam quanto ao uso sem conexão, e o cliente confirmou depois que, sem internet, o aplicativo guarda a denúncia e a envia quando a conexão voltar.
 
 **O que o analista acrescentou.** Além dos pedidos, o documento traz dois tipos de requisito. Os "derivados" são consequência natural de um pedido: sem eles, o pedido não funciona. Por exemplo, para a prefeitura ver as denúncias, alguém precisa ter acesso ao sistema, e esse acesso precisa de cadastro e autenticação. As "hipóteses do analista" são escolhas entre alternativas possíveis, ainda não validadas com o cliente. As principais são:
 
 - os quatro tipos de ocorrência (casa sem ligação de água, água fora do padrão, rua sem rede de esgoto e esgoto a céu aberto);
-- a validação feita por um fiscal em vistoria de campo, a partir de uma fila com atribuição (TBD-25);
-- o envio anônimo com prioridade reduzida, que contraria a entrevista e fica como hipótese a validar (TBD-10).
+- a fila de vistoria, ordenada por urgência, com a atribuição de cada ponto a um fiscal.
 
 As funções que nenhum pedido exige ficaram fora desta versão e estão listadas na seção 12.3.
 
@@ -124,11 +121,11 @@ As funções que nenhum pedido exige ficaram fora desta versão e estão listada
 
 O sistema distingue três perfis de usuário.
 
-- **Morador:** qualquer pessoa que registra uma ocorrência pelo aplicativo. Não tem senha. A entrevista pede que ele se identifique ao denunciar.
-- **Prefeitura:** usuário da prefeitura que acompanha as denúncias no painel. Acessa o sistema com credencial individual. A entrevista prevê que a prefeitura veja o status e a quantidade de denúncias por localização; organizar a fila de validação é hipótese do analista.
-- **Fiscal:** quem valida a denúncia em campo. Acessa o sistema com credencial individual. A entrevista pede que a denúncia seja validada, mas não diz por quem; o perfil Fiscal é hipótese do analista [TBD-25].
+- **Morador:** qualquer pessoa que registra uma ocorrência pelo aplicativo. Não tem senha. Toda denúncia é identificada, com nome e telefone, como pede a entrevista.
+- **Prefeitura:** usuário da prefeitura que acompanha as denúncias no painel, distribui as vistorias e administra o sistema. Acessa o sistema com credencial individual. É um perfil único, com acesso a todas as funções internas, inclusive ao nome e ao telefone do morador, como o cliente confirmou depois da entrevista.
+- **Fiscal:** fiscal da prefeitura que valida a denúncia em vistoria no local, como o cliente confirmou depois da entrevista. Acessa o sistema com credencial individual.
 
-Fiscal e Prefeitura formam a equipe interna. O perfil Prefeitura agrupa perfis internos ainda não identificados [TBD-01 a TBD-09]. Quando esses perfis forem definidos, cada ação da matriz da seção 12.2 passará a indicar o perfil interno responsável. Os papéis "coordenador da fiscalização", "gestão" e "administrador", usados na versão 4, foram retirados por não terem fonte na entrevista.
+Fiscal e Prefeitura formam a equipe interna. A matriz da seção 12.2 mostra o que cada perfil pode fazer. Os papéis "coordenador da fiscalização", "gestão" e "administrador", usados na versão 4, foram retirados por não terem fonte na entrevista.
 
 [[quebra]]
 
@@ -147,25 +144,24 @@ Tipo de ocorrência: Integer; obrigatório ^2^
 Evidências: Arquivo; obrigatório ^3^
 Localização: conforme RF002; obrigatório
 Descrição: String(300); opcional ^4^
-Identificar-se: Boolean; marcado por padrão ^5^
-Nome do morador: String(120); obrigatório quando identificado ^5^
-Telefone do morador: String(15); ((xx) xxxx-xxxx ou (xx) xxxxx-xxxx); obrigatório quando identificado ^5, 6^
+Nome do morador: String(120); obrigatório ^5^
+Telefone do morador: String(15); ((xx) xxxx-xxxx ou (xx) xxxxx-xxxx); obrigatório ^5, 6^
 Situação do envio: Integer; gerado automaticamente ^7^
 
 **Regra e observações do preenchimento dos campos:**
-^1^ O protocolo é gerado no aparelho e exibido ao morador ao concluir o registro, com a data e a hora. No relato anônimo, o protocolo indica que o relato tem prioridade reduzida.
+^1^ O protocolo é gerado no aparelho e exibido ao morador ao concluir o registro, com a data e a hora.
 ^2^ Seleção única entre "casa sem ligação de água", "água fora do padrão", "rua sem rede de esgoto" e "esgoto a céu aberto" [TBD-26].
 ^3^ Ao menos uma foto, vídeo ou áudio, em qualquer combinação, obtidos pela câmera, pelo microfone ou pela galeria do aparelho. O sistema deve recusar vídeo com mais de 30 segundos e áudio com mais de 60 segundos.
 ^4^ Texto livre. A transcrição dos áudios (RF003) é acrescentada à descrição.
-^5^ Enquanto "Identificar-se" estiver marcado, nome e telefone são obrigatórios. Quando o morador o desmarcar, o sistema deve exibir, antes do envio, um aviso de que o relato anônimo terá prioridade reduzida na fila [TBD-10], com a opção de voltar a se identificar sem perder o que já foi preenchido. No relato anônimo, o sistema não deve armazenar nome, telefone nem qualquer identificador do aparelho.
+^5^ Toda denúncia é identificada: o sistema não deve aceitar relato sem nome e telefone. Antes do envio, o sistema deve informar ao morador para que servem esses dados (contato na vistoria e controle de denúncias repetidas) e quem os vê (a equipe interna). O aplicativo preenche os dois campos com os valores do último relato enviado, e o morador pode alterá-los.
 ^6^ Número com DDD, de 10 ou 11 dígitos.
-^7^ "Pendente" ou "enviado". Quando o envio falhar por falta de conexão, o sistema deve guardar o relato no aparelho, mostrar ao morador que o envio está pendente e reenviá-lo automaticamente quando a conexão voltar, sem ação do morador [TBD-23].
+^7^ "Pendente" ou "enviado". Quando o envio falhar por falta de conexão, o sistema deve guardar o relato no aparelho, mostrar ao morador que o envio está pendente e reenviá-lo automaticamente quando a conexão voltar, sem ação do morador.
 
-Obs1: nome e telefone do morador ficam restritos à equipe interna [TBD-08] e nunca aparecem no mapa.
-Obs2: o sistema deve aceitar no máximo 5 relatos por telefone a cada 24 horas. No relato anônimo, o limite é controlado no próprio aparelho (RS001).
-Obs3: depois do envio, o aplicativo não guarda o relato nem mantém histórico dos relatos enviados (RS005).
+Obs1: nome e telefone do morador ficam restritos à equipe interna e nunca aparecem no mapa.
+Obs2: o sistema deve aceitar no máximo 5 relatos por telefone a cada 24 horas (RS001).
+Obs3: depois do envio, o aplicativo não guarda o relato nem mantém histórico dos relatos enviados; guarda apenas o nome e o telefone do morador, para preencher o próximo relato (RS005).
 
-**Fonte:** Entrevista (evidências, localização, identificação e envio sem conexão); Analista (tipos de ocorrência, durações, descrição, envio anônimo e limite de relatos); Legislação (LGPD) (dados do relato anônimo e ocultação no mapa); Derivado (demais regras).
+**Fonte:** Entrevista (evidências, localização, identificação obrigatória e envio sem conexão); Analista (tipos de ocorrência, durações, descrição, limite de relatos e preenchimento com o último relato); Legislação (LGPD) (aviso da finalidade e ocultação no mapa); Derivado (demais regras).
 :::
 
 ## Localização
@@ -218,7 +214,7 @@ Transcrição: String(2000); gerado automaticamente ^5^
 ^5^ Somente para áudio. Cada áudio é transcrito automaticamente por inteligência artificial, e a transcrição é acrescentada à descrição do relato. Ao serviço de transcrição é enviado só o áudio, sem nome nem telefone, e o serviço deve apagá-lo após a transcrição (RS007).
 ^6^ A origem é "câmera", "microfone" ou "galeria". Quando a evidência vier da galeria e a sua data ou coordenada de captura diferir mais de 7 dias ou 500 metros das do relato, o sistema deve marcá-la como divergente, e a marcação é exibida ao fiscal (RS002).
 
-Obs1: os áudios só podem ser reproduzidos pela equipe interna [TBD-08] e nunca aparecem no mapa.
+Obs1: os áudios só podem ser reproduzidos pela equipe interna e nunca aparecem no mapa.
 
 **Alteração:** a equipe interna pode corrigir a transcrição, e o fiscal pode marcar novo desfoque numa foto. Cada edição de foto é registrada com usuário, data e hora (RF019).
 
@@ -255,8 +251,8 @@ Reincidência: Boolean; gerado automaticamente ^4^
 ## Fila de vistoria
 
 ::: RF005 | Essencial
-O sistema deve organizar os pontos pendentes numa fila ordenada por urgência e permitir que a Prefeitura distribua as vistorias aos fiscais, na hipótese em que a denúncia é validada em vistoria de campo [TBD-25].
-**Atores:** Prefeitura [TBD-01]; fiscal; sistema.
+O sistema deve organizar os pontos pendentes numa fila ordenada por urgência e permitir que a Prefeitura distribua as vistorias aos fiscais, que validam a denúncia no local (RF007).
+**Atores:** Prefeitura; fiscal; sistema.
 **Pré-condição:** usuário autenticado (RF018).
 
 **Item da Fila:**
@@ -266,27 +262,27 @@ Pontuação: Decimal; gerado automaticamente ^1^
 Fiscal atribuído: Integer; (usuário ativo com perfil Fiscal, RF013); opcional ^2^
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Soma ponderada da quantidade de relatos do ponto, dos dias de espera, do peso de urgência do ponto (RF006), da quantidade de pontos na fila no mesmo bairro e da existência de ao menos um relato identificado, com pesos definidos em [TBD-17]. A pontuação é recalculada quando um relato é vinculado ao ponto, quando o nível de urgência muda e uma vez por dia.
+^1^ Soma de quatro fatores: 6 pontos por relato vinculado ao ponto, contando no máximo 10 relatos; 1,5 ponto por dia de espera desde o primeiro relato, sem limite; 15 pontos por unidade do peso de urgência do ponto (RF006), de 0 a 3; e 2 pontos por ponto na fila no mesmo bairro, contando no máximo 10 pontos. Os limites impedem que uma grande quantidade de relatos passe à frente dos pontos urgentes (RS001), e a espera sem limite impede que um ponto fique parado na fila (RS009). Os pesos são valores iniciais a validar com o cliente [TBD-17]. A pontuação é recalculada quando um relato é vinculado ao ponto, quando o nível de urgência muda e uma vez por dia.
 ^2^ A atribuição a um fiscal muda o status do ponto para "em vistoria", e a retirada da atribuição o devolve para "aguardando vistoria".
 
 Obs1: a fila contém todo ponto com status "aguardando vistoria" ou "em vistoria", ordenado da maior para a menor pontuação.
 Obs2: o fiscal vê somente os pontos atribuídos a ele.
 
-**Fonte:** Analista (atribuição a fiscais e visão restrita do fiscal); Derivado (demais regras).
+**Fonte:** Entrevista (validação por fiscal no local); Analista (atribuição a fiscais, visão restrita do fiscal e pesos da pontuação); Derivado (demais regras).
 :::
 
 ## Classificação de urgência
 
 ::: RF006 | Importante
 O sistema deve permitir o cadastro das camadas de sensibilidade social e classificar a urgência dos pontos situados nelas, para dar prioridade aos grupos e às situações de risco.
-**Atores:** Prefeitura [TBD-04]; sistema.
+**Atores:** Prefeitura; sistema.
 **Pré-condição:** usuário autenticado (RF018).
 
 **Cadastro de Camada:**
 Nome: String(120); obrigatório
 Categoria: Integer; obrigatório ^1^
 Geometria: ponto com raio de influência (Integer, em metros) ou polígono; obrigatório ^2^
-Peso de urgência: Integer; (1 a 3); obrigatório
+Peso de urgência: Integer; (1 a 3); obrigatório ^3^
 Fonte do dado: String(200); obrigatório
 Data de atualização: Date; (dd/mm/aaaa); obrigatório
 Ativa: Boolean; obrigatório
@@ -294,18 +290,19 @@ Ativa: Boolean; obrigatório
 **Regra e observações do preenchimento dos campos:**
 ^1^ Seleção única entre "público infantil e escolar", "idosos e cuidados", "gestantes e recém-nascidos", "comunidades tradicionais e vulneráveis" e "vulnerabilidade epidemiológica".
 ^2^ As camadas descrevem equipamentos e territórios, nunca pessoas. Por isso, a categoria "vulnerabilidade epidemiológica" aceita somente polígono.
+^3^ Preenchido com o peso sugerido para a categoria, que a Prefeitura pode alterar: 3 para "público infantil e escolar", "gestantes e recém-nascidos" e "vulnerabilidade epidemiológica", os grupos mais afetados pelas doenças de veiculação hídrica; 2 para "idosos e cuidados" e "comunidades tradicionais e vulneráveis". Os pesos sugeridos são valores iniciais a validar com o cliente [TBD-17].
 
 **Classificação:** cada ponto recebe como peso de urgência o maior peso entre as camadas ativas cuja geometria contém a sua localização, ou 0 quando nenhuma o contém. O nível de urgência é "normal" para o peso 0, "elevado" para os pesos 1 e 2 e "crítico" para o peso 3, e aparece no detalhe do ponto, no mapa e na fila, com a camada que o motivou. O morador não vê o nível de urgência.
 
 **Alteração:** quando uma camada é criada, alterada, ativada ou desativada, o sistema deve recalcular o nível de urgência dos pontos afetados.
 
-**Fonte:** Entrevista (prioridade para grupos e situações de risco); Analista (categorias); Legislação (LGPD) (camadas sem dados de pessoas e ocultação do nível ao morador); Derivado (demais regras).
+**Fonte:** Entrevista (prioridade para grupos e situações de risco); Analista (categorias e pesos sugeridos); Legislação (LGPD) (camadas sem dados de pessoas e ocultação do nível ao morador); Derivado (demais regras).
 :::
 
 ## Vistoria
 
 ::: RF007 | Essencial
-O sistema deve permitir que o fiscal registre a vistoria em campo, validando a denúncia e mudando o status do ponto. Que a validação seja uma vistoria feita por um fiscal é hipótese do analista [TBD-25].
+O sistema deve permitir que o fiscal registre a vistoria em campo, validando a denúncia e mudando o status do ponto.
 **Atores:** fiscal.
 **Pré-condições:** usuário autenticado com o perfil Fiscal (RF018); ponto atribuído ao fiscal (RF005).
 
@@ -328,14 +325,14 @@ Latitude e longitude do fiscal: Decimal; gerado automaticamente ^4^
 Obs1: ao abrir o ponto, o fiscal vê todas as evidências e todos os relatos vinculados.
 Obs2: cada mudança de status fica no histórico do ponto, com usuário, data e hora (RF019).
 
-**Fonte:** Entrevista (validação da denúncia); Analista (vistoria restrita aos pontos atribuídos, evidência obrigatória na confirmação, foto só pela câmera e posição do fiscal); Derivado (demais regras).
+**Fonte:** Entrevista (validação da denúncia por fiscal da prefeitura, no local); Analista (vistoria restrita aos pontos atribuídos, evidência obrigatória na confirmação, foto só pela câmera e posição do fiscal); Derivado (demais regras).
 :::
 
 ## Mapa e painel
 
 ::: RF010 | Essencial
 O sistema deve exibir à Prefeitura, numa tela com mapa, o status das denúncias e a quantidade de denúncias por localização.
-**Atores:** Prefeitura [TBD-07].
+**Atores:** Prefeitura.
 **Pré-condição:** usuário autenticado (RF018).
 
 **Camadas do mapa**, que o usuário liga e desliga:
@@ -357,7 +354,7 @@ Obs1: quando um relato ou uma vistoria alterar um ponto, o mapa deve se atualiza
 
 ::: RF013 | Essencial
 O sistema deve permitir o cadastro dos usuários da equipe interna, para que cada acesso seja individual e o histórico identifique quem fez cada ação.
-**Atores:** Prefeitura [TBD-03].
+**Atores:** Prefeitura.
 **Pré-condição:** usuário autenticado (RF018).
 
 **Cadastro de Usuário:**
@@ -371,7 +368,7 @@ Ativo: Boolean; marcado por padrão ^4^
 **Regra e observações do preenchimento dos campos:**
 ^1^ O CPF deve ter os dígitos verificadores validados, é único entre os usuários e não pode ser alterado depois do cadastro. Quando o CPF já estiver cadastrado, o sistema deve exibir "CPF já cadastrado" e não salvar.
 ^2^ Único entre os usuários. Quando o e-mail já estiver cadastrado, o sistema deve exibir "E-mail já cadastrado" e não salvar.
-^3^ Seleção única entre Fiscal e Prefeitura [TBD-01 a TBD-09].
+^3^ Seleção única entre Fiscal e Prefeitura.
 ^4^ Usuário desativado não consegue se autenticar (RF018).
 
 **Alteração:** cada alteração de cadastro é registrada com o autor, os campos alterados, os valores anterior e novo, a data e a hora (RF019).
@@ -391,7 +388,7 @@ Dados do usuário: conforme o Cadastro de Usuário do RF013, com o perfil Prefei
 Link de definição de senha: String(200); gerado automaticamente ^2^
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Informados na configuração da instalação do sistema, fora das telas do painel, e validados com as mesmas regras do RF013. O perfil é sempre Prefeitura [TBD-03].
+^1^ Informados na configuração da instalação do sistema, fora das telas do painel, e validados com as mesmas regras do RF013. O perfil é sempre Prefeitura.
 ^2^ Enviado ao e-mail do primeiro usuário, válido por 24 horas e de uso único. O sistema não define nem exibe senha inicial; o usuário define a sua senha pelo link, conforme a política do RNF16.
 
 Obs1: a criação ocorre uma única vez. Quando já houver um usuário interno cadastrado, a configuração da instalação é ignorada.
@@ -406,7 +403,7 @@ Obs4: se a autenticação usar o login institucional da Prefeitura [TBD-19], est
 
 ::: RF015 | Importante
 O sistema deve exibir à Prefeitura, em números, o status das denúncias e a quantidade de denúncias por localização.
-**Atores:** Prefeitura [TBD-07].
+**Atores:** Prefeitura.
 **Pré-condição:** usuário autenticado (RF018).
 
 **Indicadores:**
@@ -443,7 +440,7 @@ Obs2: o usuário pode redefinir a senha por meio de mensagem enviada ao e-mail c
 
 ::: RF019 | Essencial
 O sistema deve registrar quem acessou e quem alterou cada dado pessoal, e quando, como exige a LGPD. Quem será o controlador dos dados está a definir [TBD-30].
-**Atores:** sistema; Prefeitura [TBD-09], na pesquisa.
+**Atores:** sistema; Prefeitura, na pesquisa.
 
 **Registro de Log:**
 Usuário: Integer; gerado automaticamente
@@ -465,7 +462,7 @@ Objeto afetado: Integer; (identificador do relato, ponto, evidência ou usuário
 
 ::: RF020 | Importante
 O sistema deve importar os dados do Censo do IBGE e exibi-los no mapa, para mostrar o que está saneado "no papel" e permitir que a comunidade questione essas áreas com as denúncias.
-**Atores:** Prefeitura [TBD-04], na importação; sistema.
+**Atores:** Prefeitura, na importação; sistema.
 **Pré-condição:** usuário autenticado (RF018).
 
 **Cadastro de Setor Censitário:**
@@ -503,7 +500,7 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 | RNF10 | Desempenho | O painel deve exibir o mapa com até 5.000 pontos em até 5 segundos. | Importante | Analista |
 | RNF11 | Confiabilidade | O servidor deve estar disponível em 99% do tempo de cada mês. | Importante | Analista |
 | RNF12 | Confiabilidade | O sistema deve fazer uma cópia de segurança diária dos dados, criptografada e guardada por 30 dias. | Essencial | Derivado |
-| RNF13 | Confiabilidade | O aplicativo deve guardar até 20 relatos pendentes quando estiver sem conexão [TBD-23]. | Importante | Entrevista |
+| RNF13 | Confiabilidade | O aplicativo deve guardar até 20 relatos pendentes quando estiver sem conexão. | Importante | Entrevista |
 | RNF14 | Segurança | Toda comunicação entre aplicativo, painel e servidor deve usar HTTPS com TLS 1.2 ou superior. | Essencial | Legislação (LGPD) |
 | RNF15 | Segurança | Nome, telefone, coordenada exata e áudios devem ser armazenados criptografados no servidor e, enquanto o relato estiver pendente, no aparelho. | Essencial | Legislação (LGPD) |
 | RNF16 | Segurança | A senha dos usuários internos deve ter ao menos 8 caracteres, com letras e números. A conta deve ser bloqueada por 15 minutos após 5 tentativas erradas seguidas, e a sessão deve expirar após 30 minutos sem uso. | Essencial | Derivado |
@@ -533,11 +530,11 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 <!-- cols: 10,40,50 -->
 | ID | Perigo | Soluções |
 |---|---|---|
-| RS001 | No RF001, alguém pode enviar denúncias falsas ou repetidas em massa para inflar um ponto ou prejudicar um bairro. | Limitar a 5 relatos por telefone a cada 24 horas; no relato anônimo, controlar o limite no próprio aparelho, porque o sistema não guarda o identificador do aparelho (RF001). Manter a prioridade reduzida do relato anônimo (RF005). Só a vistoria confirma o ponto (RF007). |
+| RS001 | No RF001, alguém pode enviar denúncias falsas ou repetidas em massa para inflar um ponto ou prejudicar um bairro. | Exigir nome e telefone em todo relato e limitar a 5 relatos por telefone a cada 24 horas (RF001). Só a vistoria confirma o ponto (RF007). |
 | RS002 | No RF001, a foto ou o vídeo pode não ser do local, por ter sido baixado da internet ou ser antigo. | Marcar como "evidência divergente" a evidência da galeria cuja data ou coordenada de captura difira mais de 7 dias ou 500 metros das do relato, e exibir a marcação ao fiscal (RF003). |
-| RS003 | No RF001 e no RF002, o morador identificado pode sofrer retaliação de vizinhos ou de quem causou o problema. | Nome, telefone e coordenada exata visíveis só para a equipe interna [TBD-08]; fora dela, localização só como trecho de rua (RF002); registro de todo acesso (RF019); aviso do risco no termo de uso (RNF19). |
+| RS003 | No RF001 e no RF002, o morador identificado pode sofrer retaliação de vizinhos ou de quem causou o problema. | Nome, telefone e coordenada exata visíveis só para a equipe interna (Fiscal e Prefeitura); fora dela, localização só como trecho de rua (RF002); registro de todo acesso (RF019); aviso do risco no termo de uso (RNF19). |
 | RS004 | No RF001 ao RF003, uma invasão pode vazar dados pessoais de moradores. | Criptografia na comunicação e no armazenamento (RNF14, RNF15); acesso por perfil (RF018); registro de acesso (RF019); comunicação do incidente à ANPD e aos moradores afetados, como exige a LGPD. |
-| RS005 | No RF001, o celular perdido ou roubado pode expor relatos pendentes. | Relatos pendentes criptografados no aparelho (RNF15) e apagados após o envio; o aplicativo não guarda histórico dos relatos enviados (RF001). |
+| RS005 | No RF001, o celular perdido ou roubado pode expor relatos pendentes. | Relatos pendentes criptografados no aparelho (RNF15) e apagados após o envio; o aplicativo não guarda histórico dos relatos enviados, só o nome e o telefone do morador (RF001). |
 | RS006 | No RF003, o desfoque automático pode falhar e deixar um rosto ou uma placa visível. | Nenhuma evidência é exibida antes do tratamento; o fiscal marca novo desfoque (RF003); o sistema não tem exibição pública de evidências. |
 | RS007 | No RF003, o áudio enviado ao serviço de transcrição pode ser reutilizado ou vazar. | Contrato e localização dos dados conforme o RNF22; envio só do áudio, sem nome nem telefone; exigência de que o serviço apague o áudio após a transcrição (RF003). |
 | RS008 | No RF007, o fiscal pode registrar a vistoria sem ir ao local ou com foto de outro ponto. | Exigir que a coordenada do GPS no momento da vistoria esteja a até 100 metros do ponto e aceitar fotos e vídeos da vistoria só pela câmera, nunca da galeria (RF007). |
@@ -566,7 +563,7 @@ A matriz posiciona cada perigo da Seção 5 pela gravidade do dano, se ele ocorr
 | Improvável (E) | | RS011, RS012 | RS005 | |
 | Eliminado (F) | | | | |
 
-Os perigos de maior atenção são o RS003 e o RS004, por serem catastróficos, e o RS009, o mais provável entre os críticos. O RS003 depende da definição de quem vê os dados do morador [TBD-08], e o RS009, de quem distribui as vistorias [TBD-01] e de quem valida a denúncia [TBD-25].
+Os perigos de maior atenção são o RS003 e o RS004, por serem catastróficos, e o RS009, o mais provável entre os críticos. Como o perfil Prefeitura é único e vê os dados do morador e distribui as vistorias, as soluções do RS003 e do RS009 dependem sobretudo do registro de acessos e de ações (RF019).
 
 [[quebra]]
 
@@ -598,44 +595,44 @@ Nenhum requisito essencial depende de um requisito importante: o RF005, o RF010 
 
 # Itens a definir
 
-Cada item abaixo é uma informação que a primeira entrevista não levantou. A coluna "Como resolver" indica a forma de obtê-la, e a lista serve de roteiro para as próximas entrevistas.
+Cada item abaixo é uma informação que a primeira entrevista não levantou. A coluna "Como resolver" indica a forma de obtê-la, e a lista serve de roteiro para as próximas entrevistas. Os itens resolvidos continuam na tabela, com a resposta, para que seus identificadores não sejam reutilizados.
 
-## Perfis internos da Prefeitura
+## Perfis internos
 
 <!-- cols: 10,40,16,20,14 -->
 | ID | O que falta definir | Responsável | Como resolver | Requisitos |
 |---|---|---|---|---|
-| TBD-01 | Qual perfil interno consulta a fila completa e atribui pontos a fiscais. | Cliente | Próxima entrevista com o cliente | RF005 |
+| TBD-01 | Resolvido: o perfil Prefeitura, único, consulta a fila completa e atribui pontos a fiscais. | — | — | RF005 |
 | TBD-02 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
-| TBD-03 | Qual perfil interno cadastra os usuários internos. | Cliente | Próxima entrevista com o cliente | RF013, RF021 |
-| TBD-04 | Qual perfil interno mantém as camadas de vulnerabilidade e importa os dados do Censo. | Cliente | Próxima entrevista com o cliente | RF006, RF020 |
+| TBD-03 | Resolvido: o perfil Prefeitura cadastra os usuários internos. | — | — | RF013, RF021 |
+| TBD-04 | Resolvido: o perfil Prefeitura mantém as camadas de vulnerabilidade e importa os dados do Censo. | — | — | RF006, RF020 |
 | TBD-05 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-06 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
-| TBD-07 | Qual perfil interno consulta o mapa, o painel e os indicadores. | Cliente | Próxima entrevista com o cliente | RF010, RF015 |
-| TBD-08 | Quais perfis internos acessam nome, telefone, coordenada exata e áudio do morador. | Cliente | Próxima entrevista com o cliente | RF001, RF002, RF003 |
-| TBD-09 | Qual perfil interno consulta o log de auditoria. | Cliente | Próxima entrevista com o cliente | RF019 |
+| TBD-07 | Resolvido: o perfil Prefeitura consulta o mapa, o painel e os indicadores. | — | — | RF010, RF015 |
+| TBD-08 | Resolvido: Fiscal e Prefeitura acessam nome, telefone, coordenada exata e áudio do morador. | — | — | RF001, RF002, RF003 |
+| TBD-09 | Resolvido: o perfil Prefeitura consulta o log de auditoria. | — | — | RF019 |
 
 ## Regras de negócio e valores
 
 <!-- cols: 10,40,16,20,14 -->
 | ID | O que falta definir | Responsável | Como resolver | Requisitos |
 |---|---|---|---|---|
-| TBD-10 | Se o envio anônimo com prioridade reduzida, hipótese do analista, é mantido ou se a entrada fica só identificada, como registram as anotações da entrevista. | Cliente | Próxima entrevista com o cliente | RF001, RF005 |
+| TBD-10 | Resolvido: toda denúncia é identificada, e o envio anônimo foi retirado. | — | — | RF001, RF005 |
 | TBD-11 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-12 | Removido: dependia de um requisito não funcional, retirado nesta revisão. | — | — | — |
 | TBD-13 | Se a imagem original sem desfoque deve ser guardada como prova, e com que acesso. | Cliente | Próxima entrevista com o cliente | RF003 |
 | TBD-14 | Substituído pelo TBD-22: a restrição do ofício por marcação contratual depende de o contrato fazer parte do escopo. | — | — | RF009 |
 | TBD-15 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-16 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
-| TBD-17 | Valores iniciais dos pesos das camadas de vulnerabilidade e dos pesos da fila. | Cliente | Próxima entrevista com o cliente | RF005, RF006 |
+| TBD-17 | Se os valores iniciais propostos pelo analista para os pesos da fila (RF005) e os pesos sugeridos por categoria de camada (RF006) são aceitos. | Cliente | Próxima entrevista com o cliente | RF005, RF006 |
 | TBD-18 | Se o relato novo num ponto confirmado exige nova vistoria. | Cliente | Próxima entrevista com o cliente | RF004 |
 | TBD-19 | Se a autenticação usa credencial própria do sistema ou o login institucional da Prefeitura. | Cliente | Próxima entrevista com o cliente | RF018, RF021 |
 | TBD-20 | Prazo, em segundos, para o mapa refletir a alteração de um ponto. | Cliente | Próxima entrevista com o cliente | RF010 |
 | TBD-21 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-22 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
-| TBD-23 | Se o aplicativo funciona sem conexão. As anotações divergem: uma diz que não há plano para quem estiver sem internet, a outra registra uso off-line até a denúncia prosseguir. | Cliente | Próxima entrevista com o cliente | RF001, RNF13 |
+| TBD-23 | Resolvido: sem conexão, o aplicativo guarda a denúncia e a envia quando a conexão voltar. | — | — | RF001, RNF13 |
 | TBD-24 | Removido: a integração com o Censo do IBGE e a transcrição por inteligência artificial foram tratadas como pedidos da entrevista. | — | — | RF003, RF020 |
-| TBD-25 | Quem valida a denúncia e como. A entrevista pede a validação; a vistoria de campo por um fiscal é hipótese do analista. | Cliente | Próxima entrevista com o cliente | RF005, RF007 |
+| TBD-25 | Resolvido: um fiscal da prefeitura valida a denúncia em vistoria no local. | — | — | RF005, RF007 |
 | TBD-26 | O que fazer com um problema fora do escopo, como poço contaminado, vazamento ou lixo: se o morador pode registrá-lo como "outro", se o aplicativo o recusa com uma orientação, e se o fiscal pode registrar na vistoria que o problema existe, mas não é de saneamento. | Cliente | Próxima entrevista com o cliente | RF001, RF007 |
 | TBD-27 | Se o aplicativo deve funcionar também em iOS, além de Android. | Cliente | Próxima entrevista com o cliente | RNF05 |
 | TBD-28 | Se "solução gratuita" vale só para o morador ou também significa custo zero de operação, como hospedagem e serviço de transcrição. | Cliente | Próxima entrevista com o cliente | RNF17 |
@@ -645,6 +642,15 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 [[quebra]]
 
 # Alterações em relação às versões anteriores
+
+## Mudanças da versão 8
+
+- Foram incorporadas as respostas do cliente às quatro dúvidas enviadas depois da entrevista (seção 11.4), e os itens a definir correspondentes foram resolvidos.
+- Validação (TBD-25): um fiscal da prefeitura valida a denúncia em vistoria no local. O RF005 e o RF007 deixaram de tratar a vistoria como hipótese, e a fonte dessa parte passou a "Entrevista".
+- Perfis (TBD-01, TBD-03, TBD-04, TBD-07, TBD-08 e TBD-09): a Prefeitura é um perfil único, com acesso a todas as funções internas, inclusive ao nome e ao telefone do morador. As marcas de TBD saíram dos requisitos e da matriz de permissões.
+- Anonimato (TBD-10): toda denúncia é identificada. O campo "Identificar-se" e o relato anônimo com prioridade reduzida saíram do RF001; o fator "relato identificado" saiu da pontuação da fila (RF005); o RS001 passou a se apoiar na identificação obrigatória. Na avaliação do analista, a LGPD não exige que o sistema ofereça o envio anônimo: a coleta de nome e telefone é compatível com a lei desde que tenha finalidade declarada, se limite aos dados necessários e tenha acesso restrito e registrado, regras que o RF001, o RF019 e o RNF19 trazem. O RF001 passou a informar a finalidade antes do envio e a preencher nome e telefone com os do último relato.
+- Sem conexão (TBD-23): mantido o envio pendente, com reenvio automático. A marca de TBD saiu do RF001 e do RNF13.
+- Pesos (TBD-17): como hipótese do analista, a pontuação da fila (RF005) passou a ter valores: 6 pontos por relato, até 10 relatos; 1,5 ponto por dia de espera; 15 pontos por unidade do peso de urgência; e 2 pontos por ponto na fila no mesmo bairro, até 10 pontos. O RF006 passou a sugerir o peso de cada camada pela categoria. O TBD-17 continua aberto, para que o cliente valide esses valores.
 
 ## Mudanças da versão 7
 
@@ -718,7 +724,7 @@ As subseções a seguir registram as mudanças de estrutura e as inconsistência
 
 O cliente não tem ligação com a Secretaria nem com a prefeitura: a demanda tem caráter social e educativo, sem fins lucrativos, como uma solicitação da comunidade ao CESMAC. Seus interesses ainda não estão bem definidos, mas apontam para dar poder à comunidade.
 
-Os dois registros abaixo foram feitos por dois integrantes do grupo e estão transcritos sem alteração. Eles são a única fonte do que o documento atribui à "Entrevista".
+Os dois registros abaixo foram feitos por dois integrantes do grupo e estão transcritos sem alteração. Eles e as respostas do cliente às dúvidas, na seção 11.4, são a única fonte do que o documento atribui à "Entrevista".
 
 ## Primeira anotação
 
@@ -742,7 +748,16 @@ Os dois registros abaixo foram feitos por dois integrantes do grupo e estão tra
 
 ## Divergências entre as anotações
 
-- Conexão: a primeira anotação diz que não há plano para quem estiver sem internet; a segunda registra "uso off-line, até a denúncia prosseguir" (TBD-23).
+- Conexão: a primeira anotação diz que não há plano para quem estiver sem internet; a segunda registra "uso off-line, até a denúncia prosseguir". A divergência foi resolvida pela resposta 4 da seção 11.4.
+
+## Respostas do cliente às dúvidas
+
+Depois da entrevista, quatro dúvidas foram enviadas ao cliente, cada uma com a solução que o grupo pretendia adotar. O cliente concordou com as quatro.
+
+- 1. Quem valida a denúncia: um fiscal da prefeitura, indo ao local (TBD-25).
+- 2. Perfis da prefeitura: um perfil só, que vê tudo, inclusive nome e telefone do morador (TBD-01, TBD-03, TBD-04, TBD-07, TBD-08 e TBD-09).
+- 3. Anonimato: a denúncia é sempre identificada, como dito na entrevista (TBD-10).
+- 4. Sem internet: o aplicativo guarda a denúncia e a envia quando a conexão voltar (TBD-23).
 
 [[quebra]]
 
@@ -767,7 +782,7 @@ Um ponto reúne os relatos de um mesmo problema num mesmo local (RF004). A tabel
 
 ## Matriz de permissões
 
-A matriz de permissões mostra o que cada perfil pode fazer no sistema. Cada linha é uma ação, e cada coluna, um perfil. "Sim" indica que o perfil pode executar a ação, e "—", que não pode. Quando a ação cabe à Prefeitura, o TBD indicado definirá qual perfil interno a executa.
+A matriz de permissões mostra o que cada perfil pode fazer no sistema. Cada linha é uma ação, e cada coluna, um perfil. "Sim" indica que o perfil pode executar a ação, e "—", que não pode. A Prefeitura é um perfil único, sem divisão interna.
 
 <!-- cols: 46,16,12,12,14 -->
 | Ação | Requisitos | Morador | Fiscal | Prefeitura |
@@ -777,13 +792,13 @@ A matriz de permissões mostra o que cada perfil pode fazer no sistema. Cada lin
 | Registrar vistoria | RF007 | — | Sim | — |
 | Corrigir tipo e localização de um ponto | RF007 | — | Sim | — |
 | Marcar região de foto para novo desfoque | RF003 | — | Sim | — |
-| Ver nome e telefone do morador, a coordenada exata e ouvir áudios | RF001, RF002, RF003 | — | Sim | Sim [TBD-08] |
-| Consultar a fila completa e atribuir pontos a fiscais | RF005 | — | — | Sim [TBD-01] |
-| Consultar mapa, painel e indicadores | RF010, RF015 | — | — | Sim [TBD-07] |
-| Cadastrar usuários internos | RF013 | — | — | Sim [TBD-03] |
-| Receber o primeiro acesso na instalação | RF021 | — | — | Sim [TBD-03] |
-| Manter camadas de vulnerabilidade e importar dados do Censo | RF006, RF020 | — | — | Sim [TBD-04] |
-| Consultar o log de auditoria | RF019 | — | — | Sim [TBD-09] |
+| Ver nome e telefone do morador, a coordenada exata e ouvir áudios | RF001, RF002, RF003 | — | Sim | Sim |
+| Consultar a fila completa e atribuir pontos a fiscais | RF005 | — | — | Sim |
+| Consultar mapa, painel e indicadores | RF010, RF015 | — | — | Sim |
+| Cadastrar usuários internos | RF013 | — | — | Sim |
+| Receber o primeiro acesso na instalação | RF021 | — | — | Sim |
+| Manter camadas de vulnerabilidade e importar dados do Censo | RF006, RF020 | — | — | Sim |
+| Consultar o log de auditoria | RF019 | — | — | Sim |
 
 ## Hipóteses fora do escopo
 
