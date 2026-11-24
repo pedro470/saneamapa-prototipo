@@ -415,3 +415,19 @@ textarea.campo {
 
 /* Mapa indisponível (sem internet ou CDN bloqueado) */
 .mapa-indisponivel { display: grid; place-items: center; padding: 16px; text-align: center; color: var(--soft, #555); font-size: 13px; }
+
+/* ---------- Grafo de conhecimento (painel da Prefeitura) ---------- */
+.grafo-quadro { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.grafo-svg { display: block; width: 100%; height: min(68vh, 600px); min-height: 340px; touch-action: none; cursor: grab; }
+.grafo-svg:active { cursor: grabbing; }
+.grafo-no { cursor: pointer; }
+.grafo-no:focus-visible { outline: none; }
+.grafo-no:focus-visible > :is(circle, rect, path) { stroke: var(--ink); stroke-width: 3; }
+.grafo-rotulo { font: 600 calc(11px * var(--k, 1)) var(--font-body); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: calc(3px * var(--k, 1)); stroke-linejoin: round; pointer-events: none; }
+.grafo-rotulo-aresta { font: 400 calc(10px * var(--k, 1)) var(--font-body); fill: var(--soft); paint-order: stroke; stroke: var(--surface); stroke-width: calc(3px * var(--k, 1)); stroke-linejoin: round; pointer-events: none; }
+.grafo-zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.grafo-zoom .botao { min-width: 36px; padding-inline: 10px; background: var(--surface); }
+.grafo-legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.grafo-legenda label { display: inline-flex; gap: 6px; align-items: center; }
+.grafo-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 1100px) { .grafo-grade { grid-template-columns: minmax(0, 1fr) 320px; } }

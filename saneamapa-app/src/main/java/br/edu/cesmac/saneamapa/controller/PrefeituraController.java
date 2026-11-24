@@ -6,6 +6,8 @@ import br.edu.cesmac.saneamapa.domain.enums.StatusPonto;
 import br.edu.cesmac.saneamapa.domain.enums.TipoEventoAuditoria;
 import br.edu.cesmac.saneamapa.domain.enums.TipoOcorrencia;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.*;
+import br.edu.cesmac.saneamapa.dto.GrafoDtos.GrafoDto;
+import br.edu.cesmac.saneamapa.dto.GrafoDtos.OntologiaDto;
 import br.edu.cesmac.saneamapa.dto.PainelDtos.*;
 import br.edu.cesmac.saneamapa.repository.UsuarioRepository;
 import br.edu.cesmac.saneamapa.security.UsuarioAutenticado;
@@ -30,19 +32,22 @@ public class PrefeituraController {
     private final CensoService censoService;
     private final AuditoriaService auditoriaService;
     private final UsuarioRepository usuarioRepository;
+    private final GrafoConhecimentoService grafoService;
 
     public PrefeituraController(PontoFilaService pontoFilaService,
                                 UsuarioService usuarioService,
                                 CamadaVulnerabilidadeService camadaService,
                                 CensoService censoService,
                                 AuditoriaService auditoriaService,
-                                UsuarioRepository usuarioRepository) {
+                                UsuarioRepository usuarioRepository,
+                                GrafoConhecimentoService grafoService) {
         this.pontoFilaService = pontoFilaService;
         this.usuarioService = usuarioService;
         this.camadaService = camadaService;
         this.censoService = censoService;
         this.auditoriaService = auditoriaService;
         this.usuarioRepository = usuarioRepository;
+        this.grafoService = grafoService;
     }
 
     @GetMapping("/pontos")
@@ -98,6 +103,17 @@ public class PrefeituraController {
     public IndicadoresResponse obterIndicadores(@RequestParam(required = false) Integer dias,
                                                 @RequestParam(required = false) String bairro) {
         return pontoFilaService.obterIndicadores(dias, bairro);
+    }
+
+    @GetMapping("/ontologia")
+    public OntologiaDto obterOntologia() {
+        return grafoService.obterOntologia();
+    }
+
+    @GetMapping("/grafo")
+    public GrafoDto obterGrafo(@RequestParam(required = false) Long pontoId,
+                               @RequestParam(required = false) Integer saltos) {
+        return grafoService.obterGrafo(pontoId, saltos);
     }
 
     @GetMapping("/usuarios")

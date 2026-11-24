@@ -19,6 +19,7 @@
 <script src="/js/acessibilidade.js"></script>
 <script src="/js/tipos-ocorrencia.js"></script>
 <script src="/js/mapa-saneamapa.js"></script>
+<script src="/js/grafo-saneamapa.js"></script>
 <script>
 // RF006, nota 3: peso sugerido por categoria; a Prefeitura pode alterar.
 const PESO_SUGERIDO_CATEGORIA = {
@@ -65,6 +66,11 @@ let st = {
   paginaAudit: { pagina: 0, totalPaginas: 0, totalItens: 0 },
   filtrosAudit: { usuarioId: '', tipoEvento: '', de: '', ate: '' },
   filtrosInd: { dias: '', bairro: '' },
+  grafo: null,
+  ontologia: null,
+  grafoFocoPontoId: null, // null = grafo inteiro; id = só a vizinhança do ponto
+  grafoSelId: null,
+  grafoOcultas: [],
   fiscalEscolhido: {},
   msgRedefinicao: '',
   redefinindo: false
@@ -218,6 +224,16 @@ async function carregarAba(aba, focarTitulo = false) {
     if (st.filtrosInd.dias) q.set('dias', st.filtrosInd.dias);
     if (st.filtrosInd.bairro) q.set('bairro', st.filtrosInd.bairro);
     st.indicadores = await api('/api/prefeitura/indicadores?' + q.toString());
+  } else if (aba === 'grafo') {
+    const q = st.grafoFocoPontoId ? '?pontoId=' + st.grafoFocoPontoId : '';
+    const [grafo, ontologia] = await Promise.all([
+      api('/api/prefeitura/grafo' + q),
+      st.ontologia ? Promise.resolve(st.ontologia) : api('/api/prefeitura/ontologia')
+    ]);
+    st.grafo = grafo;
+    st.ontologia = ontologia;
+    if (grafo.centro) st.grafoSelId = grafo.centro;
+    else if (st.grafoSelId && !grafo.nos.some(n => n.id === st.grafoSelId)) st.grafoSelId = null;
   } else if (aba === 'usuarios') {
     [st.usuarios, st.alteracoes] = await Promise.all([
       api('/api/prefeitura/usuarios'),
@@ -494,6 +510,156 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+/* ---------- Grafo de conhecimento (ontologia do domínio) ---------- */
+async function abrirGrafo(pontoId) {
+  st.grafoFocoPontoId = pontoId || null;
+  if (!pontoId) st.grafoSelId = null;
+  try {
+    await carregarAba('grafo', true);
+  } catch (err) {
+    if (!err.tratado) SaneaMapaA11y.anunciar(err.message, true);
+  }
+}
+
+function selecionarNoGrafo(id) {
+  st.grafoSelId = id;
+  render();
+  const no = id && Array.from(document.querySelectorAll('.grafo-no')).find(g => g.dataset.id === id);
+  if (no) no.focus({ preventScroll: true });
+  const escolhido = id && st.grafo.nos.find(n => n.id === id);
+  if (escolhido) SaneaMapaA11y.anunciar(`${rotuloClasse(escolhido.classe)} ${escolhido.rotulo} selecionado.`);
+}
+
+function alternarClasseGrafo(classe, visivel) {
+  st.grafoOcultas = st.grafoOcultas.filter(c => c !== classe);
+  if (!visivel) st.grafoOcultas.push(classe);
+  render();
+}
+
+async function abrirPontoNoMapa(pontoId) {
+  st.filtros = { tipo: '', status: '', bairro: '', dias: '', minRelatos: '', urgencia: '' };
+  st.pontoSelId = pontoId;
+  st.coordExata = null;
+  st.contatos = null;
+  st.audioPlayers = {};
+  await carregarAba('mapa', true);
+}
+
+function rotuloClasse(id) {
+  const c = st.ontologia && st.ontologia.classes.find(x => x.id === id);
+  return c ? c.rotulo : id;
+}
+
+function inicializarGrafo() {
+  if (st.aba !== 'grafo' || !st.token || !st.grafo) return;
+  SaneaMapaGrafo.desenhar({
+    containerId: 'grafo-painel',
+    grafo: st.grafo,
+    classesOcultas: new Set(st.grafoOcultas),
+    selecionadoId: st.grafoSelId,
+    onSelecionar: selecionarNoGrafo
+  });
+}
+
+function renderNoSelecionado() {
+  const g = st.grafo;
+  const no = g.nos.find(n => n.id === st.grafoSelId);
+  if (!no) {
+    return `<div class="chamada" data-tom="neutro"><span class="rotulo">Nenhum nó selecionado</span><span class="t-pequeno">Clique num nó do grafo (ou use Tab e Enter) para ver o que ele é e a que está ligado.</span></div>`;
+  }
+  const porId = Object.fromEntries(g.nos.map(n => [n.id, n]));
+  const ligacoes = g.arestas.filter(a => a.origem === no.id || a.destino === no.id).map(a => {
+    const saindo = a.origem === no.id;
+    const outro = porId[saindo ? a.destino : a.origem];
+    return { saindo, outro, rotulo: a.rotulo, inferida: a.inferida };
+  });
+  const atributos = Object.entries(no.atributos || {}).filter(([k]) => !k.startsWith('_'));
+  const pontoId = no.atributos && no.atributos._pontoId;
+  return `
+    <article class="caixa">
+      <div class="tarja"><h2>${esc(no.rotulo)}</h2><span class="conta">${esc(rotuloClasse(no.classe))}</span></div>
+      <div class="folha" style="padding:12px; display:grid; gap:12px;">
+        ${atributos.length ? `<dl style="display:grid; grid-template-columns:auto minmax(0,1fr); gap:4px 12px; margin:0; padding:0;">
+          ${atributos.map(([k, v]) => `<dt class="t-pequeno" style="color:var(--soft);">${esc(k)}</dt><dd class="t-pequeno" style="margin:0;">${esc(v)}</dd>`).join('')}
+        </dl>` : ''}
+        ${pontoId ? `<div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="botao" onclick="abrirPontoNoMapa(${pontoId})">Abrir no mapa</button>
+          ${st.grafoFocoPontoId === pontoId ? '' : `<button type="button" class="botao" onclick="abrirGrafo(${pontoId})">Ver só a vizinhança</button>`}
+        </div>` : ''}
+        <div style="display:grid; gap:4px;">
+          <b class="t-rotulo">Relações (${ligacoes.length})</b>
+          ${ligacoes.length ? `<ul class="t-pequeno" style="margin:0; padding-left:18px; display:grid; gap:4px;">
+            ${ligacoes.map(l => `<li>${l.saindo ? esc(l.rotulo) : `<span style="color:var(--soft);">é alvo de</span> “${esc(l.rotulo)}”`}
+              <button type="button" class="botao quieto" style="padding:0; min-height:0;" onclick="selecionarNoGrafo('${esc(l.outro.id)}')">${esc(l.outro.rotulo)}</button>
+              <span style="color:var(--soft);">(${esc(rotuloClasse(l.outro.classe))}${l.inferida ? ', inferida' : ''})</span></li>`).join('')}
+          </ul>` : `<span class="t-pequeno" style="color:var(--soft);">Este nó não tem relações no recorte atual.</span>`}
+        </div>
+      </div>
+    </article>`;
+}
+
+function renderGrafo() {
+  const g = st.grafo;
+  const ont = st.ontologia;
+  const contagem = {};
+  g.nos.forEach(n => { contagem[n.classe] = (contagem[n.classe] || 0) + 1; });
+  const concretas = ont.classes.filter(c => !c.abstrata && !c.protegidaLgpd);
+  const centro = g.centro && g.nos.find(n => n.id === g.centro);
+  const inferidas = g.arestas.filter(a => a.inferida).length;
+
+  // Hierarquia "é um": cada classe recuada sob a sua superclasse.
+  const filhos = pai => ont.classes.filter(c => c.superclasse === pai);
+  const arvore = (pai, nivel) => filhos(pai).map(c => `
+    <tr>
+      <td style="padding-left:${12 + nivel * 18}px;">${c.abstrata ? `<i>${esc(c.rotulo)}</i>` : `<span style="display:inline-flex; gap:6px; align-items:center;">${SaneaMapaGrafo.amostra(c.id)}<b>${esc(c.rotulo)}</b></span>`}</td>
+      <td>${c.abstrata ? 'Abstrata' : c.protegidaLgpd ? 'Protegida (LGPD)' : 'Concreta'}</td>
+      <td>${c.abstrata || c.protegidaLgpd ? '—' : (contagem[c.id] || 0)}</td>
+      <td>${esc(c.descricao)}</td>
+    </tr>${arvore(c.id, nivel + 1)}`).join('');
+
+  return `
+    <header class="cabecalho" style="max-width:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h1 class="t-titulo-pagina">Grafo de conhecimento</h1>
+          <p class="lede">${centro ? `Vizinhança do ponto ${esc(centro.rotulo)}: ` : ''}${g.nos.length} nó(s) e ${g.arestas.length} relação(ões), ${inferidas} delas inferidas das geometrias.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          ${centro ? `<button type="button" class="botao" onclick="abrirGrafo(null)">Ver grafo inteiro</button>` : ''}
+          <button type="button" class="botao" onclick="carregarAba('grafo')">Atualizar dados</button>
+        </div>
+      </div>
+    </header>
+    <div class="grafo-legenda" role="group" aria-label="Classes mostradas no grafo">
+      <b class="t-rotulo">Mostrar:</b>
+      ${concretas.map(c => `<label class="t-pequeno"><input type="checkbox" name="grafo-classe-${c.id}" ${st.grafoOcultas.includes(c.id) ? '' : 'checked'} onchange="alternarClasseGrafo('${c.id}', this.checked)">${SaneaMapaGrafo.amostra(c.id)}${esc(c.rotulo)} (${contagem[c.id] || 0})</label>`).join('')}
+    </div>
+    <div class="grafo-grade">
+      <div style="display:grid; gap:8px;">
+        <div id="grafo-painel" class="grafo-quadro"></div>
+        <p class="t-pequeno" style="margin:0; color:var(--soft);">Linha contínua: vínculo gravado no banco. Linha tracejada: vínculo inferido (ponto dentro de setor ou camada, pontos a até 300 m). Anel vermelho ou laranja no ponto: urgência crítica ou elevada. O grafo não traz nome, telefone nem coordenada exata.</p>
+      </div>
+      ${renderNoSelecionado()}
+    </div>
+    <section class="secao">
+      <header><h2>Ontologia: classes</h2></header>
+      <div class="tabela-rolar"><table class="tabela">
+        <thead><tr><th>Classe</th><th>Natureza</th><th>Nós no grafo</th><th>O que é</th></tr></thead>
+        <tbody>${arvore(null, 0)}</tbody>
+      </table></div>
+    </section>
+    <section class="secao">
+      <header><h2>Ontologia: relações</h2></header>
+      <div class="tabela-rolar"><table class="tabela">
+        <thead><tr><th>Domínio</th><th>Relação</th><th>Contradomínio</th><th>Origem</th><th>Significado</th></tr></thead>
+        <tbody>${ont.relacoes.map(r => `<tr>
+          <td>${esc(rotuloClasse(r.dominio))}</td><td><b>${esc(r.rotulo)}</b></td><td>${esc(rotuloClasse(r.contradominio))}</td>
+          <td>${!r.materializada ? 'Fora do grafo (LGPD)' : r.inferida ? 'Inferida' : 'Declarada'}</td>
+          <td>${esc(r.descricao)}</td></tr>`).join('')}</tbody>
+      </table></div>
+    </section>`;
+}
+
 function renderEvidenciaPainel(ev) {
   const url = urlMidiaAutenticada(ev.arquivoUsoCaminho);
   let viewer = '';
@@ -533,6 +699,7 @@ function renderDetalhePonto() {
         <span class="conta">${r.quantidadeRelatos} relato(s)</span>
       </div>
       <div class="folha" style="padding:16px; display:grid; gap:16px;">
+        <button type="button" class="botao quieto" style="justify-self:start; padding:0;" onclick="abrirGrafo(${r.id})">Ver relações deste ponto no grafo</button>
         <div class="detalhe-topo-grid">
           <div class="detalhe-bloco">
             <b>Localização e Censo IBGE</b>
@@ -702,6 +869,8 @@ function render() {
         ${quadro('Por urgência', ind.porUrgencia)}
         ${quadro('Por bairro', ind.porBairro)}
       </div>`;
+  } else if (st.aba === 'grafo' && st.grafo && st.ontologia) {
+    mainHtml = renderGrafo();
   } else if (st.aba === 'usuarios') {
     mainHtml = `
       <header class="cabecalho" style="max-width:none;"><h1 class="t-titulo-pagina">Usuários</h1><p class="lede">Contas individuais da equipe municipal. Para preservar o histórico de auditoria, utilize a desativação de acesso.</p></header>
@@ -815,7 +984,7 @@ function render() {
     <div class="app">
       <nav class="trilho">
         <div class="trilho-marca-wrap"><span class="marca-app">SaneaMapa</span><span class="t-meta trilho-submarca">Painel da Prefeitura</span></div>
-        <div class="grupo-nav"><span class="rot-nav">Denúncias</span>${navItem('mapa','Mapa e fila')}${navItem('indicadores','Indicadores')}</div>
+        <div class="grupo-nav"><span class="rot-nav">Denúncias</span>${navItem('mapa','Mapa e fila')}${navItem('indicadores','Indicadores')}${navItem('grafo','Grafo')}</div>
         <div class="grupo-nav"><span class="rot-nav">Administração</span>${navItem('usuarios','Usuários')}${navItem('camadas','Vulnerabilidade')}${navItem('censo','Censo do IBGE')}${navItem('auditoria','Auditoria')}</div>
         <div style="border-top:1px solid var(--line);padding:12px;display:grid;gap:4px;">
           <span class="t-rotulo">${esc(st.usuario?.nome)}</span>
@@ -827,6 +996,9 @@ function render() {
 
   if (st.aba === 'mapa') {
     inicializarMapaPrefeitura();
+  }
+  if (st.aba === 'grafo') {
+    inicializarGrafo();
   }
 }
 

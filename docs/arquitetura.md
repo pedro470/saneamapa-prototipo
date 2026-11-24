@@ -92,6 +92,7 @@ saneamapa-app/
     │   │   │   ├── enums/            # StatusPonto, TipoOcorrencia, PerfilUsuario, NivelUrgencia, etc.
     │   │   │   ├── exception/        # Hierarquia SaneaMapaException
     │   │   │   ├── model/            # Entidades ricas + interfaces de geometria
+    │   │   │   ├── ontologia/        # Classes, relações e grafo de conhecimento (Seção 7)
     │   │   │   └── service/          # Interfaces de domínio, estratégias e utilitários (GeoUtils, CpfUtils)
     │   │   ├── dto/                  # Records Java para entrada/saída (Admin, Auth, Fiscal, Painel, Relato)
     │   │   ├── repository/           # Interfaces JpaRepository
@@ -152,7 +153,48 @@ Os scripts em `saneamapa-app/database/` executam na inicialização do container
 
 ---
 
-## 7. Execução e Implantação
+## 7. Ontologia e Grafo de Conhecimento
+
+O domínio também é descrito por uma **ontologia** em código (pacote `domain/ontologia`) e exposto como um **grafo de conhecimento** só de leitura, montado a partir do banco. Nada é gravado: o grafo é uma visão.
+
+| Peça | Papel | Arquivo |
+|---|---|---|
+| **Classes** | Hierarquia "é um" com 20 conceitos. `Entidade` é a raiz; `Registro`, `Agente`, `Território`, `Conceito` e `Evidência` são abstratas e só agrupam. | [ClasseOntologia.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/ontologia/ClasseOntologia.java) |
+| **Relações** | 13 relações, cada uma com domínio e contradomínio. Dez são declaradas (vêm de chave estrangeira ou atributo) e três são inferidas das geometrias. | [RelacaoOntologia.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/ontologia/RelacaoOntologia.java) |
+| **Grafo** | Nós e arestas tipados pela ontologia. Recusa aresta fora do domínio/contradomínio e nó de classe abstrata ou protegida. Calcula a vizinhança de um nó por número de saltos. | [GrafoConhecimento.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/ontologia/GrafoConhecimento.java) |
+| **Montagem** | Lê pontos, relatos, evidências, vistorias, camadas ativas e setores da importação em uso, e faz as inferências espaciais. | [GrafoConhecimentoService.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/service/GrafoConhecimentoService.java) |
+| **Tela** | Aba **Grafo** do painel: desenho em SVG sem biblioteca externa, filtro por classe, detalhe do nó em texto e as tabelas da ontologia. | [grafo-saneamapa.js](../saneamapa-app/src/main/resources/static/js/grafo-saneamapa.js) |
+
+```mermaid
+flowchart LR
+    Evidencia["Evidência\n(Foto, Vídeo, Áudio)"] -->|comprova| Relato
+    Relato -->|agrupado em| Ponto
+    Vistoria -->|verifica| Ponto
+    Vistoria -->|realizada por| Fiscal
+    Ponto -->|atribuído a| Fiscal
+    Ponto -->|é do tipo| Tipo["Tipo de ocorrência"]
+    Tipo -->|afeta o serviço| Servico["Serviço de saneamento"]
+    Ponto -->|localizado em| Bairro
+    Setor["Setor censitário"] -->|pertence a| Bairro
+    Ponto -.->|dentro do setor| Setor
+    Ponto -.->|sob influência de| Camada["Camada de vulnerabilidade"]
+    Ponto -.->|vizinho de| Ponto
+```
+
+Linha tracejada é relação **inferida**: o vínculo não existe no banco e é deduzido na montagem (ponto dentro do polígono do setor, ponto dentro da área de uma camada ativa, dois pontos a até 300 m).
+
+**LGPD.** `Morador` é uma classe da ontologia marcada como protegida, e `registrado por` (Relato → Morador) é uma relação declarada, mas o grafo recusa materializar as duas. Os nós não levam nome, telefone nem coordenada exata; esses dados continuam saindo só pelos acessos auditados do painel.
+
+**API** (perfil Prefeitura):
+- `GET /api/prefeitura/ontologia`: classes e relações.
+- `GET /api/prefeitura/grafo`: grafo inteiro.
+- `GET /api/prefeitura/grafo?pontoId={id}&saltos={1..4}`: vizinhança de um ponto (padrão: 2 saltos).
+
+**Testes.** `GrafoConhecimentoTest` cobre subsunção, validação de domínio/contradomínio, recusa de classe abstrata e de dado pessoal, e vizinhança. `GrafoConhecimentoIntegracaoTest` cobre o RBAC, as três inferências com os dados do `DataInitializer` e a ausência de dados pessoais na resposta.
+
+---
+
+## 8. Execução e Implantação
 
 Via Docker Compose na raiz do repositório ([docker-compose.yml](docker-compose.yml)):
 ```bash
