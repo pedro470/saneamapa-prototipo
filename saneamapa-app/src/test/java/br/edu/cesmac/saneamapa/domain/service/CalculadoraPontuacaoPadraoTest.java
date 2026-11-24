@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** RF005, nota 1: valores iniciais dos pesos da fila (TBD-17). */
+/** RF005, nota 1: pesos da fila. */
 class CalculadoraPontuacaoPadraoTest {
 
     private static final LocalDate HOJE = LocalDate.of(2026, 11, 23);

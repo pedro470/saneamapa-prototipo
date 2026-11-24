@@ -46,7 +46,7 @@ Priorizar automaticamente os pontos pendentes em uma fila de vistoria com base e
   - `diasEspera * pesoDiasEspera` (padrão `1.5`, sem limite)
   - `pesoUrgencia * pesoUrgenciaCamada` (padrão `15.0`)
   - `min(pontosNaFilaNoBairro, limiteDensidadeBairro) * pesoDensidadeBairro` (padrão `2.0`, limite `10`)
-  - Os valores são os iniciais do TBD-17. Os limites impedem que uma grande quantidade de relatos passe à frente dos pontos urgentes (RS001), e a espera sem limite impede que um ponto fique parado na fila (RS009). Não há bônus por identificação, porque toda denúncia é identificada.
+  - Os valores foram definidos pelo analista e adotados sem validação do cliente (TBD-17 resolvido). Os limites impedem que uma grande quantidade de relatos passe à frente dos pontos urgentes (RS001), e a espera sem limite impede que um ponto fique parado na fila (RS009). Não há bônus por identificação, porque toda denúncia é identificada.
 - A pontuação é recalculada na criação/agrupamento de relato, na alteração de camadas e diariamente via rotina agendada (`PontoFilaService`).
 
 ### 3.3. Atribuição a Fiscal

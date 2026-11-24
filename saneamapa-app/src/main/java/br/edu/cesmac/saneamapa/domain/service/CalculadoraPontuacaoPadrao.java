@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Pontuação da fila de vistoria (RF005, nota 1; valores iniciais do TBD-17):
+ * Pontuação da fila de vistoria (RF005, nota 1):
  * 6 pontos por relato, contando no máximo 10; 1,5 ponto por dia de espera, sem limite;
  * 15 pontos por unidade do peso de urgência (0 a 3); 2 pontos por ponto na fila no mesmo
  * bairro, contando no máximo 10. Os limites impedem que uma enxurrada de relatos passe à

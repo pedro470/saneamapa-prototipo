@@ -262,13 +262,13 @@ Pontuação: Decimal; gerado automaticamente ^1^
 Fiscal atribuído: Integer; (usuário ativo com perfil Fiscal, RF013); opcional ^2^
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Soma de quatro fatores: 6 pontos por relato vinculado ao ponto, contando no máximo 10 relatos; 1,5 ponto por dia de espera desde o primeiro relato, sem limite; 15 pontos por unidade do peso de urgência do ponto (RF006), de 0 a 3; e 2 pontos por ponto na fila no mesmo bairro, contando no máximo 10 pontos. Os limites impedem que uma grande quantidade de relatos passe à frente dos pontos urgentes (RS001), e a espera sem limite impede que um ponto fique parado na fila (RS009). Os pesos são valores iniciais a validar com o cliente [TBD-17]. A pontuação é recalculada quando um relato é vinculado ao ponto, quando o nível de urgência muda e uma vez por dia.
+^1^ Soma de quatro fatores: 6 pontos por relato vinculado ao ponto, contando no máximo 10 relatos; 1,5 ponto por dia de espera desde o primeiro relato, sem limite; 15 pontos por unidade do peso de urgência do ponto (RF006), de 0 a 3; e 2 pontos por ponto na fila no mesmo bairro, contando no máximo 10 pontos. Os limites impedem que uma grande quantidade de relatos passe à frente dos pontos urgentes (RS001), e a espera sem limite impede que um ponto fique parado na fila (RS009). A pontuação é recalculada quando um relato é vinculado ao ponto, quando o nível de urgência muda e uma vez por dia.
 ^2^ A atribuição a um fiscal muda o status do ponto para "em vistoria", e a retirada da atribuição o devolve para "aguardando vistoria".
 
 Obs1: a fila contém todo ponto com status "aguardando vistoria" ou "em vistoria", ordenado da maior para a menor pontuação.
 Obs2: o fiscal vê somente os pontos atribuídos a ele.
 
-**Fonte:** Entrevista (validação por fiscal no local); Analista (atribuição a fiscais, visão restrita do fiscal e pesos da pontuação); Derivado (demais regras).
+**Fonte:** Entrevista (validação por fiscal no local); Analista (atribuição a fiscais, visão restrita do fiscal e pesos da pontuação, adotados sem validação do cliente); Derivado (demais regras).
 :::
 
 ## Classificação de urgência
@@ -290,13 +290,13 @@ Ativa: Boolean; obrigatório
 **Regra e observações do preenchimento dos campos:**
 ^1^ Seleção única entre "público infantil e escolar", "idosos e cuidados", "gestantes e recém-nascidos", "comunidades tradicionais e vulneráveis" e "vulnerabilidade epidemiológica".
 ^2^ As camadas descrevem equipamentos e territórios, nunca pessoas. Por isso, a categoria "vulnerabilidade epidemiológica" aceita somente polígono.
-^3^ Preenchido com o peso sugerido para a categoria, que a Prefeitura pode alterar: 3 para "público infantil e escolar", "gestantes e recém-nascidos" e "vulnerabilidade epidemiológica", os grupos mais afetados pelas doenças de veiculação hídrica; 2 para "idosos e cuidados" e "comunidades tradicionais e vulneráveis". Os pesos sugeridos são valores iniciais a validar com o cliente [TBD-17].
+^3^ Preenchido com o peso sugerido para a categoria, que a Prefeitura pode alterar: 3 para "público infantil e escolar", "gestantes e recém-nascidos" e "vulnerabilidade epidemiológica", os grupos mais afetados pelas doenças de veiculação hídrica; 2 para "idosos e cuidados" e "comunidades tradicionais e vulneráveis".
 
 **Classificação:** cada ponto recebe como peso de urgência o maior peso entre as camadas ativas cuja geometria contém a sua localização, ou 0 quando nenhuma o contém. O nível de urgência é "normal" para o peso 0, "elevado" para os pesos 1 e 2 e "crítico" para o peso 3, e aparece no detalhe do ponto, no mapa e na fila, com a camada que o motivou. O morador não vê o nível de urgência.
 
 **Alteração:** quando uma camada é criada, alterada, ativada ou desativada, o sistema deve recalcular o nível de urgência dos pontos afetados.
 
-**Fonte:** Entrevista (prioridade para grupos e situações de risco); Analista (categorias e pesos sugeridos); Legislação (LGPD) (camadas sem dados de pessoas e ocultação do nível ao morador); Derivado (demais regras).
+**Fonte:** Entrevista (prioridade para grupos e situações de risco); Analista (categorias e pesos sugeridos, adotados sem validação do cliente); Legislação (LGPD) (camadas sem dados de pessoas e ocultação do nível ao morador); Derivado (demais regras).
 :::
 
 ## Vistoria
@@ -624,7 +624,7 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 | TBD-14 | Substituído pelo TBD-22: a restrição do ofício por marcação contratual depende de o contrato fazer parte do escopo. | — | — | RF009 |
 | TBD-15 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-16 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
-| TBD-17 | Se os valores iniciais propostos pelo analista para os pesos da fila (RF005) e os pesos sugeridos por categoria de camada (RF006) são aceitos. | Cliente | Próxima entrevista com o cliente | RF005, RF006 |
+| TBD-17 | Resolvido: os pesos da fila (RF005) e os pesos sugeridos por categoria de camada (RF006), propostos pelo analista, foram adotados como definitivos, sem validação do cliente. | — | — | RF005, RF006 |
 | TBD-18 | Se o relato novo num ponto confirmado exige nova vistoria. | Cliente | Próxima entrevista com o cliente | RF004 |
 | TBD-19 | Se a autenticação usa credencial própria do sistema ou o login institucional da Prefeitura. | Cliente | Próxima entrevista com o cliente | RF018, RF021 |
 | TBD-20 | Prazo, em segundos, para o mapa refletir a alteração de um ponto. | Cliente | Próxima entrevista com o cliente | RF010 |
@@ -650,7 +650,7 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 - Perfis (TBD-01, TBD-03, TBD-04, TBD-07, TBD-08 e TBD-09): a Prefeitura é um perfil único, com acesso a todas as funções internas, inclusive ao nome e ao telefone do morador. As marcas de TBD saíram dos requisitos e da matriz de permissões.
 - Anonimato (TBD-10): toda denúncia é identificada. O campo "Identificar-se" e o relato anônimo com prioridade reduzida saíram do RF001; o fator "relato identificado" saiu da pontuação da fila (RF005); o RS001 passou a se apoiar na identificação obrigatória. Na avaliação do analista, a LGPD não exige que o sistema ofereça o envio anônimo: a coleta de nome e telefone é compatível com a lei desde que tenha finalidade declarada, se limite aos dados necessários e tenha acesso restrito e registrado, regras que o RF001, o RF019 e o RNF19 trazem. O RF001 passou a informar a finalidade antes do envio e a preencher nome e telefone com os do último relato.
 - Sem conexão (TBD-23): mantido o envio pendente, com reenvio automático. A marca de TBD saiu do RF001 e do RNF13.
-- Pesos (TBD-17): como hipótese do analista, a pontuação da fila (RF005) passou a ter valores: 6 pontos por relato, até 10 relatos; 1,5 ponto por dia de espera; 15 pontos por unidade do peso de urgência; e 2 pontos por ponto na fila no mesmo bairro, até 10 pontos. O RF006 passou a sugerir o peso de cada camada pela categoria. O TBD-17 continua aberto, para que o cliente valide esses valores.
+- Pesos (TBD-17): a pontuação da fila (RF005) passou a ter valores: 6 pontos por relato, até 10 relatos; 1,5 ponto por dia de espera; 15 pontos por unidade do peso de urgência; e 2 pontos por ponto na fila no mesmo bairro, até 10 pontos. O RF006 passou a sugerir o peso de cada camada pela categoria. Por decisão do grupo, esses valores foram adotados como definitivos, sem validação do cliente, e o TBD-17 foi resolvido.
 
 ## Mudanças da versão 7
 
