@@ -297,7 +297,19 @@ window.SaneaMapaGeo = (function () {
     legenda.addTo(map);
   }
 
-  async function criarMapaPrefeitura({ containerId, pontos, camadasVuln, setoresCenso, camadasAtivas, selectedId, onSelectPonto }) {
+  // Centro e zoom do mapa montado no contêiner, para a atualização periódica do painel não mover a vista.
+  function vistaAtual(containerId) {
+    const map = mapasAtivos[containerId];
+    if (!map) return null;
+    try {
+      const c = map.getCenter();
+      return { lat: c.lat, lng: c.lng, zoom: map.getZoom() };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function criarMapaPrefeitura({ containerId, pontos, camadasVuln, setoresCenso, camadasAtivas, selectedId, onSelectPonto, vista }) {
     const container = document.getElementById(containerId);
     if (!container) return null;
     const L = await leafletOuAviso(container, 'A fila abaixo continua disponível.');
@@ -388,7 +400,9 @@ window.SaneaMapaGeo = (function () {
 
     adicionarLegenda(L, map, camadasAtivas);
 
-    if (coordsPontos.length === 1) {
+    if (vista) {
+      map.setView([vista.lat, vista.lng], vista.zoom);
+    } else if (coordsPontos.length === 1) {
       map.setView(coordsPontos[0], 15);
     } else if (coordsPontos.length > 1) {
       map.fitBounds(coordsPontos, { padding: [36, 36], maxZoom: 15 });
@@ -455,6 +469,7 @@ window.SaneaMapaGeo = (function () {
     calcularDistanciaMetros,
     criarSeletorLocalizacao,
     criarMapaFiscal,
-    criarMapaPrefeitura
+    criarMapaPrefeitura,
+    vistaAtual
   };
 })();

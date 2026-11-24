@@ -1,27 +1,3 @@
-        <label><span class="t-rotulo">Usuário</span><select class="campo" name="aud-usuario" onchange="filtrarAuditoria('usuarioId', this.value)">
-          <option value="">Todos</option>
-          <option value="SISTEMA" ${st.filtrosAudit.usuarioId==='SISTEMA'?'selected':''}>Automático do sistema</option>
-          ${st.usuarios.map(u=>`<option value="${u.id}" ${st.filtrosAudit.usuarioId==u.id?'selected':''}>${esc(u.nomeCompleto)}</option>`).join('')}
-        </select></label>
-        <label><span class="t-rotulo">Evento</span><select class="campo" name="aud-evento" onchange="filtrarAuditoria('tipoEvento', this.value)">
-          <option value="">Todos</option>
-          ${EVENTOS_AUDITORIA.map(([id, nome]) => `<option value="${id}" ${st.filtrosAudit.tipoEvento===id?'selected':''}>${nome}</option>`).join('')}
-        </select></label>
-        <label><span class="t-rotulo">De</span><input class="campo" name="aud-de" type="date" value="${esc(st.filtrosAudit.de)}" onchange="filtrarAuditoria('de', this.value)"></label>
-        <label><span class="t-rotulo">Até</span><input class="campo" name="aud-ate" type="date" value="${esc(st.filtrosAudit.ate)}" onchange="filtrarAuditoria('ate', this.value)"></label>
-      </div>
-      <p class="t-pequeno" style="color:var(--soft); margin:0;">${st.paginaAudit.totalItens} registro(s) no período · página ${st.paginaAudit.totalPaginas ? st.paginaAudit.pagina + 1 : 0} de ${st.paginaAudit.totalPaginas}</p>
-      <div class="tabela-rolar"><table class="tabela">
-        <thead><tr><th>Data e hora</th><th>Responsável</th><th>Evento</th><th>Detalhes</th></tr></thead>
-        <tbody>${st.logs.length ? st.logs.map(l => `<tr><td class="t-meta">${new Date(l.dataHora).toLocaleString('pt-BR')}</td><td>${esc(l.atorNome)}</td><td>${esc(l.eventoRotulo)}</td><td>${esc(l.detalhes)}</td></tr>`).join('')
-          : `<tr><td colspan="4" style="text-align:center; color:var(--soft); padding:20px;">Nenhum registro no período e filtros escolhidos.</td></tr>`}</tbody>
-      </table></div>
-      <div style="display:flex; gap:8px;">
-        <button type="button" class="botao" ${st.paginaAudit.pagina > 0 ? '' : 'disabled'} onclick="paginaAuditoria(-1)">Mais recentes</button>
-        <button type="button" class="botao" ${st.paginaAudit.pagina + 1 < st.paginaAudit.totalPaginas ? '' : 'disabled'} onclick="paginaAuditoria(1)">Mais antigos</button>
-      </div>`;
-  }
-
 <!doctype html>
 <html lang="pt-BR" data-theme="light">
 <head>
@@ -482,9 +458,41 @@ function inicializarMapaPrefeitura() {
     setoresCenso: st.setoresCenso,
     camadasAtivas: st.camadasMapa,
     selectedId: st.pontoSelId,
-    onSelectPonto: id => selecionarPonto(id)
+    onSelectPonto: id => selecionarPonto(id),
+    vista: st.vistaMapa
   });
 }
+
+/* ---------- Atualização automática do mapa (RF010, Obs1: até 60 segundos) ---------- */
+const INTERVALO_ATUALIZACAO_MAPA_MS = 60000;
+let atualizandoMapa = false;
+let ultimaAtualizacaoMapa = Date.now();
+
+async function atualizarMapaPeriodicamente() {
+  if (!st.token || st.aba !== 'mapa' || document.visibilityState !== 'visible' || atualizandoMapa) return;
+  // Não redesenha enquanto o usuário preenche um campo (filtro, atribuição), para não perder o que foi digitado.
+  const ativo = document.activeElement;
+  if (ativo && ativo.matches('input, select, textarea')) return;
+  atualizandoMapa = true;
+  st.vistaMapa = SaneaMapaGeo.vistaAtual('mapa-painel');
+  try {
+    await carregarAba('mapa');
+    ultimaAtualizacaoMapa = Date.now();
+  } catch (e) {
+    /* falha de rede: tenta de novo no próximo ciclo */
+  } finally {
+    st.vistaMapa = null;
+    atualizandoMapa = false;
+  }
+}
+
+setInterval(atualizarMapaPeriodicamente, INTERVALO_ATUALIZACAO_MAPA_MS);
+// Ao voltar para a aba do navegador depois de 60 s ou mais, atualiza na hora.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - ultimaAtualizacaoMapa >= INTERVALO_ATUALIZACAO_MAPA_MS) {
+    atualizarMapaPeriodicamente();
+  }
+});
 
 function renderEvidenciaPainel(ev) {
   const url = urlMidiaAutenticada(ev.arquivoUsoCaminho);
@@ -779,27 +787,28 @@ function render() {
     mainHtml = `
       <header class="cabecalho" style="max-width:none;"><h1 class="t-titulo-pagina">Auditoria</h1><p class="lede">Histórico permanente de acessos a dados sensíveis e alterações operacionais.</p></header>
       <div class="formulario" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
-        <label><span class="t-rotulo">Usuário</span><select class="campo" onchange="st.filtrosAudit.usuarioId=this.value; carregarAba('auditoria');">
+        <label><span class="t-rotulo">Usuário</span><select class="campo" name="aud-usuario" onchange="filtrarAuditoria('usuarioId', this.value)">
           <option value="">Todos</option>
           <option value="SISTEMA" ${st.filtrosAudit.usuarioId==='SISTEMA'?'selected':''}>Automático do sistema</option>
           ${st.usuarios.map(u=>`<option value="${u.id}" ${st.filtrosAudit.usuarioId==u.id?'selected':''}>${esc(u.nomeCompleto)}</option>`).join('')}
         </select></label>
-        <label><span class="t-rotulo">Evento</span><select class="campo" onchange="st.filtrosAudit.tipoEvento=this.value; carregarAba('auditoria');">
+        <label><span class="t-rotulo">Evento</span><select class="campo" name="aud-evento" onchange="filtrarAuditoria('tipoEvento', this.value)">
           <option value="">Todos</option>
-          <option value="ACESSO_CONTATO_MORADOR">Acesso a nome e telefone</option>
-          <option value="ACESSO_COORDENADA_EXATA">Acesso à coordenada exata</option>
-          <option value="AUDIO_OUVIDO">Áudio ouvido</option>
-          <option value="EDICAO_FOTO">Edição de foto</option>
-          <option value="ATRIBUICAO_PONTO">Atribuição de ponto</option>
-          <option value="MUDANCA_STATUS_PONTO">Mudança de status</option>
-          <option value="ALTERACAO_USUARIO">Alteração de usuário</option>
-          <option value="IMPORTACAO_CENSO">Importação do Censo</option>
+          ${EVENTOS_AUDITORIA.map(([id, nome]) => `<option value="${id}" ${st.filtrosAudit.tipoEvento===id?'selected':''}>${nome}</option>`).join('')}
         </select></label>
+        <label><span class="t-rotulo">De</span><input class="campo" name="aud-de" type="date" value="${esc(st.filtrosAudit.de)}" onchange="filtrarAuditoria('de', this.value)"></label>
+        <label><span class="t-rotulo">Até</span><input class="campo" name="aud-ate" type="date" value="${esc(st.filtrosAudit.ate)}" onchange="filtrarAuditoria('ate', this.value)"></label>
       </div>
+      <p class="t-pequeno" style="color:var(--soft); margin:0;">${st.paginaAudit.totalItens} registro(s) no período · página ${st.paginaAudit.totalPaginas ? st.paginaAudit.pagina + 1 : 0} de ${st.paginaAudit.totalPaginas}</p>
       <div class="tabela-rolar"><table class="tabela">
         <thead><tr><th>Data e hora</th><th>Responsável</th><th>Evento</th><th>Detalhes</th></tr></thead>
-        <tbody>${st.logs.map(l => `<tr><td class="t-meta">${new Date(l.dataHora).toLocaleString('pt-BR')}</td><td>${esc(l.atorNome)}</td><td>${esc(l.eventoRotulo)}</td><td>${esc(l.detalhes)}</td></tr>`).join('')}</tbody>
-      </table></div>`;
+        <tbody>${st.logs.length ? st.logs.map(l => `<tr><td class="t-meta">${new Date(l.dataHora).toLocaleString('pt-BR')}</td><td>${esc(l.atorNome)}</td><td>${esc(l.eventoRotulo)}</td><td>${esc(l.detalhes)}</td></tr>`).join('')
+          : `<tr><td colspan="4" style="text-align:center; color:var(--soft); padding:20px;">Nenhum registro no período e filtros escolhidos.</td></tr>`}</tbody>
+      </table></div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="botao" ${st.paginaAudit.pagina > 0 ? '' : 'disabled'} onclick="paginaAuditoria(-1)">Mais recentes</button>
+        <button type="button" class="botao" ${st.paginaAudit.pagina + 1 < st.paginaAudit.totalPaginas ? '' : 'disabled'} onclick="paginaAuditoria(1)">Mais antigos</button>
+      </div>`;
   }
 
   SaneaMapaA11y.redesenhar(root, `

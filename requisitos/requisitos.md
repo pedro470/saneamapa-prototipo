@@ -208,7 +208,7 @@ Transcrição: String(2000); gerado automaticamente ^5^
 
 **Regra e observações do preenchimento dos campos:**
 ^1^ Seleção única entre "foto", "vídeo" e "áudio".
-^2^ Ao receber uma foto, o sistema deve detectar rostos e placas de veículo, aplicar desfoque sobre eles e só então gravar o arquivo de uso, descartando a imagem original [TBD-13]. Nos vídeos, o desfoque é aplicado em todos os quadros e o som é removido.
+^2^ Ao receber uma foto, o sistema deve detectar rostos e placas de veículo, aplicar desfoque sobre eles e só então gravar o arquivo de uso, descartando a imagem original. Nos vídeos, o desfoque é aplicado em todos os quadros e o som é removido.
 ^3^ Quando a detecção automática falhar, o fiscal pode marcar uma região da foto para receber novo desfoque. O sistema guarda apenas a versão vigente e descarta as anteriores.
 ^4^ Os metadados de fotos e vídeos são removidos, com exceção da data, da hora e da coordenada.
 ^5^ Somente para áudio. Cada áudio é transcrito automaticamente por inteligência artificial, e a transcrição é acrescentada à descrição do relato. Ao serviço de transcrição é enviado só o áudio, sem nome nem telefone, e o serviço deve apagá-lo após a transcrição (RS007).
@@ -241,7 +241,7 @@ Reincidência: Boolean; gerado automaticamente ^4^
 ^1^ Corrigíveis pelo fiscal na vistoria (RF007).
 ^2^ Incrementada a cada relato vinculado ao ponto.
 ^3^ "Aguardando vistoria", "em vistoria", "confirmado" ou "não confirmado", conforme o ciclo de vida da seção 12.1.
-^4^ Marcada quando um relato é vinculado a um ponto "confirmado", sem alterar o status do ponto [TBD-18].
+^4^ Marcada quando um relato é vinculado a um ponto "confirmado", sem alterar o status do ponto e sem exigir nova vistoria. O relato soma à quantidade de relatos do ponto.
 
 **Agrupamento:** ao receber um relato, o sistema deve vinculá-lo ao ponto mais próximo do mesmo tipo situado a até 50 metros, preservando as evidências, a descrição e a data de cada relato. Quando não houver ponto do mesmo tipo nesse raio, o sistema deve criar um ponto com status "aguardando vistoria", com o tipo e a coordenada do relato. Um relato vinculado a um ponto "não confirmado" devolve o ponto ao status "aguardando vistoria".
 
@@ -345,7 +345,7 @@ Censo: proporção de domicílios ligados à rede geral (RF020).
 
 **Pesquisa:** será permitido filtrar os pontos por tipo de ocorrência, status, bairro, período, quantidade de relatos e nível de urgência.
 
-Obs1: quando um relato ou uma vistoria alterar um ponto, o mapa deve se atualizar sem recarga manual, no prazo definido em [TBD-20].
+Obs1: quando um relato ou uma vistoria alterar um ponto, o mapa deve refletir a alteração em até 60 segundos, sem recarga manual, enquanto estiver aberto.
 
 **Fonte:** Entrevista (status e quantidade de denúncias por localização numa tela); Derivado (detalhe do ponto e atualização automática).
 :::
@@ -394,7 +394,6 @@ Link de definição de senha: String(200); gerado automaticamente ^2^
 Obs1: a criação ocorre uma única vez. Quando já houver um usuário interno cadastrado, a configuração da instalação é ignorada.
 Obs2: o sistema não deve permitir desativar o último usuário ativo com o perfil Prefeitura (RF013).
 Obs3: a criação do primeiro usuário é registrada no log de auditoria (RF019).
-Obs4: se a autenticação usar o login institucional da Prefeitura [TBD-19], este requisito se limita a indicar qual conta institucional recebe o perfil Prefeitura.
 
 **Fonte:** Derivado.
 :::
@@ -428,7 +427,7 @@ E-mail: String(200); obrigatório
 Senha: String; obrigatório ^1^
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Armazenada criptografada. Se a autenticação usará credencial própria do sistema ou o login institucional da prefeitura está a definir [TBD-19].
+^1^ A autenticação usa credencial própria do sistema, sem integração com login institucional. A senha segue a política do RNF16 e é armazenada criptografada.
 
 Obs1: o sistema não deve autenticar usuário desativado (RF013).
 Obs2: o usuário pode redefinir a senha por meio de mensagem enviada ao e-mail cadastrado e encerrar a própria sessão.
@@ -620,14 +619,14 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 | TBD-10 | Resolvido: toda denúncia é identificada, e o envio anônimo foi retirado. | — | — | RF001, RF005 |
 | TBD-11 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-12 | Removido: dependia de um requisito não funcional, retirado nesta revisão. | — | — | — |
-| TBD-13 | Se a imagem original sem desfoque deve ser guardada como prova, e com que acesso. | Cliente | Próxima entrevista com o cliente | RF003 |
+| TBD-13 | Resolvido: a imagem original é descartada após o desfoque. A prova da denúncia é a vistoria do fiscal (RF007), e guardar as originais acumularia rostos e placas sem finalidade. | — | — | RF003 |
 | TBD-14 | Substituído pelo TBD-22: a restrição do ofício por marcação contratual depende de o contrato fazer parte do escopo. | — | — | RF009 |
 | TBD-15 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-16 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-17 | Resolvido: os pesos da fila (RF005) e os pesos sugeridos por categoria de camada (RF006), propostos pelo analista, foram adotados como definitivos, sem validação do cliente. | — | — | RF005, RF006 |
-| TBD-18 | Se o relato novo num ponto confirmado exige nova vistoria. | Cliente | Próxima entrevista com o cliente | RF004 |
-| TBD-19 | Se a autenticação usa credencial própria do sistema ou o login institucional da Prefeitura. | Cliente | Próxima entrevista com o cliente | RF018, RF021 |
-| TBD-20 | Prazo, em segundos, para o mapa refletir a alteração de um ponto. | Cliente | Próxima entrevista com o cliente | RF010 |
+| TBD-18 | Resolvido: o relato novo num ponto confirmado não exige nova vistoria; o ponto recebe a marcação de reincidência e soma o relato. | — | — | RF004 |
+| TBD-19 | Resolvido: a autenticação usa credencial própria do sistema (e-mail e senha), sem login institucional. | — | — | RF018, RF021 |
+| TBD-20 | Resolvido: o mapa reflete a alteração de um ponto em até 60 segundos. | — | — | RF010 |
 | TBD-21 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-22 | Removido: o requisito saiu do escopo (seção 12.3). | — | — | — |
 | TBD-23 | Resolvido: sem conexão, o aplicativo guarda a denúncia e a envia quando a conexão voltar. | — | — | RF001, RNF13 |
@@ -650,6 +649,10 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 - Perfis (TBD-01, TBD-03, TBD-04, TBD-07, TBD-08 e TBD-09): a Prefeitura é um perfil único, com acesso a todas as funções internas, inclusive ao nome e ao telefone do morador. As marcas de TBD saíram dos requisitos e da matriz de permissões.
 - Anonimato (TBD-10): toda denúncia é identificada. O campo "Identificar-se" e o relato anônimo com prioridade reduzida saíram do RF001; o fator "relato identificado" saiu da pontuação da fila (RF005); o RS001 passou a se apoiar na identificação obrigatória. Na avaliação do analista, a LGPD não exige que o sistema ofereça o envio anônimo: a coleta de nome e telefone é compatível com a lei desde que tenha finalidade declarada, se limite aos dados necessários e tenha acesso restrito e registrado, regras que o RF001, o RF019 e o RNF19 trazem. O RF001 passou a informar a finalidade antes do envio e a preencher nome e telefone com os do último relato.
 - Sem conexão (TBD-23): mantido o envio pendente, com reenvio automático. A marca de TBD saiu do RF001 e do RNF13.
+- Imagem original (TBD-13): mantido o descarte da imagem original após o desfoque (RF003). A prova da denúncia é a vistoria do fiscal no local, com fotos tiradas só pela câmera (RF007), e guardar as originais criaria um acervo de rostos e placas sem finalidade, contra o princípio da necessidade da LGPD e aumentando o perigo do RS004.
+- Reincidência (TBD-18): o relato novo num ponto "confirmado" não exige nova vistoria. Como o sistema não tem o status "resolvido", o ponto confirmado continua sendo um problema existente, e o relato novo só o reforça: o ponto recebe a marcação de reincidência e soma o relato (RF004).
+- Autenticação (TBD-19): os usuários internos entram com credencial própria do sistema, por e-mail e senha. O cliente não tem ligação com a prefeitura, e não há informação sobre um login institucional que pudesse ser integrado. Saiu a Obs4 do RF021, que tratava desse caso.
+- Atualização do mapa (TBD-20): o mapa reflete a alteração de um ponto em até 60 segundos (RF010). O trabalho de vistoria se mede em dias, e uma consulta periódica ao servidor atende ao prazo sem conexão permanente.
 - Pesos (TBD-17): a pontuação da fila (RF005) passou a ter valores: 6 pontos por relato, até 10 relatos; 1,5 ponto por dia de espera; 15 pontos por unidade do peso de urgência; e 2 pontos por ponto na fila no mesmo bairro, até 10 pontos. O RF006 passou a sugerir o peso de cada camada pela categoria. Por decisão do grupo, esses valores foram adotados como definitivos, sem validação do cliente, e o TBD-17 foi resolvido.
 
 ## Mudanças da versão 7
