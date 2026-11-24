@@ -190,6 +190,32 @@ class SaneaMapaIntegracaoTest {
         org.junit.jupiter.api.Assertions.assertEquals(0,
                 prazoGuardaService.eliminarDadosVencidos(java.time.OffsetDateTime.now().plusDays(182)));
 
+        // 7c. Relato novo no ponto já confirmado (reincidência, sem nova vistoria): o prazo conta da data do relato.
+        String relatoReincidente = """
+                {
+                  "tipoOcorrencia": "ESGOTO_CEU_ABERTO",
+                  "descricao": "O esgoto continua aberto",
+                  "nomeMorador": "Terceiro Morador",
+                  "telefoneMorador": "(82) 97777-1234",
+                  "latitude": -9.64411,
+                  "longitude": -35.71555,
+                  "precisaoMetros": 10,
+                  "posicaoManual": false,
+                  "evidencias": [
+                    { "tipo": "FOTO", "origem": "CAMERA", "arquivoCaminho": "/api/midias/ev_foto3.jpg" }
+                  ]
+                }
+                """;
+        mockMvc.perform(post("/api/morador/relatos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(relatoReincidente))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.agrupadoEmPontoExistente", is(true)));
+        org.junit.jupiter.api.Assertions.assertEquals(0,
+                prazoGuardaService.eliminarDadosVencidos(java.time.OffsetDateTime.now().plusDays(179)));
+        org.junit.jupiter.api.Assertions.assertEquals(1,
+                prazoGuardaService.eliminarDadosVencidos(java.time.OffsetDateTime.now().plusDays(181)));
+
         // 8. Prefeitura verifica log de auditoria registrado
         mockMvc.perform(get("/api/prefeitura/auditoria")
                         .header("Authorization", "Bearer " + tokenPref))

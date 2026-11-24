@@ -52,6 +52,7 @@ flowchart TB
         AS["AuditoriaService"]
         AUS["AutenticacaoService"]
         MSS["MidiaStorageService"]
+        PGS["PrazoGuardaService (RNF19, RNF20)"]
     end
 
     subgraph Domain["Camada de Domínio (Rich POO Model)"]

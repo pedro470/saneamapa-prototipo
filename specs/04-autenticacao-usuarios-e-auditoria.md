@@ -56,7 +56,7 @@ Controlar o acesso individual da equipe interna por meio de autenticação segur
 
 ### 3.4. Controlador e prazo de guarda (`RNF19`, `RNF20`; TBD-29 e TBD-30)
 - O controlador dos dados é a prefeitura que opera o sistema. Nome e contato dela e do encarregado ficam em `saneamapa.lgpd.*` no [application.yml](saneamapa-app/src/main/resources/application.yml) (variáveis `CONTROLADOR_NOME`, `CONTROLADOR_CONTATO`, `ENCARREGADO_NOME`, `ENCARREGADO_CONTATO`). O termo de uso de [morador.html](saneamapa-app/src/main/resources/static/morador.html) lê esses dados de `/api/publico/privacidade`. A chave do aceite mudou para `saneamapa_termo_aceito_v8`, e quem aceitou o termo antigo vê o novo.
-- [PrazoGuardaService.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/service/PrazoGuardaService.java) roda todo dia às 3h. Ele procura relatos ainda identificados cujo ponto recebeu, depois do relato, uma vistoria com mais de 180 dias (`PRAZO_GUARDA_DIAS`), chama `Relato.anonimizar` (nome e telefone viram `NULL` e `anonimizado_em` recebe a data) e registra `ELIMINACAO_DADOS_MORADOR`. Enquanto o ponto aguarda vistoria, nada é apagado.
+- [PrazoGuardaService.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/service/PrazoGuardaService.java) roda todo dia às 3h. Ele procura relatos ainda identificados cujo ponto recebeu, depois do relato, uma vistoria com mais de 180 dias (`PRAZO_GUARDA_DIAS`), chama `Relato.anonimizar` (nome e telefone viram `NULL` e `anonimizado_em` recebe a data) e registra `ELIMINACAO_DADOS_MORADOR`. O relato que chega a um ponto já `CONFIRMADO` (reincidência, sem nova vistoria) tem o prazo contado da data do relato. Enquanto o ponto aguarda vistoria, nada é apagado. A eliminação e o log ficam na mesma transação.
 - No banco, `chk_relato_identificacao` aceita duas formas: relato identificado (nome e telefone válidos, `anonimizado_em` nulo) ou anonimizado (nome e telefone nulos, `anonimizado_em` preenchido).
 - A consulta de contatos de um ponto ignora os relatos anonimizados.
 
@@ -66,6 +66,6 @@ Controlar o acesso individual da equipe interna por meio de autenticação segur
 
 - `DominioPooTest.deveBloquearUsuarioApos5TentativasEValidarCpf`
 - `DominioPooTest.deveAnonimizarRelatoUmaVezSoAoFimDoPrazo`
-- `SaneaMapaIntegracaoTest.fluxoCompletoMoradorAgrupamentoPrefeituraEFiscal` (nada é apagado antes de 180 dias da vistoria; depois, a eliminação roda uma vez e entra no log)
+- `SaneaMapaIntegracaoTest.fluxoCompletoMoradorAgrupamentoPrefeituraEFiscal` (nada é apagado antes de 180 dias da vistoria; depois, a eliminação roda uma vez e entra no log; o relato de reincidência é apagado 180 dias depois do relato)
 - `SaneaMapaIntegracaoTest.uploadRealDeMidiasEConsultaConfiguracao` (`/api/publico/privacidade` responde sem autenticação)
 - `SaneaMapaIntegracaoTest.fluxoCompletoMoradorAgrupamentoPrefeituraEFiscal` (RBAC 403 quando Fiscal tenta acessar `/api/prefeitura/auditoria`, registro de auditoria e erro 409 em CPF duplicado)

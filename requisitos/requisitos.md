@@ -511,7 +511,7 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 <!-- cols: 9,19,46,13,13 -->
 | ID | Requisito | Descrição | Prioridade | Fonte |
 |---|---|---|---|---|
-| RNF17 | Custo | O aplicativo deve ser gratuito para o morador, sem cobrança, anúncios ou compras internas. O sistema deve usar só componentes sem custo de licença; hospedagem e transcrição são pagas por quem operar o sistema. | Essencial | Entrevista |
+| RNF17 | Custo | O aplicativo deve ser gratuito para o morador, sem cobrança, anúncios ou compras internas. O sistema deve usar só componentes sem custo de licença; hospedagem e transcrição são pagas por quem operar o sistema. | Essencial | Entrevista; Analista |
 | RNF18 | Idioma | O aplicativo e o painel devem estar em português do Brasil. | Essencial | Derivado |
 
 ## Requisitos externos
@@ -519,8 +519,8 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 <!-- cols: 9,19,46,13,13 -->
 | ID | Requisito | Descrição | Prioridade | Fonte |
 |---|---|---|---|---|
-| RNF19 | Legal – consentimento | Na primeira abertura, o aplicativo deve exibir o termo de uso e a política de privacidade, com a finalidade, os dados coletados, o prazo de guarda (RNF20) e o nome e o contato do controlador e do encarregado de dados, e exigir o aceite antes do primeiro registro. O controlador é a prefeitura que operar o sistema, e esses dados são configurados na instalação. | Essencial | Legislação (LGPD) |
-| RNF20 | Legal – prazo de guarda | O sistema deve eliminar o nome e o telefone do morador 180 dias depois da primeira vistoria do ponto feita após o relato e manter o relato sem identificação. Enquanto o ponto aguarda vistoria, os dados ficam guardados, porque o fiscal pode precisar do contato. | Essencial | Legislação (LGPD) |
+| RNF19 | Legal – consentimento | Na primeira abertura, o aplicativo deve exibir o termo de uso e a política de privacidade, com a finalidade, os dados coletados, o prazo de guarda (RNF20) e o nome e o contato do controlador e do encarregado de dados, e exigir o aceite antes do primeiro registro. O controlador é a prefeitura que operar o sistema, e esses dados são configurados na instalação. | Essencial | Legislação (LGPD); Analista |
+| RNF20 | Legal – prazo de guarda | O sistema deve eliminar o nome e o telefone do morador 180 dias depois da primeira vistoria do ponto feita após o relato e manter o relato sem identificação. O relato que chega a um ponto já confirmado não gera nova vistoria (RF004), e nele o prazo conta da data do relato. Enquanto o ponto aguarda vistoria, os dados ficam guardados, porque o fiscal pode precisar do contato. | Essencial | Legislação (LGPD); Analista |
 | RNF21 | Legal – direitos do titular | O sistema deve permitir atender, em até 15 dias, ao pedido do morador para acessar, corrigir ou eliminar os seus dados. | Essencial | Legislação (LGPD) |
 | RNF22 | Legal – transferência de dados | A hospedagem e o serviço de transcrição devem manter os dados no Brasil ou em país com proteção equivalente, com contrato que proíba o seu uso para outro fim. | Importante | Legislação (LGPD) |
 
@@ -637,7 +637,7 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. Ne
 | TBD-26 | Resolvido: não há tipo "outro". O aplicativo orienta o morador a procurar a prefeitura quando o problema está fora do escopo, e o fiscal, ao registrar "não confirmado", informa se o problema não foi encontrado ou se existe, mas não é de saneamento. | — | — | RF001, RF007 |
 | TBD-27 | Resolvido: o aplicativo roda no navegador do celular, no Android 8.0 ou superior e no iOS 15 ou superior. | — | — | RNF05 |
 | TBD-28 | Resolvido: a gratuidade vale para o morador. O sistema usa só componentes sem custo de licença, e quem operar o sistema paga a hospedagem e a transcrição. | — | — | RNF17 |
-| TBD-29 | Resolvido: nome e telefone são eliminados 180 dias depois da primeira vistoria do ponto feita após o relato. | — | — | RNF20 |
+| TBD-29 | Resolvido: nome e telefone são eliminados 180 dias depois da primeira vistoria do ponto feita após o relato, ou 180 dias depois do relato que chega a um ponto já confirmado. | — | — | RNF20 |
 | TBD-30 | Resolvido: o controlador é a prefeitura que operar o sistema. O nome e o contato dela e do encarregado de dados são configurados na instalação e aparecem no termo de uso. | — | — | RF019, RNF19 |
 
 [[quebra]]
@@ -660,7 +660,8 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. Ne
 - Problema fora do escopo (TBD-26): o tipo "outro" não foi criado. Um relato que nenhum fiscal pode resolver ocuparia a fila à toa. O RF001 passou a orientar o morador a procurar a prefeitura em caso de poço contaminado, vazamento ou lixo, e o RF007 ganhou o campo "Motivo da não confirmação", que separa o problema não encontrado do problema real fora do escopo. O RS009 cita o motivo como solução.
 - Plataforma (TBD-27): o aplicativo roda no navegador do celular. Assim um só código atende Android e iOS, sem custo de publicação em loja (RNF05). A fonte do RNF05 passou a "Analista", porque a entrevista pediu um aplicativo, mas não disse em quais aparelhos.
 - Gratuidade (TBD-28): a "solução gratuita" da entrevista vale para o morador. Operar sem custo nenhum não é possível, porque o servidor precisa de hospedagem. O RNF17 exige só componentes sem custo de licença e deixa a hospedagem e a transcrição com quem operar o sistema.
-- Prazo de guarda (TBD-29): nome e telefone servem ao contato do fiscal e ao limite de relatos por telefone (RF001). Depois da vistoria, perdem a finalidade. O RNF20 fixou a eliminação em 180 dias depois da primeira vistoria do ponto feita após o relato, prazo que cobre um relato novo no mesmo ponto e um pedido do morador sobre os seus dados (RNF21). A eliminação entra no log (RF019).
+- Prazo de guarda (TBD-29): nome e telefone servem ao contato do fiscal e ao limite de relatos por telefone (RF001). Depois da vistoria, perdem a finalidade. O RNF20 fixou a eliminação em 180 dias depois da primeira vistoria do ponto feita após o relato, prazo que cobre um relato novo no mesmo ponto e um pedido do morador sobre os seus dados (RNF21). O relato que chega a um ponto já confirmado não gera vistoria (TBD-18), e nele o prazo conta da data do relato; sem essa regra, os dados desse morador nunca seriam apagados. A eliminação entra no log (RF019).
+- A fonte do RNF17, do RNF19 e do RNF20 passou a citar também "Analista", porque a licença dos componentes, a escolha da prefeitura como controlador e o prazo de 180 dias são decisões do grupo, não exigências da entrevista ou da lei.
 - Controlador (TBD-30): pela LGPD, controlador é quem decide sobre o tratamento dos dados. Quem decide é a prefeitura que adota e opera o sistema, não o grupo que o desenvolveu. O nome e o contato dela e do encarregado de dados são configurados na instalação e aparecem no termo de uso (RNF19).
 
 ## Mudanças da versão 7

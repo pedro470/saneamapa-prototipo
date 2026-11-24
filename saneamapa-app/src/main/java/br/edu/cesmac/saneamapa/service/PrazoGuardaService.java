@@ -1,5 +1,6 @@
 package br.edu.cesmac.saneamapa.service;
 
+import br.edu.cesmac.saneamapa.domain.enums.StatusPonto;
 import br.edu.cesmac.saneamapa.domain.enums.TipoEventoAuditoria;
 import br.edu.cesmac.saneamapa.domain.enums.TipoObjetoAuditoria;
 import br.edu.cesmac.saneamapa.domain.model.Relato;
@@ -18,7 +19,8 @@ import java.util.Map;
  * Prazo de guarda dos dados do morador (RNF20; TBD-29) e dados do controlador exibidos no termo (RNF19; TBD-30).
  * <p>
  * Nome e telefone são eliminados {@code prazo-guarda-dias} depois da primeira vistoria do ponto feita após o relato.
- * Enquanto o ponto aguarda vistoria, os dados ficam guardados, porque o fiscal pode precisar do contato.
+ * O relato que chega a um ponto já confirmado não gera nova vistoria (RF004, reincidência), e o prazo conta da data
+ * do relato. Enquanto o ponto aguarda vistoria, os dados ficam guardados, porque o fiscal pode precisar do contato.
  */
 @Service
 public class PrazoGuardaService {
@@ -47,8 +49,12 @@ public class PrazoGuardaService {
         this.encarregadoContato = encarregadoContato;
     }
 
-    /** Roda todo dia às 3h, depois do recálculo da fila. */
+    /**
+     * Roda todo dia às 3h, depois do recálculo da fila. A chamada interna não passa pelo proxy,
+     * por isso a transação fica aqui: eliminação e log entram juntos ou não entram.
+     */
     @Scheduled(cron = "0 0 3 * * *")
+    @Transactional
     public void eliminarDiariamente() {
         eliminarDadosVencidos(OffsetDateTime.now());
     }
@@ -60,7 +66,8 @@ public class PrazoGuardaService {
      */
     @Transactional
     public int eliminarDadosVencidos(OffsetDateTime agora) {
-        List<Relato> vencidos = relatoRepository.listarComPrazoDeGuardaVencido(agora.minusDays(prazoGuardaDias));
+        List<Relato> vencidos = relatoRepository.listarComPrazoDeGuardaVencido(
+                agora.minusDays(prazoGuardaDias), StatusPonto.CONFIRMADO);
         for (Relato relato : vencidos) {
             relato.anonimizar(agora);
             relatoRepository.save(relato);
