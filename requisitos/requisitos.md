@@ -31,7 +31,7 @@ Além desta seção introdutória, as seções seguintes estão organizadas como
 - **Seção 5 – Requisitos de segurança:** identifica os perigos ligados aos requisitos funcionais e as soluções adotadas para cada um.
 - **Seção 6 – Matriz de avaliação de risco:** classifica os perigos da Seção 5 pela gravidade e pela probabilidade de ocorrência.
 - **Seção 7 – Matriz de rastreabilidade:** registra a ligação entre os requisitos funcionais dependentes.
-- **Seção 8 – Itens a definir:** lista as informações ainda não obtidas, com o responsável por cada uma e a forma de resolução.
+- **Seção 8 – Itens a definir:** lista as informações que a entrevista não levantou e como cada uma foi resolvida.
 - **Seção 9 – Alterações em relação às versões anteriores:** registra o que mudou nesta versão e as inconsistências da versão 4, com a decisão adotada para cada uma.
 - **Seção 10 – Referências:** apresenta os documentos utilizados na elaboração deste documento.
 - **Seção 11 – Anotações da entrevista:** transcreve as anotações da entrevista com o cliente e as respostas dele às dúvidas levantadas depois, que são a fonte dos requisitos marcados como "Entrevista".
@@ -150,7 +150,7 @@ Situação do envio: Integer; gerado automaticamente ^7^
 
 **Regra e observações do preenchimento dos campos:**
 ^1^ O protocolo é gerado no aparelho e exibido ao morador ao concluir o registro, com a data e a hora.
-^2^ Seleção única entre "casa sem ligação de água", "água fora do padrão", "rua sem rede de esgoto" e "esgoto a céu aberto" [TBD-26].
+^2^ Seleção única entre "casa sem ligação de água", "água fora do padrão", "rua sem rede de esgoto" e "esgoto a céu aberto". Não há a opção "outro". Abaixo dos tipos, o aplicativo avisa que o SaneaMapa trata só de água e esgoto e orienta o morador a procurar a prefeitura em caso de poço contaminado, vazamento ou lixo.
 ^3^ Ao menos uma foto, vídeo ou áudio, em qualquer combinação, obtidos pela câmera, pelo microfone ou pela galeria do aparelho. O sistema deve recusar vídeo com mais de 30 segundos e áudio com mais de 60 segundos.
 ^4^ Texto livre. A transcrição dos áudios (RF003) é acrescentada à descrição.
 ^5^ Toda denúncia é identificada: o sistema não deve aceitar relato sem nome e telefone. Antes do envio, o sistema deve informar ao morador para que servem esses dados (contato na vistoria e controle de denúncias repetidas) e quem os vê (a equipe interna). O aplicativo preenche os dois campos com os valores do último relato enviado, e o morador pode alterá-los.
@@ -161,7 +161,7 @@ Obs1: nome e telefone do morador ficam restritos à equipe interna e nunca apare
 Obs2: o sistema deve aceitar no máximo 5 relatos por telefone a cada 24 horas (RS001).
 Obs3: depois do envio, o aplicativo não guarda o relato nem mantém histórico dos relatos enviados; guarda apenas o nome e o telefone do morador, para preencher o próximo relato (RS005).
 
-**Fonte:** Entrevista (evidências, localização, identificação obrigatória e envio sem conexão); Analista (tipos de ocorrência, durações, descrição, limite de relatos e preenchimento com o último relato); Legislação (LGPD) (aviso da finalidade e ocultação no mapa); Derivado (demais regras).
+**Fonte:** Entrevista (evidências, localização, identificação obrigatória e envio sem conexão); Analista (tipos de ocorrência e orientação para problema fora do escopo, durações, descrição, limite de relatos e preenchimento com o último relato); Legislação (LGPD) (aviso da finalidade e ocultação no mapa); Derivado (demais regras).
 :::
 
 ## Localização
@@ -208,7 +208,7 @@ Transcrição: String(2000); gerado automaticamente ^5^
 
 **Regra e observações do preenchimento dos campos:**
 ^1^ Seleção única entre "foto", "vídeo" e "áudio".
-^2^ Ao receber uma foto, o sistema deve detectar rostos e placas de veículo, aplicar desfoque sobre eles e só então gravar o arquivo de uso, descartando a imagem original. Nos vídeos, o desfoque é aplicado em todos os quadros e o som é removido.
+^2^ Ao receber uma foto, o sistema deve detectar rostos e placas de veículo, aplicar desfoque sobre eles e só então gravar o arquivo de uso. A imagem original é descartada. Nos vídeos, o desfoque é aplicado em todos os quadros e o som é removido.
 ^3^ Quando a detecção automática falhar, o fiscal pode marcar uma região da foto para receber novo desfoque. O sistema guarda apenas a versão vigente e descarta as anteriores.
 ^4^ Os metadados de fotos e vídeos são removidos, com exceção da data, da hora e da coordenada.
 ^5^ Somente para áudio. Cada áudio é transcrito automaticamente por inteligência artificial, e a transcrição é acrescentada à descrição do relato. Ao serviço de transcrição é enviado só o áudio, sem nome nem telefone, e o serviço deve apagá-lo após a transcrição (RS007).
@@ -243,7 +243,7 @@ Reincidência: Boolean; gerado automaticamente ^4^
 ^3^ "Aguardando vistoria", "em vistoria", "confirmado" ou "não confirmado", conforme o ciclo de vida da seção 12.1.
 ^4^ Marcada quando um relato é vinculado a um ponto "confirmado", sem alterar o status do ponto e sem exigir nova vistoria. O relato soma à quantidade de relatos do ponto.
 
-**Agrupamento:** ao receber um relato, o sistema deve vinculá-lo ao ponto mais próximo do mesmo tipo situado a até 50 metros, preservando as evidências, a descrição e a data de cada relato. Quando não houver ponto do mesmo tipo nesse raio, o sistema deve criar um ponto com status "aguardando vistoria", com o tipo e a coordenada do relato. Um relato vinculado a um ponto "não confirmado" devolve o ponto ao status "aguardando vistoria".
+**Agrupamento:** ao receber um relato, o sistema deve vinculá-lo ao ponto mais próximo do mesmo tipo situado a até 50 metros. As evidências, a descrição e a data de cada relato são preservadas. Quando não houver ponto do mesmo tipo nesse raio, o sistema deve criar um ponto com status "aguardando vistoria", com o tipo e a coordenada do relato. Um relato vinculado a um ponto "não confirmado" devolve o ponto ao status "aguardando vistoria".
 
 **Fonte:** Derivado.
 :::
@@ -302,7 +302,7 @@ Ativa: Boolean; obrigatório
 ## Vistoria
 
 ::: RF007 | Essencial
-O sistema deve permitir que o fiscal registre a vistoria em campo, validando a denúncia e mudando o status do ponto.
+O sistema deve permitir que o fiscal registre a vistoria em campo, que valida a denúncia e muda o status do ponto.
 **Atores:** fiscal.
 **Pré-condições:** usuário autenticado com o perfil Fiscal (RF018); ponto atribuído ao fiscal (RF005).
 
@@ -311,21 +311,23 @@ Ponto: Integer; (identificador do ponto, RF004); obrigatório
 Data e hora da vistoria: DateTime; (dd/mm/aaaa hh:mm); gerado automaticamente
 Fiscal responsável: Integer; gerado automaticamente
 Resultado: Integer; obrigatório ^1^
+Motivo da não confirmação: Integer; obrigatório quando o resultado for "não confirmado" ^5^
 Tipo de ocorrência: Integer; obrigatório ^2^
 Latitude e longitude: Decimal; obrigatório ^2^
 Fotos e vídeos da vistoria: Arquivo; obrigatório quando o resultado for "confirmado" ^3^
 Latitude e longitude do fiscal: Decimal; gerado automaticamente ^4^
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Seleção única entre "confirmado" e "não confirmado" [TBD-26]. Ao salvar, o status do ponto muda para o resultado registrado.
+^1^ Seleção única entre "confirmado" e "não confirmado". Ao salvar, o status do ponto muda para o resultado registrado.
 ^2^ Preenchidos com os dados do ponto e corrigíveis pelo fiscal. A correção atualiza o ponto (RF004).
 ^3^ Capturados somente pela câmera do aparelho, nunca da galeria, e tratados conforme RF003 (RS008).
 ^4^ Capturadas pelo GPS no momento de salvar. O sistema não deve aceitar a vistoria se a posição do fiscal estiver a mais de 100 metros da localização do ponto (RS008).
+^5^ Seleção única entre "problema não encontrado no local" e "problema existe, mas não é de saneamento". A segunda opção registra que o morador apontou um problema real fora do escopo do sistema, como poço contaminado, vazamento ou lixo, para que a Prefeitura o encaminhe por outros meios. O motivo fica no histórico do ponto e aparece no painel.
 
 Obs1: ao abrir o ponto, o fiscal vê todas as evidências e todos os relatos vinculados.
 Obs2: cada mudança de status fica no histórico do ponto, com usuário, data e hora (RF019).
 
-**Fonte:** Entrevista (validação da denúncia por fiscal da prefeitura, no local); Analista (vistoria restrita aos pontos atribuídos, evidência obrigatória na confirmação, foto só pela câmera e posição do fiscal); Derivado (demais regras).
+**Fonte:** Entrevista (validação da denúncia por fiscal da prefeitura, no local); Analista (vistoria restrita aos pontos atribuídos, evidência obrigatória na confirmação, motivo da não confirmação, foto só pela câmera e posição do fiscal); Derivado (demais regras).
 :::
 
 ## Mapa e painel
@@ -438,7 +440,7 @@ Obs2: o usuário pode redefinir a senha por meio de mensagem enviada ao e-mail c
 ## Auditoria
 
 ::: RF019 | Essencial
-O sistema deve registrar quem acessou e quem alterou cada dado pessoal, e quando, como exige a LGPD. Quem será o controlador dos dados está a definir [TBD-30].
+O sistema deve registrar quem acessou e quem alterou cada dado pessoal, e quando, como exige a LGPD. O controlador desses dados é a prefeitura que operar o sistema (RNF19).
 **Atores:** sistema; Prefeitura, na pesquisa.
 
 **Registro de Log:**
@@ -448,7 +450,7 @@ Tipo de evento: Integer; gerado automaticamente ^1^
 Objeto afetado: Integer; (identificador do relato, ponto, evidência ou usuário); gerado automaticamente
 
 **Regra e observações do preenchimento dos campos:**
-^1^ Acesso a nome, telefone, coordenada exata ou áudio de morador; edição de foto (RF003); atribuição de ponto a fiscal (RF005); mudança de status de ponto (RF007); alteração de cadastro de usuário (RF013); criação do primeiro usuário (RF021); e importação de dados do Censo (RF020).
+^1^ Acesso a nome, telefone, coordenada exata ou áudio de morador; edição de foto (RF003); atribuição de ponto a fiscal (RF005); mudança de status de ponto (RF007); alteração de cadastro de usuário (RF013); criação do primeiro usuário (RF021); importação de dados do Censo (RF020); e eliminação de nome e telefone ao fim do prazo de guarda (RNF20).
 
 **Alteração e exclusão:** os registros de log não podem ser alterados nem excluídos.
 
@@ -491,7 +493,7 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 | RNF02 | Facilidade de uso | O aplicativo deve apresentar os tipos de ocorrência com ícone e texto curto, sem termos técnicos. | Importante | Analista |
 | RNF03 | Facilidade de uso | Quando uma ação não puder ser concluída, o sistema deve exibir uma mensagem que diga o motivo e o que fazer. | Importante | Derivado |
 | RNF04 | Acessibilidade | O aplicativo e o painel devem atender ao nível AA da WCAG 2.1. | Desejável | Analista |
-| RNF05 | Portabilidade | O aplicativo deve funcionar em Android 8.0 ou superior [TBD-27]. | Essencial | Entrevista |
+| RNF05 | Portabilidade | O aplicativo deve funcionar no navegador do celular, no Chrome do Android 8.0 ou superior e no Safari do iOS 15 ou superior, sem instalação por loja de aplicativos. | Essencial | Analista |
 | RNF06 | Portabilidade | O painel da Prefeitura deve funcionar nas duas últimas versões do Chrome, do Edge e do Firefox. | Essencial | Analista |
 | RNF07 | Espaço | O aplicativo instalado deve ocupar no máximo 50 MB, sem contar os relatos pendentes. | Importante | Analista |
 | RNF08 | Eficiência | O aplicativo deve comprimir cada foto para no máximo 1 MB antes do envio. | Importante | Analista |
@@ -509,7 +511,7 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 <!-- cols: 9,19,46,13,13 -->
 | ID | Requisito | Descrição | Prioridade | Fonte |
 |---|---|---|---|---|
-| RNF17 | Custo | O aplicativo deve ser gratuito para o morador, sem cobrança, anúncios ou compras internas [TBD-28]. | Essencial | Entrevista |
+| RNF17 | Custo | O aplicativo deve ser gratuito para o morador, sem cobrança, anúncios ou compras internas. O sistema deve usar só componentes sem custo de licença; hospedagem e transcrição são pagas por quem operar o sistema. | Essencial | Entrevista |
 | RNF18 | Idioma | O aplicativo e o painel devem estar em português do Brasil. | Essencial | Derivado |
 
 ## Requisitos externos
@@ -517,8 +519,8 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 <!-- cols: 9,19,46,13,13 -->
 | ID | Requisito | Descrição | Prioridade | Fonte |
 |---|---|---|---|---|
-| RNF19 | Legal – consentimento | Na primeira abertura, o aplicativo deve exibir o termo de uso e a política de privacidade, com a finalidade, os dados coletados, o prazo de guarda e o contato do controlador [TBD-30], e exigir o aceite antes do primeiro registro. | Essencial | Legislação (LGPD) |
-| RNF20 | Legal – prazo de guarda | O sistema deve eliminar o nome e o telefone do morador ao fim do prazo de guarda [TBD-29], mantendo o relato sem identificação. | Essencial | Legislação (LGPD) |
+| RNF19 | Legal – consentimento | Na primeira abertura, o aplicativo deve exibir o termo de uso e a política de privacidade, com a finalidade, os dados coletados, o prazo de guarda (RNF20) e o nome e o contato do controlador e do encarregado de dados, e exigir o aceite antes do primeiro registro. O controlador é a prefeitura que operar o sistema, e esses dados são configurados na instalação. | Essencial | Legislação (LGPD) |
+| RNF20 | Legal – prazo de guarda | O sistema deve eliminar o nome e o telefone do morador 180 dias depois da primeira vistoria do ponto feita após o relato e manter o relato sem identificação. Enquanto o ponto aguarda vistoria, os dados ficam guardados, porque o fiscal pode precisar do contato. | Essencial | Legislação (LGPD) |
 | RNF21 | Legal – direitos do titular | O sistema deve permitir atender, em até 15 dias, ao pedido do morador para acessar, corrigir ou eliminar os seus dados. | Essencial | Legislação (LGPD) |
 | RNF22 | Legal – transferência de dados | A hospedagem e o serviço de transcrição devem manter os dados no Brasil ou em país com proteção equivalente, com contrato que proíba o seu uso para outro fim. | Importante | Legislação (LGPD) |
 
@@ -537,7 +539,7 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 | RS006 | No RF003, o desfoque automático pode falhar e deixar um rosto ou uma placa visível. | Nenhuma evidência é exibida antes do tratamento; o fiscal marca novo desfoque (RF003); o sistema não tem exibição pública de evidências. |
 | RS007 | No RF003, o áudio enviado ao serviço de transcrição pode ser reutilizado ou vazar. | Contrato e localização dos dados conforme o RNF22; envio só do áudio, sem nome nem telefone; exigência de que o serviço apague o áudio após a transcrição (RF003). |
 | RS008 | No RF007, o fiscal pode registrar a vistoria sem ir ao local ou com foto de outro ponto. | Exigir que a coordenada do GPS no momento da vistoria esteja a até 100 metros do ponto e aceitar fotos e vídeos da vistoria só pela câmera, nunca da galeria (RF007). |
-| RS009 | No RF005 e no RF007, um ponto pode ser deixado de lado de propósito ou marcado como "não confirmado" sem motivo. | Os dias de espera aumentam a pontuação (RF005); um relato novo devolve o ponto "não confirmado" à fila (RF004); toda atribuição e toda mudança de status ficam registradas (RF019). |
+| RS009 | No RF005 e no RF007, um ponto pode ser deixado de lado de propósito ou marcado como "não confirmado" sem motivo. | Os dias de espera aumentam a pontuação (RF005); o fiscal informa o motivo da não confirmação (RF007); um relato novo devolve o ponto "não confirmado" à fila (RF004); toda atribuição e toda mudança de status ficam registradas (RF019). |
 | RS010 | No RF018, a senha de um usuário interno pode ser descoberta ou compartilhada. | Política de senha, bloqueio e expiração da sessão (RNF16); usuário individual; desativação de quem sai da equipe (RF013). |
 | RS011 | No RF019, um usuário interno pode apagar o rastro do que fez. | Os registros de log não podem ser alterados nem excluídos, e nenhum perfil tem essa permissão (RF019); o log entra na cópia de segurança (RNF12). |
 | RS012 | No RF006, uma camada de vulnerabilidade pode acabar expondo pessoas, como a casa de um paciente. | As camadas descrevem só equipamentos e territórios, a categoria epidemiológica aceita somente polígono e o morador não vê o nível de urgência (RF006). |
@@ -547,7 +549,7 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 
 # Matriz de avaliação de risco
 
-A matriz posiciona cada perigo da Seção 5 pela gravidade do dano, se ele ocorrer, e pela probabilidade de ocorrência com as soluções da Seção 5 já aplicadas. As duas classificações são hipóteses do analista e devem ser revistas quando os itens a definir forem respondidos.
+A matriz posiciona cada perigo da Seção 5 pela gravidade do dano, se ele ocorrer, e pela probabilidade de ocorrência com as soluções da Seção 5 já aplicadas. As duas classificações são hipóteses do analista e devem ser revistas se alguma decisão da seção 8 mudar.
 
 - **Gravidade:** catastrófico (1), dano grave a uma pessoa ou exposição de dados pessoais de muitos moradores; crítico (2), dano a uma pessoa ou decisão errada sobre um ponto; marginal (3), distorção corrigível da fila ou do mapa; insignificante (4), sem efeito sobre pessoas ou decisões.
 - **Probabilidade:** frequente (A), esperado várias vezes por mês; provável (B), esperado algumas vezes por ano; ocasional (C), pode ocorrer uma vez por ano; remoto (D), pouco provável durante a vida do sistema; improvável (E), só por falha simultânea de mais de uma solução; eliminado (F), as soluções tornam o perigo impossível.
@@ -594,7 +596,7 @@ Nenhum requisito essencial depende de um requisito importante: o RF005, o RF010 
 
 # Itens a definir
 
-Cada item abaixo é uma informação que a primeira entrevista não levantou. A coluna "Como resolver" indica a forma de obtê-la, e a lista serve de roteiro para as próximas entrevistas. Os itens resolvidos continuam na tabela, com a resposta, para que seus identificadores não sejam reutilizados.
+Cada item abaixo é uma informação que a primeira entrevista não levantou. Nesta versão não há item em aberto. Uns foram resolvidos pelas respostas do cliente (seção 11.4), outros por decisão do grupo, sem validação do cliente (seção 9), e alguns saíram com o requisito que os usava. Os itens continuam na tabela, com a resposta, para que seus identificadores não sejam reutilizados.
 
 ## Perfis internos
 
@@ -632,11 +634,11 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 | TBD-23 | Resolvido: sem conexão, o aplicativo guarda a denúncia e a envia quando a conexão voltar. | — | — | RF001, RNF13 |
 | TBD-24 | Removido: a integração com o Censo do IBGE e a transcrição por inteligência artificial foram tratadas como pedidos da entrevista. | — | — | RF003, RF020 |
 | TBD-25 | Resolvido: um fiscal da prefeitura valida a denúncia em vistoria no local. | — | — | RF005, RF007 |
-| TBD-26 | O que fazer com um problema fora do escopo, como poço contaminado, vazamento ou lixo: se o morador pode registrá-lo como "outro", se o aplicativo o recusa com uma orientação, e se o fiscal pode registrar na vistoria que o problema existe, mas não é de saneamento. | Cliente | Próxima entrevista com o cliente | RF001, RF007 |
-| TBD-27 | Se o aplicativo deve funcionar também em iOS, além de Android. | Cliente | Próxima entrevista com o cliente | RNF05 |
-| TBD-28 | Se "solução gratuita" vale só para o morador ou também significa custo zero de operação, como hospedagem e serviço de transcrição. | Cliente | Próxima entrevista com o cliente | RNF17 |
-| TBD-29 | Por quanto tempo nome e telefone do morador são guardados. | Cliente | Próxima entrevista com o cliente | RNF20 |
-| TBD-30 | Quem é o controlador dos dados pessoais, nos termos da LGPD. | Cliente | Próxima entrevista com o cliente | RF019, RNF19 |
+| TBD-26 | Resolvido: não há tipo "outro". O aplicativo orienta o morador a procurar a prefeitura quando o problema está fora do escopo, e o fiscal, ao registrar "não confirmado", informa se o problema não foi encontrado ou se existe, mas não é de saneamento. | — | — | RF001, RF007 |
+| TBD-27 | Resolvido: o aplicativo roda no navegador do celular, no Android 8.0 ou superior e no iOS 15 ou superior. | — | — | RNF05 |
+| TBD-28 | Resolvido: a gratuidade vale para o morador. O sistema usa só componentes sem custo de licença, e quem operar o sistema paga a hospedagem e a transcrição. | — | — | RNF17 |
+| TBD-29 | Resolvido: nome e telefone são eliminados 180 dias depois da primeira vistoria do ponto feita após o relato. | — | — | RNF20 |
+| TBD-30 | Resolvido: o controlador é a prefeitura que operar o sistema. O nome e o contato dela e do encarregado de dados são configurados na instalação e aparecem no termo de uso. | — | — | RF019, RNF19 |
 
 [[quebra]]
 
@@ -649,11 +651,17 @@ Cada item abaixo é uma informação que a primeira entrevista não levantou. A 
 - Perfis (TBD-01, TBD-03, TBD-04, TBD-07, TBD-08 e TBD-09): a Prefeitura é um perfil único, com acesso a todas as funções internas, inclusive ao nome e ao telefone do morador. As marcas de TBD saíram dos requisitos e da matriz de permissões.
 - Anonimato (TBD-10): toda denúncia é identificada. O campo "Identificar-se" e o relato anônimo com prioridade reduzida saíram do RF001; o fator "relato identificado" saiu da pontuação da fila (RF005); o RS001 passou a se apoiar na identificação obrigatória. Na avaliação do analista, a LGPD não exige que o sistema ofereça o envio anônimo: a coleta de nome e telefone é compatível com a lei desde que tenha finalidade declarada, se limite aos dados necessários e tenha acesso restrito e registrado, regras que o RF001, o RF019 e o RNF19 trazem. O RF001 passou a informar a finalidade antes do envio e a preencher nome e telefone com os do último relato.
 - Sem conexão (TBD-23): mantido o envio pendente, com reenvio automático. A marca de TBD saiu do RF001 e do RNF13.
-- Imagem original (TBD-13): mantido o descarte da imagem original após o desfoque (RF003). A prova da denúncia é a vistoria do fiscal no local, com fotos tiradas só pela câmera (RF007), e guardar as originais criaria um acervo de rostos e placas sem finalidade, contra o princípio da necessidade da LGPD e aumentando o perigo do RS004.
+- Imagem original (TBD-13): mantido o descarte da imagem original após o desfoque (RF003). A prova da denúncia é a vistoria do fiscal no local, com fotos tiradas só pela câmera (RF007), e guardar as originais criaria um acervo de rostos e placas sem finalidade, contra o princípio da necessidade da LGPD, e aumentaria o perigo do RS004.
 - Reincidência (TBD-18): o relato novo num ponto "confirmado" não exige nova vistoria. Como o sistema não tem o status "resolvido", o ponto confirmado continua sendo um problema existente, e o relato novo só o reforça: o ponto recebe a marcação de reincidência e soma o relato (RF004).
 - Autenticação (TBD-19): os usuários internos entram com credencial própria do sistema, por e-mail e senha. O cliente não tem ligação com a prefeitura, e não há informação sobre um login institucional que pudesse ser integrado. Saiu a Obs4 do RF021, que tratava desse caso.
 - Atualização do mapa (TBD-20): o mapa reflete a alteração de um ponto em até 60 segundos (RF010). O trabalho de vistoria se mede em dias, e uma consulta periódica ao servidor atende ao prazo sem conexão permanente.
 - Pesos (TBD-17): a pontuação da fila (RF005) passou a ter valores: 6 pontos por relato, até 10 relatos; 1,5 ponto por dia de espera; 15 pontos por unidade do peso de urgência; e 2 pontos por ponto na fila no mesmo bairro, até 10 pontos. O RF006 passou a sugerir o peso de cada camada pela categoria. Por decisão do grupo, esses valores foram adotados como definitivos, sem validação do cliente, e o TBD-17 foi resolvido.
+- Os itens TBD-26 a TBD-30 foram resolvidos por decisão do grupo, sem validação do cliente. A seção 8 ficou sem item em aberto.
+- Problema fora do escopo (TBD-26): o tipo "outro" não foi criado. Um relato que nenhum fiscal pode resolver ocuparia a fila à toa. O RF001 passou a orientar o morador a procurar a prefeitura em caso de poço contaminado, vazamento ou lixo, e o RF007 ganhou o campo "Motivo da não confirmação", que separa o problema não encontrado do problema real fora do escopo. O RS009 cita o motivo como solução.
+- Plataforma (TBD-27): o aplicativo roda no navegador do celular. Assim um só código atende Android e iOS, sem custo de publicação em loja (RNF05). A fonte do RNF05 passou a "Analista", porque a entrevista pediu um aplicativo, mas não disse em quais aparelhos.
+- Gratuidade (TBD-28): a "solução gratuita" da entrevista vale para o morador. Operar sem custo nenhum não é possível, porque o servidor precisa de hospedagem. O RNF17 exige só componentes sem custo de licença e deixa a hospedagem e a transcrição com quem operar o sistema.
+- Prazo de guarda (TBD-29): nome e telefone servem ao contato do fiscal e ao limite de relatos por telefone (RF001). Depois da vistoria, perdem a finalidade. O RNF20 fixou a eliminação em 180 dias depois da primeira vistoria do ponto feita após o relato, prazo que cobre um relato novo no mesmo ponto e um pedido do morador sobre os seus dados (RNF21). A eliminação entra no log (RF019).
+- Controlador (TBD-30): pela LGPD, controlador é quem decide sobre o tratamento dos dados. Quem decide é a prefeitura que adota e opera o sistema, não o grupo que o desenvolveu. O nome e o contato dela e do encarregado de dados são configurados na instalação e aparecem no termo de uso (RNF19).
 
 ## Mudanças da versão 7
 

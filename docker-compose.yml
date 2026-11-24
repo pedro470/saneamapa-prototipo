@@ -32,6 +32,12 @@ services:
       DB_USER: postgres
       DB_PASS: ${DB_PASS:-postgres}
       UPLOAD_DIR: /app/uploads
+      # RNF19/RNF20: controlador exibido no termo de uso e prazo de guarda (opcionais, num .env).
+      CONTROLADOR_NOME: ${CONTROLADOR_NOME:-Prefeitura (exemplo de demonstração)}
+      CONTROLADOR_CONTATO: ${CONTROLADOR_CONTATO:-ouvidoria@exemplo.gov.br}
+      ENCARREGADO_NOME: ${ENCARREGADO_NOME:-Encarregado de dados (exemplo)}
+      ENCARREGADO_CONTATO: ${ENCARREGADO_CONTATO:-encarregado.lgpd@exemplo.gov.br}
+      PRAZO_GUARDA_DIAS: ${PRAZO_GUARDA_DIAS:-180}
       # Opcional: defina JWT_SECRET (64+ caracteres) num .env para os logins sobreviverem a reinícios.
       JWT_SECRET: ${JWT_SECRET:-}
     ports:

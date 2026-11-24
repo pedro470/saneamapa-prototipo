@@ -11,7 +11,8 @@ public enum TipoEventoAuditoria {
     MUDANCA_STATUS_PONTO("Mudança de status"),
     ALTERACAO_USUARIO("Alteração de usuário"),
     IMPORTACAO_CENSO("Importação do Censo"),
-    ROLLBACK_CENSO("Retorno à importação anterior do Censo");
+    ROLLBACK_CENSO("Retorno à importação anterior do Censo"),
+    ELIMINACAO_DADOS_MORADOR("Eliminação de nome e telefone");
 
     private final String rotulo;
 

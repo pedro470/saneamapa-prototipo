@@ -1,6 +1,6 @@
 # PRD — SaneaMapa (Product Requirements Document)
 
-**Versão:** 1.0 (alinhada ao Documento de Requisitos v7 e à implementação Spring Boot + PostgreSQL)  
+**Versão:** 1.0 (alinhada ao Documento de Requisitos v8 e à implementação Spring Boot + PostgreSQL)  
 **Contexto:** Plano de Avaliação Integrada — Programação Orientada a Objetos (2026.2) / Demanda social e educativa da comunidade ao CESMAC  
 **Repositório:** `saneamapa-app/` (backend Java 21 / Spring Boot + frontend web)
 
@@ -16,7 +16,7 @@ O **SaneaMapa** é um Sistema de Registro e Notificação de Saneamento Básico 
 
 ## 2. Objetivos do Produto
 
-- **Empoderar a comunidade** com um canal gratuito, simples (até 3 telas) e acessível no navegador/celular para denunciar falhas de saneamento sem necessidade de cadastro prévio.
+- **Empoderar a comunidade** com um canal gratuito para o morador, simples (até 3 telas), que roda no navegador do celular (Chrome no Android 8+ e Safari no iOS 15+, sem loja de aplicativos) e não exige cadastro prévio.
 - **Consolidar ocorrências por proximidade** (agrupamento em raio de 50 metros por tipo), evitando duplicidade e mensurando a gravidade real de cada ponto.
 - **Priorizar áreas vulneráveis** cruzando os pontos com camadas de sensibilidade social (creches, escolas, UBS, comunidades tradicionais e áreas de vulnerabilidade epidemiológica).
 - **Garantir validação confiável em campo**, exigindo presença física do fiscal (raio ≤ 100 m via GPS) e captura direta pela câmera ao confirmar ocorrências.
@@ -38,17 +38,17 @@ O **SaneaMapa** é um Sistema de Registro e Notificação de Saneamento Básico 
 
 | ID | Funcionalidade | Prioridade | Resumo do Fluxo e Regras | Spec |
 |---|---|---|---|---|
-| **RF001** | Registro de ocorrência | Essencial | 4 tipos (`CASA_SEM_AGUA`, `AGUA_FORA_PADRAO`, `RUA_SEM_ESGOTO`, `ESGOTO_CEU_ABERTO`); protocolo `SM-...` gerado no cliente; toda denúncia é identificada (nome + telefone com DDD obrigatórios, sem envio anônimo); o app guarda só o nome e o telefone do último relato para preencher o próximo; limite de 5 relatos por telefone em 24h; sem conexão, o relato e os arquivos ficam guardados no aparelho (IndexedDB, até 20 pendentes) e são reenviados automaticamente quando a conexão volta. | [01-registro-relatos-e-midias.md](specs/01-registro-relatos-e-midias.md) |
+| **RF001** | Registro de ocorrência | Essencial | 4 tipos (`CASA_SEM_AGUA`, `AGUA_FORA_PADRAO`, `RUA_SEM_ESGOTO`, `ESGOTO_CEU_ABERTO`); protocolo `SM-...` gerado no cliente; toda denúncia é identificada (nome + telefone com DDD obrigatórios, sem envio anônimo); o app guarda só o nome e o telefone do último relato para preencher o próximo; limite de 5 relatos por telefone em 24h; não há tipo "outro": a tela de tipo orienta o morador a procurar a prefeitura em caso de poço, vazamento ou lixo; sem conexão, o relato e os arquivos ficam guardados no aparelho (IndexedDB, até 20 pendentes) e são reenviados automaticamente quando a conexão volta. | [01-registro-relatos-e-midias.md](specs/01-registro-relatos-e-midias.md) |
 | **RF002** | Captura e ajuste de localização | Essencial | Captura de GPS + ajuste manual no mapa Leaflet/OpenStreetMap; cálculo de trecho de rua público; coordenada exata restrita à equipe interna com log de acesso. | [01-registro-relatos-e-midias.md](specs/01-registro-relatos-e-midias.md) |
 | **RF003** | Tratamento de evidências | Essencial | Foto, vídeo (≤ 30 s) e áudio (≤ 60 s); marcação de evidência divergente da galeria (> 7 dias ou > 500 m); novo desfoque manual e correção de transcrição pelo fiscal; bloqueio de acesso público às mídias. | [01-registro-relatos-e-midias.md](specs/01-registro-relatos-e-midias.md) |
 | **RF004** | Agrupamento espacial de relatos | Essencial | Relatos do mesmo tipo em até **50 m** são agrupados no ponto mais próximo; relato em ponto `CONFIRMADO` marca reincidência; relato em `NAO_CONFIRMADO` reabre para `AGUARDANDO_VISTORIA`. | [01-registro-relatos-e-midias.md](specs/01-registro-relatos-e-midias.md) |
 | **RF005** | Fila de vistoria ponderada e atribuição | Essencial | Pontuação: 6 por relato (até 10), 1,5 por dia de espera, 15 por peso de urgência e 2 por ponto na fila no bairro (até 10); atribuição de fiscal muda status para `EM_VISTORIA`. | [02-fila-urgencia-e-painel.md](specs/02-fila-urgencia-e-painel.md) |
 | **RF006** | Camadas de vulnerabilidade social | Importante | Geometrias `PONTO_RAIO` ou `POLIGONO` (polígono obrigatório para `VULNERABILIDADE_EPIDEMIOLOGICA` — RS012); classificação automática de peso (0 a 3) e nível (`NORMAL`, `ELEVADA`, `CRITICA`). | [02-fila-urgencia-e-painel.md](specs/02-fila-urgencia-e-painel.md) |
-| **RF007** | Vistoria em campo | Essencial | Fiscal só vistoria pontos atribuídos a si; exige distância GPS ≤ **100 m** (RS008), origem `CAMERA` e ao menos uma mídia para confirmar; atualiza tipo/posição corrigidos e grava histórico. | [03-vistoria-em-campo.md](specs/03-vistoria-em-campo.md) |
+| **RF007** | Vistoria em campo | Essencial | Fiscal só vistoria pontos atribuídos a si; exige distância GPS ≤ **100 m** (RS008), origem `CAMERA` e ao menos uma mídia para confirmar; no resultado `NAO_CONFIRMADO`, exige o motivo (`NAO_ENCONTRADO` ou `FORA_DO_ESCOPO`); atualiza tipo/posição corrigidos e grava histórico. | [03-vistoria-em-campo.md](specs/03-vistoria-em-campo.md) |
 | **RF010 / RF015** | Mapa, painel e indicadores | Essencial / Importante | Filtros por tipo, status, bairro, período, mínimo de relatos e urgência; camadas de mapa; totais por status, tipo, urgência e bairro. | [02-fila-urgencia-e-painel.md](specs/02-fila-urgencia-e-painel.md) |
 | **RF013 / RF021** | Cadastro de usuários e bootstrap inicial | Essencial | Validação de dígitos verificadores do CPF (imutável), unicidade de CPF/e-mail, desativação lógica preservando histórico, bloqueio da desativação do último usuário `PREFEITURA` ativo e criação inicial via `DataInitializer`. | [04-autenticacao-usuarios-e-auditoria.md](specs/04-autenticacao-usuarios-e-auditoria.md) |
 | **RF018** | Autenticação e controle de acesso | Essencial | Login com BCrypt + JWT (expiração em 30 min); bloqueio temporário de 15 minutos após 5 tentativas falhas; RBAC por perfil (`FISCAL`, `PREFEITURA`). | [04-autenticacao-usuarios-e-auditoria.md](specs/04-autenticacao-usuarios-e-auditoria.md) |
-| **RF019** | Auditoria LGPD imutável | Essencial | Registro de acessos a dados pessoais (contatos, coordenada exata, áudio) e mutações críticas; protegido contra `UPDATE`/`DELETE` tanto no JPA quanto por trigger no PostgreSQL. | [04-autenticacao-usuarios-e-auditoria.md](specs/04-autenticacao-usuarios-e-auditoria.md) |
+| **RF019** | Auditoria LGPD imutável | Essencial | Registro de acessos a dados pessoais (contatos, coordenada exata, áudio), mutações críticas e eliminação de nome e telefone ao fim do prazo de guarda; protegido contra `UPDATE`/`DELETE` tanto no JPA quanto por trigger no PostgreSQL. | [04-autenticacao-usuarios-e-auditoria.md](specs/04-autenticacao-usuarios-e-auditoria.md) |
 | **RF020** | Integração com Censo IBGE | Importante | Importação de setores censitários (15 dígitos, % água e esgoto) via CSV ou GeoJSON com validação integral e suporte a rollback para importação anterior. | [05-integracao-censo-ibge.md](specs/05-integracao-censo-ibge.md) |
 
 ---
@@ -77,6 +77,8 @@ A máquina de estados é garantida duplamente: no domínio OO ([Ponto.java](sane
   - `/api/midias/**` exige autenticação de equipe interna (`FISCAL` ou `PREFEITURA`).
   - Camadas epidemiológicas aceitam apenas geometria `POLIGONO`.
   - Registros de `log_auditoria` são estritamente append-only.
+- **Termo de uso e prazo de guarda (RNF19, RNF20):** o termo mostra o controlador (a prefeitura que opera o sistema) e o encarregado de dados, lidos de `/api/publico/privacidade` e configurados na instalação (`CONTROLADOR_NOME`, `CONTROLADOR_CONTATO`, `ENCARREGADO_NOME`, `ENCARREGADO_CONTATO`). Todo dia às 3h, `PrazoGuardaService` apaga nome e telefone dos relatos cuja primeira vistoria posterior ao relato tem mais de 180 dias (`PRAZO_GUARDA_DIAS`) e registra `ELIMINACAO_DADOS_MORADOR` no log.
+- **Custo (RNF17):** gratuito para o morador; o sistema usa só componentes sem custo de licença (Spring Boot, PostgreSQL, Leaflet, OpenStreetMap). Hospedagem e transcrição ficam com quem operar o sistema.
 - **Limitações conhecidas do protótipo implementado:**
   - Desfoque automático de rostos/placas (`EvidenciaFoto`) e remoção de áudio de vídeo (`EvidenciaVideo`) são simulados via metadados (`desfoqueAplicado`, `somRemovido`) — o arquivo armazenado é o enviado originalmente.
   - Transcrição de áudio (`ServicoTranscricaoAudioSimulado`) utiliza implementação simulada plugável via interface `ServicoTranscricaoAudio`.
@@ -94,5 +96,6 @@ Conforme a Seção 12.3 do [Documento de Requisitos](requisitos/requisitos.md), 
 - [Arquitetura do Sistema e Pilares de POO](docs/arquitetura.md)
 - [Especificações Funcionais e Técnicas (`specs/`)](specs/)
 - [Competências e Tecnologias Aplicadas (`docs/skills.md`)](docs/skills.md)
-- [Documento de Requisitos Completo v7](requisitos/requisitos.md)
+- [Documento de Requisitos Completo v8](requisitos/requisitos.md)
+- [Protótipo navegável (canvas de design)](prototipo/README.md)
 - [Entrega SQL 3AF](saneamapa-app/database/ENTREGA_3AF_SQL.md)

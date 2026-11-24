@@ -161,6 +161,7 @@ public class PontoFilaService {
     public AcessoContatosResponse revelarContatosIdentificados(Long pontoId, Long usuarioId) {
         Ponto ponto = buscarPonto(pontoId);
         List<ContatoIdentificadoDto> contatos = relatoRepository.findByPontoIdOrderByDataHoraRegistroDesc(pontoId).stream()
+                .filter(r -> !r.isAnonimizado()) // RNF20: nome e telefone já eliminados
                 .map(r -> new ContatoIdentificadoDto(r.getId(), r.getNomeMorador(), r.getTelefoneMorador()))
                 .toList();
         auditoriaService.registrar(usuarioId, TipoEventoAuditoria.ACESSO_CONTATO_MORADOR,

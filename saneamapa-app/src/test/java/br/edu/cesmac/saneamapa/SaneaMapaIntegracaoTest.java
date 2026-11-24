@@ -1,6 +1,7 @@
 package br.edu.cesmac.saneamapa;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import br.edu.cesmac.saneamapa.service.PrazoGuardaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ class SaneaMapaIntegracaoTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private PrazoGuardaService prazoGuardaService;
 
     private String obterToken(String email, String senha) throws Exception {
         MvcResult res = mockMvc.perform(post("/api/auth/login")
@@ -178,11 +182,19 @@ class SaneaMapaIntegracaoTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.novoStatus", is("Confirmado")));
 
+        // 7b. RNF20 (TBD-29): antes de 180 dias da vistoria nada é eliminado; depois, nome e telefone saem uma vez só.
+        org.junit.jupiter.api.Assertions.assertEquals(0,
+                prazoGuardaService.eliminarDadosVencidos(java.time.OffsetDateTime.now().plusDays(179)));
+        int anonimizados = prazoGuardaService.eliminarDadosVencidos(java.time.OffsetDateTime.now().plusDays(181));
+        org.junit.jupiter.api.Assertions.assertTrue(anonimizados > 0);
+        org.junit.jupiter.api.Assertions.assertEquals(0,
+                prazoGuardaService.eliminarDadosVencidos(java.time.OffsetDateTime.now().plusDays(182)));
+
         // 8. Prefeitura verifica log de auditoria registrado
         mockMvc.perform(get("/api/prefeitura/auditoria")
                         .header("Authorization", "Bearer " + tokenPref))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.itens[0].tipoEvento", is("MUDANCA_STATUS_PONTO")));
+                .andExpect(jsonPath("$.itens[*].tipoEvento", hasItems("MUDANCA_STATUS_PONTO", "ELIMINACAO_DADOS_MORADOR")));
 
         // 8. Prefeitura valida erro de CPF duplicado no cadastro de usuário (RF013)
         String usuarioCpfDuplicado = """
@@ -220,6 +232,13 @@ class SaneaMapaIntegracaoTest {
         mockMvc.perform(get("/api/publico/config"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cidadePadrao", is("Maceió, AL")));
+
+        // RNF19 (TBD-30): o termo de uso lê controlador, encarregado e prazo de guarda da instalação.
+        mockMvc.perform(get("/api/publico/privacidade"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.prazoGuardaDias", is(180)))
+                .andExpect(jsonPath("$.controladorNome", not(emptyString())))
+                .andExpect(jsonPath("$.encarregadoContato", not(emptyString())));
 
         MockMultipartFile foto = new MockMultipartFile(
                 "arquivo", "esgoto.jpg", "image/jpeg", new byte[]{1, 2, 3, 4});

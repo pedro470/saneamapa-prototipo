@@ -37,3 +37,11 @@ saneamapa:
     peso-urgencia: 15.0
     peso-densidade-bairro: 2.0
     limite-densidade-bairro: 10
+  lgpd:
+    # RNF20: nome e telefone são eliminados N dias depois da primeira vistoria do ponto feita após o relato.
+    prazo-guarda-dias: ${PRAZO_GUARDA_DIAS:180}
+    # RNF19: o controlador é a prefeitura que opera o sistema. Preencha na instalação.
+    controlador-nome: ${CONTROLADOR_NOME:Prefeitura (exemplo de demonstração)}
+    controlador-contato: ${CONTROLADOR_CONTATO:ouvidoria@exemplo.gov.br}
+    encarregado-nome: ${ENCARREGADO_NOME:Encarregado de dados (exemplo)}
+    encarregado-contato: ${ENCARREGADO_CONTATO:encarregado.lgpd@exemplo.gov.br}

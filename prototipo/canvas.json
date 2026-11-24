@@ -1,0 +1,253 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-07T23:30:00Z"
+  },
+  "title": "SaneaMapa — protótipo v8",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 2400,
+      "title": "Cobertura dos requisitos v8",
+      "expand": "fill"
+    },
+    "Morador.dc.html": {
+      "x": 0,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · termo de uso (fluxo navegável)",
+      "is_interactive": true
+    },
+    "M2-Evidencias.dc.html": {
+      "x": 470,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · passo 1, evidência recusada",
+      "is_interactive": true
+    },
+    "M3-Local.dc.html": {
+      "x": 940,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · passo 2, GPS",
+      "is_interactive": true
+    },
+    "M4-LocalManual.dc.html": {
+      "x": 1410,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · passo 2, posição à mão",
+      "is_interactive": true
+    },
+    "M5-Identificacao.dc.html": {
+      "x": 1880,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · passo 3, nome e telefone",
+      "is_interactive": true
+    },
+    "M7-Limite.dc.html": {
+      "x": 2350,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · limite de 5 relatos",
+      "is_interactive": true
+    },
+    "M8-Enviado.dc.html": {
+      "x": 2820,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · protocolo enviado",
+      "is_interactive": true
+    },
+    "M9-Pendente.dc.html": {
+      "x": 3290,
+      "y": 2900,
+      "w": 390,
+      "h": 844,
+      "title": "Morador · guardado sem internet",
+      "is_interactive": true
+    },
+    "Fiscal.dc.html": {
+      "x": 0,
+      "y": 4250,
+      "w": 390,
+      "h": 844,
+      "title": "Fiscal · entrada (fluxo navegável)",
+      "is_interactive": true
+    },
+    "F2-Bloqueado.dc.html": {
+      "x": 470,
+      "y": 4250,
+      "w": 390,
+      "h": 844,
+      "title": "Fiscal · conta bloqueada",
+      "is_interactive": true
+    },
+    "F3-Lista.dc.html": {
+      "x": 940,
+      "y": 4250,
+      "w": 390,
+      "h": 844,
+      "title": "Fiscal · pontos atribuídos",
+      "is_interactive": true
+    },
+    "F4-Vistoria.dc.html": {
+      "x": 1410,
+      "y": 4250,
+      "w": 390,
+      "h": 844,
+      "title": "Fiscal · vistoria",
+      "is_interactive": true
+    },
+    "F5-ForaDoRaio.dc.html": {
+      "x": 1880,
+      "y": 4250,
+      "w": 390,
+      "h": 844,
+      "title": "Fiscal · fora dos 100 m",
+      "is_interactive": true
+    },
+    "F6-Desfoque.dc.html": {
+      "x": 2350,
+      "y": 4250,
+      "w": 390,
+      "h": 844,
+      "title": "Fiscal · novo desfoque",
+      "is_interactive": true
+    },
+    "P1-Entrada.dc.html": {
+      "x": 0,
+      "y": 5600,
+      "w": 1440,
+      "h": 900,
+      "title": "Painel · entrada",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "P2-Mapa.dc.html": {
+      "x": 1520,
+      "y": 5600,
+      "w": 1440,
+      "h": 2700,
+      "title": "Painel · mapa e fila",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "P3-Indicadores.dc.html": {
+      "x": 3040,
+      "y": 5600,
+      "w": 1440,
+      "h": 1500,
+      "title": "Painel · indicadores",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "P4-Usuarios.dc.html": {
+      "x": 4560,
+      "y": 5600,
+      "w": 1440,
+      "h": 1700,
+      "title": "Painel · usuários",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "P5-Camadas.dc.html": {
+      "x": 6080,
+      "y": 5600,
+      "w": 1440,
+      "h": 1800,
+      "title": "Painel · camadas de vulnerabilidade",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "P6-Censo.dc.html": {
+      "x": 7600,
+      "y": 5600,
+      "w": 1440,
+      "h": 1400,
+      "title": "Painel · Censo do IBGE",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "P7-Auditoria.dc.html": {
+      "x": 9120,
+      "y": 5600,
+      "w": 1440,
+      "h": 1300,
+      "title": "Painel · auditoria",
+      "expand": "fill",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Morador.dc.html",
+    "M2-Evidencias.dc.html",
+    "M3-Local.dc.html",
+    "M4-LocalManual.dc.html",
+    "M5-Identificacao.dc.html",
+    "M7-Limite.dc.html",
+    "M8-Enviado.dc.html",
+    "M9-Pendente.dc.html",
+    "Fiscal.dc.html",
+    "F2-Bloqueado.dc.html",
+    "F3-Lista.dc.html",
+    "F4-Vistoria.dc.html",
+    "F5-ForaDoRaio.dc.html",
+    "F6-Desfoque.dc.html",
+    "P1-Entrada.dc.html",
+    "P2-Mapa.dc.html",
+    "P3-Indicadores.dc.html",
+    "P4-Usuarios.dc.html",
+    "P5-Camadas.dc.html",
+    "P6-Censo.dc.html",
+    "P7-Auditoria.dc.html"
+  ],
+  "notes": {
+    "rowMorador": {
+      "x": 0,
+      "y": 2620,
+      "text": "App do morador — registro em 3 passos",
+      "kind": "title1",
+      "maxW": 3680
+    },
+    "rowFiscal": {
+      "x": 0,
+      "y": 3970,
+      "text": "App do fiscal — vistoria de campo",
+      "kind": "title1",
+      "maxW": 2740
+    },
+    "rowPainel": {
+      "x": 0,
+      "y": 5320,
+      "text": "Painel da Prefeitura",
+      "kind": "title1",
+      "maxW": 10560
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Estilo do Pedro",
+      "namespace": "estilodopedro",
+      "artifact": "https://claude.ai/artifact/5jWBEnb7DCCxzdZers4Lda",
+      "version": "1794092835-a8fb",
+      "copiedAt": "2026-11-07T23:30:00Z"
+    }
+  ]
+}

@@ -39,6 +39,7 @@ let st = {
   lonFiscal: null,
   distanciaAtual: null,
   resultado: 'CONFIRMADO',
+  motivoNaoConfirmacao: '', // RF007, nota 5: obrigatório quando o resultado é "não confirmado"
   tipoValidado: '',
   observacoes: '',
   midiasCamera: [], // { arquivoCaminho, previewUrl, tipo, nome }
@@ -327,6 +328,9 @@ async function salvarVistoria() {
     if (st.corrigirPosicao && (st.latCorrecao == null || st.lonCorrecao == null)) {
       throw new Error('Marque no mapa a nova posição do ponto ou desligue a correção de posição.');
     }
+    if (st.resultado === 'NAO_CONFIRMADO' && !st.motivoNaoConfirmacao) {
+      throw new Error('Informe o motivo da não confirmação: problema não encontrado no local, ou problema que existe, mas não é de saneamento.');
+    }
     // RS008: a posição enviada é a do GPS lida agora, no momento de salvar.
     await lerGpsFiscal();
     const caminhos = st.midiasCamera.map(m => m.arquivoCaminho);
@@ -334,6 +338,7 @@ async function salvarVistoria() {
       method: 'POST',
       body: JSON.stringify({
         resultado: st.resultado,
+        motivoNaoConfirmacao: st.resultado === 'NAO_CONFIRMADO' ? st.motivoNaoConfirmacao : null,
         tipoOcorrenciaValidado: st.tipoValidado,
         latitudeFiscal: st.latFiscal,
         longitudeFiscal: st.lonFiscal,
@@ -502,11 +507,18 @@ function render() {
       <section class="card-ponto">
         <b>Registro da vistoria</b>
         <label class="field-group"><span class="t-pequeno">Resultado</span>
-          <select class="campo" onchange="st.resultado=this.value">
+          <select class="campo" onchange="st.resultado=this.value; st.motivoNaoConfirmacao=''; render();">
             <option value="CONFIRMADO" ${st.resultado === 'CONFIRMADO' ? 'selected' : ''}>Confirmado</option>
             <option value="NAO_CONFIRMADO" ${st.resultado === 'NAO_CONFIRMADO' ? 'selected' : ''}>Não confirmado</option>
           </select>
         </label>
+        ${st.resultado === 'NAO_CONFIRMADO' ? `
+        <fieldset class="field-group" style="border:0; padding:0; margin:0;">
+          <legend class="t-pequeno">Motivo da não confirmação (obrigatório)</legend>
+          <label style="display:flex; gap:8px; align-items:center;"><input type="radio" name="motivo-nc" value="NAO_ENCONTRADO" ${st.motivoNaoConfirmacao === 'NAO_ENCONTRADO' ? 'checked' : ''} onchange="st.motivoNaoConfirmacao=this.value"> Problema não encontrado no local</label>
+          <label style="display:flex; gap:8px; align-items:center;"><input type="radio" name="motivo-nc" value="FORA_DO_ESCOPO" ${st.motivoNaoConfirmacao === 'FORA_DO_ESCOPO' ? 'checked' : ''} onchange="st.motivoNaoConfirmacao=this.value"> Problema existe, mas não é de saneamento</label>
+          <span class="t-pequeno" style="color:var(--soft);">Use a segunda opção para poço contaminado, vazamento ou lixo. A Prefeitura vê o motivo no histórico do ponto.</span>
+        </fieldset>` : ''}
         <label class="field-group"><span class="t-pequeno">Tipo de ocorrência validado</span>
           <select class="campo" onchange="st.tipoValidado=this.value">
             <option value="CASA_SEM_AGUA" ${st.tipoValidado==='CASA_SEM_AGUA'?'selected':''}>Casa sem ligação de água</option>

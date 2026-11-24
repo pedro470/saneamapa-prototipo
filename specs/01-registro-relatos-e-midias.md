@@ -29,7 +29,8 @@ Permitir que qualquer morador registre ocorrências de saneamento com evidência
 ### 3.1. Identificação e LGPD (`Relato`)
 - Em [Relato.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/model/Relato.java):
   - Toda denúncia é identificada (RF001, nota 5): não há envio anônimo. O construtor exige `nomeMorador` não vazio e `telefoneMorador` no padrão `(xx) xxxxx-xxxx` ou `(xx) xxxx-xxxx` (`CpfUtils.isTelefoneValido`); `CriarRelatoRequest` marca os dois campos com `@NotBlank`.
-  - No banco, `nome_morador` e `telefone_morador` são `NOT NULL`, e a constraint `chk_relato_identificacao` ([01_ddl_4_integridades.sql](saneamapa-app/database/01_ddl_4_integridades.sql)) exige nome preenchido e telefone com DDD.
+  - No banco, a constraint `chk_relato_identificacao` ([01_ddl_4_integridades.sql](saneamapa-app/database/01_ddl_4_integridades.sql)) exige nome preenchido e telefone com DDD. Os dois só ficam nulos depois da eliminação ao fim do prazo de guarda (RNF20; ver spec 04).
+  - Não há tipo "outro" (TBD-26). Abaixo dos quatro tipos, a tela avisa que o SaneaMapa trata só de água e esgoto e orienta o morador a procurar a prefeitura em caso de poço contaminado, vazamento ou lixo.
   - Antes do envio, [morador.html](saneamapa-app/src/main/resources/static/morador.html) informa para que servem nome e telefone (contato na vistoria e controle de denúncias repetidas) e quem os vê (equipe da prefeitura). O aparelho guarda só o nome e o telefone do último relato (`saneamapa_contato_morador`), para preencher o próximo.
 
 ### 3.2. Limite Anti-Abuso em 24h (`RS001`)

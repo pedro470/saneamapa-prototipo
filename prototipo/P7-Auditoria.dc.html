@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Painel: auditoria</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estilodopedro/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&amp;family=Public+Sans:wght@400;600;700&amp;family=Source+Code+Pro:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+.app{min-height:0}
+.trilho{position:static;height:auto;min-height:100%}
+a.item-nav{text-decoration:none;color:inherit}
+@media (max-width: 900px){.trilho{min-height:0}}
+</style>
+</helmet>
+
+<div class="app">
+  <nav class="trilho" aria-label="Menu do painel">
+    <div style="display: grid; gap: 2px;">
+      <span class="marca-app">SaneaMapa</span>
+      <span class="t-meta" style="padding: 0 var(--space-3); color: var(--soft);">Painel da Prefeitura</span>
+    </div>
+    <div class="grupo-nav">
+      <span class="rot-nav">Denúncias</span>
+      <a class="item-nav" href="P2-Mapa.dc.html"><span class="quadro"></span><span class="nome-nav">Mapa e fila</span><span class="conta">44</span></a>
+      <a class="item-nav" href="P3-Indicadores.dc.html"><span class="quadro"></span><span class="nome-nav">Indicadores</span></a>
+    </div>
+    <div class="grupo-nav">
+      <span class="rot-nav">Administração</span>
+      <a class="item-nav" href="P4-Usuarios.dc.html"><span class="quadro"></span><span class="nome-nav">Usuários</span></a>
+      <a class="item-nav" href="P5-Camadas.dc.html"><span class="quadro"></span><span class="nome-nav">Camadas de vulnerabilidade</span></a>
+      <a class="item-nav" href="P6-Censo.dc.html"><span class="quadro"></span><span class="nome-nav">Censo do IBGE</span></a>
+      <a class="item-nav" href="P7-Auditoria.dc.html" aria-current="true"><span class="quadro"></span><span class="nome-nav">Auditoria</span></a>
+    </div>
+    <div style="border-top: 1px solid var(--line); padding: var(--space-3) var(--space-3) 0; display: grid; gap: 4px;">
+      <span class="t-rotulo">Ana Lima</span>
+      <span class="t-meta" style="color: var(--soft);">Prefeitura</span>
+      <a href="P1-Entrada.dc.html" class="t-pequeno" style="min-height: 32px; display: inline-flex; align-items: center;">Sair</a>
+    </div>
+  </nav>
+
+  <main class="area secoes-cat-1">
+    <header class="cabecalho" style="max-width: none;">
+      <h1 class="t-titulo-pagina">Auditoria</h1>
+      <p class="lede">Quem acessou ou alterou dado pessoal e quem mudou um ponto, e quando, como pede a LGPD. Consulta feita pela Prefeitura.</p>
+      <p class="meta">Atualizado às 14:21 de 07/11/2026</p>
+    </header>
+
+    <div class="chamada" data-tom="neutro">
+      <span class="rotulo">Registros permanentes</span>
+      <span class="t-pequeno">Nenhum perfil pode alterar ou excluir um registro, e o log entra na cópia de segurança diária.</span>
+    </div>
+
+    <section class="secao" aria-labelledby="sec-busca">
+      <header><h2 id="sec-busca">Buscar registros</h2></header>
+      <form class="formulario">
+        <label><span class="t-rotulo">Usuário</span><select class="campo"><option>Todos</option><option>Ana Lima</option><option>Carlos Mendes</option><option>Júlia Souza</option><option>Rafael Torres</option><option>sistema</option></select></label>
+        <label><span class="t-rotulo">De</span><input class="campo" placeholder="dd/mm/aaaa" defaultValue="01/11/2026"></label>
+        <label><span class="t-rotulo">Até</span><input class="campo" placeholder="dd/mm/aaaa" defaultValue="07/11/2026"></label>
+        <label><span class="t-rotulo">Tipo de evento</span>
+          <select class="campo">
+            <option>Todos</option>
+            <option>Acesso a nome e telefone</option>
+            <option>Acesso à coordenada exata</option>
+            <option>Áudio ouvido</option>
+            <option>Edição de foto</option>
+            <option>Atribuição de ponto</option>
+            <option>Mudança de status</option>
+            <option>Alteração de usuário</option>
+            <option>Importação do Censo</option>
+          </select>
+        </label>
+        <div class="acoes"><button class="botao primario" type="button">Buscar</button></div>
+      </form>
+    </section>
+
+    <section class="secao" aria-labelledby="sec-reg">
+      <header><h2 id="sec-reg">Registros de 01/11 a 07/11/2026</h2><p>Mostrando os 8 mais recentes de 214.</p></header>
+      <div class="tabela-rolar">
+        <table class="tabela" style="min-width: 820px;">
+          <thead><tr><th scope="col">Data e hora</th><th scope="col">Usuário</th><th scope="col">Evento</th><th scope="col">Objeto</th></tr></thead>
+          <tbody>
+            <tr><td class="t-meta">07/11/2026 14:40:15</td><td>Carlos Mendes</td><td>Acesso a nome e telefone</td><td>Ponto P-0142, 2 relatos</td></tr>
+            <tr><td class="t-meta">07/11/2026 14:21:07</td><td>Ana Lima</td><td>Acesso a nome e telefone</td><td>Relato R-004812, ponto P-0142</td></tr>
+            <tr><td class="t-meta">07/11/2026 14:21:02</td><td>Ana Lima</td><td>Acesso à coordenada exata</td><td>Ponto P-0142</td></tr>
+            <tr><td class="t-meta">07/11/2026 11:08:44</td><td>Carlos Mendes</td><td>Edição de foto</td><td>Evidência E-019233</td></tr>
+            <tr><td class="t-meta">07/11/2026 10:52:31</td><td>Carlos Mendes</td><td>Áudio ouvido</td><td>Evidência E-019240</td></tr>
+            <tr><td class="t-meta">06/11/2026 16:02:10</td><td>Ana Lima</td><td>Alteração de usuário</td><td>Usuário Rafael Torres</td></tr>
+            <tr><td class="t-meta">05/11/2026 09:30:55</td><td>Ana Lima</td><td>Importação do Censo</td><td>setores-maceio-2022-v2.geojson</td></tr>
+            <tr><td class="t-meta">04/11/2026 08:12:19</td><td>Ana Lima</td><td>Atribuição de ponto</td><td>Ponto P-0156 a Carlos Mendes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="rodape-pagina" style="max-width: none;">Dados fictícios para validar o wireframe. O controlador dos dados é a prefeitura que opera o SaneaMapa, configurada na instalação.</footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

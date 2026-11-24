@@ -1,5 +1,6 @@
 package br.edu.cesmac.saneamapa.domain.model;
 
+import br.edu.cesmac.saneamapa.domain.enums.MotivoNaoConfirmacao;
 import br.edu.cesmac.saneamapa.domain.enums.OrigemEvidencia;
 import br.edu.cesmac.saneamapa.domain.enums.PerfilUsuario;
 import br.edu.cesmac.saneamapa.domain.enums.ResultadoVistoria;
@@ -54,6 +55,11 @@ public class Vistoria {
     @Column(nullable = false, length = 20)
     private ResultadoVistoria resultado;
 
+    /** RF007, nota 5: obrigatório quando o resultado é "não confirmado"; nulo quando é "confirmado". */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motivo_nao_confirmacao", length = 20)
+    private MotivoNaoConfirmacao motivoNaoConfirmacao;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_ocorrencia_validado", nullable = false, length = 30)
     private TipoOcorrencia tipoOcorrenciaValidado;
@@ -82,7 +88,8 @@ public class Vistoria {
     protected Vistoria() {
     }
 
-    public Vistoria(Ponto ponto, Usuario fiscal, ResultadoVistoria resultado, TipoOcorrencia tipoValidado,
+    public Vistoria(Ponto ponto, Usuario fiscal, ResultadoVistoria resultado, MotivoNaoConfirmacao motivoNaoConfirmacao,
+                    TipoOcorrencia tipoValidado,
                     BigDecimal novaLatPonto, BigDecimal novaLonPonto,
                     BigDecimal latitudeFiscal, BigDecimal longitudeFiscal,
                     String observacoes, List<String> midiasCamera, List<OrigemEvidencia> origensMidia) {
@@ -100,6 +107,18 @@ public class Vistoria {
             throw new RegraNegocioException(
                 "Fotos e vídeos da galeria não são aceitos na vistoria (RS008).",
                 "Capture as evidências diretamente pela câmera do aparelho no local."
+            );
+        }
+        if (resultado == ResultadoVistoria.NAO_CONFIRMADO && motivoNaoConfirmacao == null) {
+            throw new RegraNegocioException(
+                "Informe o motivo da não confirmação.",
+                "Escolha se o problema não foi encontrado no local ou se existe, mas não é de saneamento."
+            );
+        }
+        if (resultado == ResultadoVistoria.CONFIRMADO && motivoNaoConfirmacao != null) {
+            throw new RegraNegocioException(
+                "O motivo só se aplica à vistoria com resultado \"não confirmado\".",
+                "Retire o motivo ou mude o resultado para \"não confirmado\"."
             );
         }
         if (resultado == ResultadoVistoria.CONFIRMADO && (midiasCamera == null || midiasCamera.isEmpty())) {
@@ -123,6 +142,7 @@ public class Vistoria {
         this.fiscal = fiscal;
         this.dataHoraVistoria = OffsetDateTime.now();
         this.resultado = resultado;
+        this.motivoNaoConfirmacao = motivoNaoConfirmacao;
         this.tipoOcorrenciaValidado = tipoValidado != null ? tipoValidado : ponto.getTipoOcorrencia();
         // Registra a posição do ponto resultante da vistoria (a corrigida, se o fiscal corrigiu).
         boolean corrigiu = novaLatPonto != null && novaLonPonto != null;
@@ -157,6 +177,7 @@ public class Vistoria {
     public Usuario getFiscal() { return fiscal; }
     public OffsetDateTime getDataHoraVistoria() { return dataHoraVistoria; }
     public ResultadoVistoria getResultado() { return resultado; }
+    public MotivoNaoConfirmacao getMotivoNaoConfirmacao() { return motivoNaoConfirmacao; }
     public TipoOcorrencia getTipoOcorrenciaValidado() { return tipoOcorrenciaValidado; }
     public BigDecimal getLatitudePonto() { return latitudePonto; }
     public BigDecimal getLongitudePonto() { return longitudePonto; }

@@ -7,7 +7,8 @@ Sistema de Registro e Notificação de Saneamento Básico com backend em **Java 
 - `saneamapa-app/`: Aplicação Spring Boot (API REST, segurança JWT, regras de domínio em POO, frontend estático em `src/main/resources/static/` e scripts SQL em `database/`).
 - `docker-compose.yml`: Orquestração da aplicação junto ao PostgreSQL.
 - `prd.md`, `docs/` e `specs/`: Documentação de produto (PRD), arquitetura e pilares de POO (`docs/arquitetura.md`), competências (`docs/skills.md`) e especificações funcionais (`specs/`).
-- `Documento de Requisitos - SaneaMapa v7.docx` e `requisitos/`: Especificação detalhada de requisitos do sistema.
+- `Documento de Requisitos - SaneaMapa v8.docx` e `requisitos/`: especificação de requisitos. O `.docx` é gerado de `requisitos/requisitos.md` por `requisitos/gerar_docx.py`.
+- `prototipo/`: fonte das telas do protótipo navegável (canvas de design), alinhadas aos requisitos v8.
 
 ## Como executar
 
@@ -33,6 +34,8 @@ Criados automaticamente na primeira vez que o app sobe com o banco vazio. A senh
 
 - App: porta `8080`. PostgreSQL: porta `5433` no computador (usuário e senha `postgres`), para abrir o banco num cliente SQL.
 - `JWT_SECRET`, `DB_PASS`: opcionais, lidas de um `.env` na raiz (ver Observações).
+- `CONTROLADOR_NOME`, `CONTROLADOR_CONTATO`, `ENCARREGADO_NOME`, `ENCARREGADO_CONTATO`: dados da prefeitura que opera o sistema, exibidos no termo de uso do morador (RNF19). Sem elas, o termo mostra valores de exemplo.
+- `PRAZO_GUARDA_DIAS`: prazo para apagar nome e telefone depois da vistoria do ponto (RNF20). Padrão: 180.
 - Os scripts SQL e a entrega de banco de dados estão em `saneamapa-app/database/` (ver `ENTREGA_3AF_SQL.md`).
 
 ### Observações

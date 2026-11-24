@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>App do morador</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estilodopedro/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&amp;family=Public+Sans:wght@400;600;700&amp;family=Source+Code+Pro:wght@400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); font-family: var(--font-body); overflow: hidden;">
+
+  <header style="padding: 20px 20px 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--line);">
+    <div style="display: flex; align-items: center; gap: 8px; min-height: 44px;">
+      <sc-if value="{{podeVoltar}}" hint-placeholder-val="{{ false }}">
+        <button class="botao quieto" style="padding: 0 8px; min-height: 44px;" onClick="{{voltar}}" aria-label="Voltar ao passo anterior">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+      </sc-if>
+      <h1 style="margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.2;">{{tituloTela}}</h1>
+    </div>
+    <sc-if value="{{mostraPassos}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: 6px;">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;" aria-hidden="true">
+          <sc-for list="{{barras}}" as="b" hint-placeholder-count="3">
+            <i style="{{b.estilo}}"></i>
+          </sc-for>
+        </div>
+        <span class="t-pequeno" style="color: var(--soft);">Passo {{tela}} de 3</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{bannerOffline}}" hint-placeholder-val="{{ false }}">
+      <span class="estado" data-tom="atencao" style="white-space: normal;">Sem internet agora. Pode continuar: o relato fica guardado e sai sozinho depois.</span>
+    </sc-if>
+  </header>
+
+  <main style="flex: 1; overflow-y: auto; padding: 18px 20px; display: grid; gap: 18px; align-content: start;">
+
+    <sc-if value="{{noTermo}}" hint-placeholder-val="{{ true }}">
+      <p class="t-corpo" style="margin: 0;">O SaneaMapa é gratuito e sem anúncios. Ele junta as denúncias dos moradores para mostrar onde a rua está saneada só no papel.</p>
+      <div style="display: grid; gap: 14px;">
+        <div style="display: grid; gap: 4px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; font-family: var(--font-body);">O que coletamos</h2>
+          <p class="t-pequeno" style="margin: 0; color: var(--soft);">Fotos, vídeos e áudios do problema, a localização, e seu nome e telefone. Toda denúncia é identificada: o nome e o telefone servem para o contato na vistoria e para o controle de denúncias repetidas.</p>
+        </div>
+        <div style="display: grid; gap: 4px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; font-family: var(--font-body);">Quem vê</h2>
+          <p class="t-pequeno" style="margin: 0; color: var(--soft);">Só a equipe da prefeitura vê seu nome, seu telefone, o ponto exato e os áudios, e cada acesso fica registrado. No mapa aparece só o trecho da rua. Rostos e placas são borrados nas fotos e vídeos.</p>
+        </div>
+        <div style="display: grid; gap: 4px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; font-family: var(--font-body);">Áudios</h2>
+          <p class="t-pequeno" style="margin: 0; color: var(--soft);">São transformados em texto por um serviço automático, que recebe só o áudio, sem seu nome, e o apaga depois.</p>
+        </div>
+        <div style="display: grid; gap: 4px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; font-family: var(--font-body);">Por quanto tempo</h2>
+          <p class="t-pequeno" style="margin: 0; color: var(--soft);">Seu nome e telefone são apagados 180 dias depois da vistoria do ponto. O relato continua, sem identificação.</p>
+        </div>
+        <div style="display: grid; gap: 4px;">
+          <h2 style="margin: 0; font-size: 17px; font-weight: 700; font-family: var(--font-body);">Seus direitos</h2>
+          <p class="t-pequeno" style="margin: 0; color: var(--soft);">Você pode pedir para ver, corrigir ou apagar seus dados, e a resposta vem em até 15 dias. Controlador: a prefeitura que opera o SaneaMapa — [NOME DA PREFEITURA], encarregado de dados: [CONTATO].</p>
+        </div>
+        <div class="chamada" data-tom="atencao">
+          <span class="rotulo">Cuidado com a sua segurança</span>
+          <span class="t-pequeno">Seu nome nunca aparece no mapa, mas evite filmar pessoas ou falar o nome de vizinhos nos áudios.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{p1}}" hint-placeholder-val="{{ false }}">
+      <fieldset style="margin: 0; padding: 0; border: 0; display: grid; gap: 10px;">
+        <legend style="padding: 0; margin-bottom: 10px; font-size: 18px; font-weight: 600;">Qual é o problema?</legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+          <sc-for list="{{tipos}}" as="t" hint-placeholder-count="4">
+            <button class="{{t.cat}}" style="{{t.estilo}}" aria-pressed="{{t.sel}}" onClick="{{t.pick}}">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--cor)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.d1}}"></path><path d="{{t.d2}}"></path><path d="{{t.d3}}"></path></svg>
+              {{t.curto}}
+            </button>
+          </sc-for>
+        </div>
+        <span class="t-pequeno" style="color: var(--soft);">Não encontrou seu problema? O SaneaMapa trata só de falta de água, água fora do padrão, falta de rede de esgoto e esgoto a céu aberto. Para poço, vazamento ou lixo, procure a prefeitura.</span>
+      </fieldset>
+
+      <div style="display: grid; gap: 10px;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600; font-family: var(--font-body);">Mostre o problema</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+          <button class="botao primario" onClick="{{addFoto}}" style="min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px 4px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+            Foto
+          </button>
+          <button class="botao primario" onClick="{{addVideo}}" style="min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px 4px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg>
+            Vídeo
+          </button>
+          <button class="botao primario" onClick="{{addAudio}}" style="min-height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; padding: 8px 4px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+            Áudio
+          </button>
+        </div>
+        <button class="botao" style="min-height: 48px;" onClick="{{addGaleria}}">Escolher da galeria</button>
+        <span class="t-pequeno" style="color: var(--soft);">Vídeo até 30 segundos e áudio até 1 minuto, para não gastar seu pacote de dados.</span>
+
+        <sc-if value="{{erroVideo}}" hint-placeholder-val="{{ false }}">
+          <div class="chamada" data-tom="critico" role="alert">
+            <span class="rotulo">Vídeo não aceito</span>
+            <span class="t-pequeno">O vídeo tem 48 segundos e o limite é 30. Grave de novo um trecho mais curto, só do problema.</span>
+            <button class="botao" style="justify-self: start; min-height: 44px; background: var(--surface);" onClick="{{gravarDeNovo}}">Gravar de novo</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{temMidia}}" hint-placeholder-val="{{ false }}">
+          <ul style="margin: 0; padding: 0; list-style: none; display: flex; gap: 10px; flex-wrap: wrap;" aria-label="Evidências adicionadas">
+            <sc-for list="{{midias}}" as="m" hint-placeholder-count="2">
+              <li style="{{m.estilo}}">
+                <button class="botao quieto" style="justify-self: end; min-height: 32px; width: 32px; padding: 0; background: var(--surface);" onClick="{{m.remover}}" aria-label="{{m.rotuloRemover}}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </button>
+                <span class="t-legenda" style="justify-self: start; background: var(--surface); padding: 1px 6px; border-radius: 4px;">{{m.nome}}</span>
+              </li>
+            </sc-for>
+          </ul>
+          <span class="t-pequeno" style="color: var(--soft);">Rostos e placas são borrados antes de qualquer pessoa ver. Os áudios viram texto por um serviço automático, sem seu nome.</span>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{p2}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{gpsBuscando}}" hint-placeholder-val="{{ false }}">
+        <p class="aviso" role="status" style="margin: 0; padding: 0;">Procurando sua posição. A precisão agora é de 38 m; esperamos até 30 segundos para chegar a 15 m.</p>
+      </sc-if>
+      <sc-if value="{{gpsManual}}" hint-placeholder-val="{{ false }}">
+        <div class="chamada" data-tom="atencao" role="alert">
+          <span class="rotulo">Não deu para achar a posição exata</span>
+          <span class="t-pequeno">O GPS não chegou a 15 m de precisão em 30 segundos. Toque no mapa onde fica o problema ou escreva um ponto de referência.</span>
+        </div>
+      </sc-if>
+      <p style="margin: 0; font-size: 18px; font-weight: 600;">{{perguntaLocal}}</p>
+      <div style="position: relative; height: 280px; border-radius: var(--radius-lg); background: var(--sunk); overflow: hidden; border: 1px solid var(--line);" role="img" aria-label="{{rotuloMapa}}">
+        <div style="position: absolute; left: 0; top: 46%; width: 100%; height: 14px; background: var(--surface);"></div>
+        <div style="position: absolute; left: 30%; top: 0; width: 12px; height: 100%; background: var(--surface);"></div>
+        <div style="position: absolute; left: 72%; top: 0; width: 10px; height: 100%; background: var(--surface); transform: rotate(10deg);"></div>
+        <span class="t-legenda" style="position: absolute; left: 34%; top: 51%; color: var(--soft);">Rua São Domingos</span>
+        <sc-if value="{{gpsOk}}" hint-placeholder-val="{{ true }}">
+          <div style="position: absolute; left: 52%; top: 38%; width: 64px; height: 64px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--accent);"></div>
+        </sc-if>
+        <sc-if value="{{temPino}}" hint-placeholder-val="{{ true }}">
+          <svg style="position: absolute; left: 52%; top: 38%; transform: translate(-50%, -100%);" width="34" height="44" viewBox="0 0 34 44" aria-hidden="true"><path d="M17 43s14-14.5 14-25A14 14 0 0 0 3 18c0 10.5 14 25 14 25z" fill="var(--accent)"></path><circle cx="17" cy="17" r="5" fill="var(--surface)"></circle></svg>
+        </sc-if>
+        <sc-if value="{{gpsManual}}" hint-placeholder-val="{{ false }}">
+          <span class="t-legenda" style="position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: var(--surface); padding: 2px 8px; border-radius: 4px;">Toque para marcar</span>
+        </sc-if>
+      </div>
+      <span class="{{estadoLocal.classe}}" data-tom="{{estadoLocal.tom}}" style="white-space: normal;">{{estadoLocal.texto}}</span>
+      <sc-if value="{{gpsOk}}" hint-placeholder-val="{{ true }}">
+        <span class="t-pequeno" style="color: var(--soft);">Se o alfinete não estiver no lugar, arraste com o dedo.</span>
+      </sc-if>
+      <div style="display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px;">
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Rua</span><input class="campo" maxlength="150" style="min-height: 48px; font-size: 16px; width: 100%; box-sizing: border-box;" defaultValue="Rua São Domingos"></label>
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Bairro</span><input class="campo" maxlength="80" style="min-height: 48px; font-size: 16px; width: 100%; box-sizing: border-box;" defaultValue="Vergel do Lago"></label>
+      </div>
+      <label style="display: grid; gap: 6px;"><span class="t-rotulo">{{rotuloReferencia}}</span><input class="{{classeReferencia}}" maxlength="100" style="min-height: 48px; font-size: 16px;" placeholder="Ex.: perto da creche"></label>
+      <sc-if value="{{gpsOk}}" hint-placeholder-val="{{ true }}">
+        <button class="botao quieto" style="justify-self: start; padding: 0; min-height: 44px;" onClick="{{marcarAMao}}">O GPS errou? Marcar no mapa eu mesmo</button>
+      </sc-if>
+      <span class="t-pequeno" style="color: var(--soft);">Fora da equipe da prefeitura, ninguém vê o número da casa, só o trecho da rua.</span>
+    </sc-if>
+
+    <sc-if value="{{p3}}" hint-placeholder-val="{{ false }}">
+      <label style="display: grid; gap: 6px;"><span style="font-size: 18px; font-weight: 600;">Quer contar mais? (opcional)</span>
+        <textarea class="campo" rows="3" maxlength="300" style="font-size: 16px; min-height: 96px;" placeholder="Desde quando, se piora com chuva, quantas casas"></textarea>
+        <span class="t-meta" style="color: var(--soft); justify-self: end;">até 300 letras</span>
+      </label>
+      <div style="display: grid; gap: 4px; padding: 14px; border-radius: var(--radius-lg); background: var(--cat-1-clara);">
+        <span style="font-size: 17px; font-weight: 600;">Seus dados</span>
+        <span class="t-pequeno" style="color: var(--soft);">Toda denúncia é identificada. Nome e telefone servem para o contato na vistoria e para o controle de denúncias repetidas; só a equipe interna vê. Preenchemos com os do seu último relato, e você pode mudar.</span>
+      </div>
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Seu nome</span><input class="campo" maxlength="120" autocomplete="name" style="min-height: 48px; font-size: 16px;" defaultValue="{{nome}}" onChange="{{mudaNome}}"></label>
+        <label style="display: grid; gap: 6px;"><span class="t-rotulo">Telefone com DDD</span>
+          <input class="campo" inputmode="tel" autocomplete="tel" style="min-height: 48px; font-size: 16px;" placeholder="(82) 9xxxx-xxxx" defaultValue="{{telefone}}" onChange="{{mudaTelefone}}" aria-invalid="{{telefoneInvalido}}" aria-describedby="erro-tel">
+          <sc-if value="{{telefoneInvalido}}" hint-placeholder-val="{{ false }}">
+            <span class="erro-campo" id="erro-tel">Informe o telefone com DDD, com 10 ou 11 números.</span>
+          </sc-if>
+        </label>
+        <span class="t-pequeno" style="color: var(--soft);">Nunca aparece no mapa.</span>
+      <sc-if value="{{limite}}" hint-placeholder-val="{{ false }}">
+        <div class="chamada" data-tom="critico" role="alert">
+          <span class="rotulo">Limite de relatos atingido</span>
+          <span class="t-pequeno">Este telefone já enviou 5 relatos nas últimas 24 horas. Tente de novo depois das 14:32 de amanhã, 08/11. Se for o mesmo problema de um relato já enviado, não precisa repetir: os relatos do mesmo lugar já são somados.</span>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{p4}}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; gap: 14px; justify-items: center; text-align: center; padding-top: 16px;">
+        <sc-if value="{{offline}}" hint-placeholder-val="{{ false }}">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--atencao)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path></svg>
+        </sc-if>
+        <sc-if value="{{online}}" hint-placeholder-val="{{ true }}">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--positivo)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M7.5 12.5l3 3 6-6"></path></svg>
+        </sc-if>
+        <h2 style="margin: 0; font-family: var(--font-display); font-size: 26px; font-weight: 600;">{{tituloFim}}</h2>
+        <p class="t-corpo" style="margin: 0; color: var(--soft);">{{textoFim}}</p>
+        <div style="background: var(--sunk); border-radius: var(--radius-lg); padding: 14px 18px; display: grid; gap: 4px; width: 100%; box-sizing: border-box;">
+          <span class="t-rotulo" style="color: var(--soft);">Número do relato</span>
+          <span style="font-family: var(--font-mono); font-size: 24px; letter-spacing: 1px;">SM-2026-004871</span>
+          <span class="t-meta" style="color: var(--soft);">07/11/2026, 14:32</span>
+        </div>
+        <span class="estado" data-tom="{{tomEnvio}}">{{estadoEnvio}}</span>
+        <sc-if value="{{offline}}" hint-placeholder-val="{{ false }}">
+          <span class="t-pequeno" style="color: var(--soft);">Relatos guardados neste celular: 2 de 20.</span>
+        </sc-if>
+        <p class="t-pequeno" style="margin: 0; color: var(--soft);">Anote o número. Depois do envio, o aplicativo não guarda uma cópia do relato.</p>
+      </div>
+    </sc-if>
+  </main>
+
+  <footer style="padding: 12px 20px 20px; border-top: 1px solid var(--line); display: grid; gap: 8px;">
+    <sc-if value="{{noTermo}}" hint-placeholder-val="{{ true }}">
+      <label style="display: flex; gap: 12px; align-items: center; min-height: 44px; cursor: pointer;">
+        <input type="checkbox" checked="{{aceito}}" onChange="{{alternarAceite}}" style="width: 24px; height: 24px; margin: 0; accent-color: var(--accent); flex: none;">
+        <span class="t-pequeno">Li e aceito o termo de uso e a política de privacidade</span>
+      </label>
+    </sc-if>
+    <sc-if value="{{temBotao}}" hint-placeholder-val="{{ true }}">
+      <button class="botao primario" onClick="{{avancar}}" aria-disabled="{{bloqueado}}" style="{{estiloAvancar}}">{{rotuloAvancar}}</button>
+      <span class="t-pequeno" style="color: var(--soft); text-align: center;" aria-live="polite">{{dica}}</span>
+    </sc-if>
+    <sc-if value="{{p4}}" hint-placeholder-val="{{ false }}">
+      <button class="botao primario" style="min-height: 52px; font-size: 17px; width: 100%;" onClick="{{reiniciar}}">Registrar outro problema</button>
+    </sc-if>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"inicio":{"editor":"enum","options":["termo","evidencias","local","local-manual","identificacao","limite","enviado","pendente"],"default":"termo"},"semConexao":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+// Tipos de ocorrência (RF001 nota 2): a cor identifica o tipo, sempre com o nome escrito
+var TIPOS = [
+  { id: 'agua', curto: 'Casa sem água', cat: 'cat-2', d1: 'M4 9h8a3 3 0 0 1 3 3v1', d2: 'M4 6v6M15 16v1', d3: 'M17 3l4 4M21 3l-4 4' },
+  { id: 'padrao', curto: 'Água suja ou fraca', cat: 'cat-3', d1: 'M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z', d2: 'M12 10v4', d3: 'M12 17h.01' },
+  { id: 'rede', curto: 'Rua sem esgoto', cat: 'cat-4', d1: 'M3 10h18v4H3z', d2: 'M7 10V7M17 10V7', d3: 'M5 18l14-12' },
+  { id: 'ceu', curto: 'Esgoto na rua', cat: 'cat-5', d1: 'M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0', d2: 'M2 19c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0', d3: 'M8 4c0 2 2 2 2 4M14 4c0 2 2 2 2 4' }
+];
+var NOME = 'Maria José da Silva', FONE = '(82) 99876-5432';
+var BASE = { tela: 1, aceito: false, tipo: 'ceu', midias: ['foto', 'audio'], erroVideo: false, gps: 'ok', nome: NOME, telefone: FONE, limite: false };
+var INICIOS = {
+  termo: { tela: 'termo', tipo: null, midias: [], nome: '', telefone: '' },
+  evidencias: { tela: 1, erroVideo: true },
+  local: { tela: 2 },
+  'local-manual': { tela: 2, gps: 'manual' },
+  identificacao: { tela: 3 },
+  limite: { tela: 3, limite: true },
+  enviado: { tela: 4 },
+  pendente: { tela: 4 }
+};
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = Object.assign({}, BASE, INICIOS[props.inicio || 'termo'] || INICIOS.termo);
+  }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var off = !!this.props.semConexao || this.props.inicio === 'pendente';
+    var tela = st.tela;
+    var digitos = st.telefone.replace(/\D/g, '').length;
+    var telefoneOk = digitos === 10 || digitos === 11;
+    var faltaContato = !st.nome.trim() || !telefoneOk;
+    var bloqueado =
+      (tela === 'termo' && !st.aceito) ||
+      (tela === 1 && (!st.tipo || st.midias.length === 0)) ||
+      (tela === 2 && st.gps === 'buscando') ||
+      (tela === 3 && (faltaContato || st.limite));
+    var titulos = { termo: 'Antes de começar', 1: 'Registrar problema', 2: 'Onde é?', 3: 'Quase pronto', 4: off ? 'Relato guardado' : 'Relato enviado' };
+    var add = function (k) { return function () { if (self.state.midias.length < 6) self.setState({ midias: self.state.midias.concat(k) }); }; };
+    var cont = { foto: 0, video: 0, audio: 0, galeria: 0 };
+    var FUNDO = {
+      foto: 'repeating-linear-gradient(135deg, var(--sunk) 0 8px, var(--trilho) 8px 16px)',
+      galeria: 'repeating-linear-gradient(135deg, var(--sunk) 0 8px, var(--trilho) 8px 16px)',
+      video: 'repeating-linear-gradient(135deg, var(--cat-1-clara) 0 8px, var(--sunk) 8px 16px)',
+      audio: 'repeating-linear-gradient(90deg, var(--cat-3-clara) 0 4px, var(--sunk) 4px 8px)'
+    };
+    var NOMES = { foto: 'Foto', galeria: 'Foto da galeria', video: 'Vídeo 0:22', audio: 'Áudio 0:24' };
+    var midias = st.midias.map(function (k, i) {
+      cont[k]++;
+      var nome = k === 'foto' ? 'Foto ' + cont.foto : NOMES[k];
+      return {
+        nome: nome,
+        rotuloRemover: 'Remover ' + nome.toLowerCase(),
+        remover: function () { var m = self.state.midias.slice(); m.splice(i, 1); self.setState({ midias: m }); },
+        estilo: 'width: 96px; height: 96px; box-sizing: border-box; border-radius: var(--radius-sm); background: ' + FUNDO[k] + '; display: grid; grid-template-rows: auto 1fr; align-items: end; padding: 4px;'
+      };
+    });
+    var gpsOk = st.gps === 'ok', gpsManual = st.gps === 'manual', gpsBuscando = st.gps === 'buscando';
+    var dicas = {
+      termo: bloqueado ? 'Marque o aceite para continuar.' : 'O termo aparece só nesta primeira vez.',
+      1: bloqueado ? 'Escolha o problema e mande ao menos uma foto, vídeo ou áudio.' : 'Nada de cadastro nem senha.',
+      2: gpsBuscando ? 'Aguarde a posição ou marque no mapa.' : 'Confira o local antes de continuar.',
+      3: st.limite ? 'O envio está bloqueado até amanhã.' : (bloqueado ? 'Informe nome e telefone com DDD.' : 'Você recebe um número de relato.')
+    };
+    return {
+      tela: tela,
+      noTermo: tela === 'termo',
+      p1: tela === 1, p2: tela === 2, p3: tela === 3, p4: tela === 4,
+      mostraPassos: tela === 1 || tela === 2 || tela === 3,
+      podeVoltar: tela === 2 || tela === 3,
+      bannerOffline: off && tela !== 4 && tela !== 'termo',
+      tituloTela: titulos[tela],
+      barras: [1, 2, 3].map(function (n) {
+        return { estilo: 'display: block; height: 6px; border-radius: 999px; background: ' + (n <= tela ? 'var(--accent)' : 'var(--line)') + ';' };
+      }),
+      aceito: st.aceito,
+      alternarAceite: function () { self.setState({ aceito: !self.state.aceito }); },
+      tipos: TIPOS.map(function (t) {
+        var sel = st.tipo === t.id;
+        return Object.assign({}, t, {
+          sel: sel,
+          pick: function () { self.setState({ tipo: t.id }); },
+          estilo: 'font: inherit; display: grid; justify-items: center; align-content: center; gap: 8px; min-height: 112px; padding: 12px 8px; border-radius: var(--radius-lg); border: 2px solid ' + (sel ? 'var(--cor)' : 'var(--line)') + '; background: ' + (sel ? 'var(--cor-clara)' : 'var(--surface)') + '; color: var(--ink); font-size: 16px; font-weight: 600; line-height: 1.25; text-align: center; cursor: pointer;'
+        });
+      }),
+      addFoto: add('foto'), addAudio: add('audio'), addGaleria: add('galeria'),
+      addVideo: add('video'),
+      gravarDeNovo: function () { self.setState({ erroVideo: false, midias: self.state.midias.concat('video') }); },
+      erroVideo: st.erroVideo,
+      midias: midias,
+      temMidia: st.midias.length > 0,
+      gpsOk: gpsOk, gpsManual: gpsManual, gpsBuscando: gpsBuscando,
+      temPino: !gpsBuscando,
+      perguntaLocal: gpsManual ? 'Marque o lugar do problema' : 'O lugar está certo?',
+      rotuloMapa: gpsManual ? 'Mapa para marcar o lugar do problema' : 'Mapa com o lugar do problema',
+      estadoLocal: gpsBuscando ? { classe: 'so-leitor', tom: 'neutro', texto: '' }
+        : (gpsManual ? { classe: 'estado', tom: 'atencao', texto: 'Posição informada à mão' } : { classe: 'estado', tom: 'positivo', texto: 'Posição encontrada, precisão de 12 m' }),
+      rotuloReferencia: gpsManual ? 'Ponto de referência (ajuda o fiscal a achar)' : 'Ponto de referência (se quiser)',
+      classeReferencia: gpsManual ? 'campo pendente' : 'campo',
+      marcarAMao: function () { self.setState({ gps: 'manual' }); },
+      limite: st.limite,
+      nome: st.nome, telefone: st.telefone,
+      mudaNome: function (e) { self.setState({ nome: e.target.value }); },
+      mudaTelefone: function (e) { self.setState({ telefone: e.target.value }); },
+      telefoneInvalido: st.telefone !== '' && !telefoneOk,
+      bloqueado: bloqueado,
+      temBotao: tela !== 4,
+      estiloAvancar: 'min-height: 52px; font-size: 17px; width: 100%;' + (bloqueado ? ' opacity: 0.5; cursor: not-allowed;' : ''),
+      rotuloAvancar: tela === 'termo' ? 'Aceitar e começar' : (tela === 3 ? (off ? 'Guardar relato' : 'Enviar relato') : 'Continuar'),
+      dica: dicas[tela] || '',
+      avancar: function () {
+        if (bloqueado) return;
+        if (tela === 'termo') { self.setState({ tela: 1 }); return; }
+        if (tela === 1) {
+          self.setState({ tela: 2, gps: 'buscando' });
+          clearTimeout(self.timer);
+          self.timer = setTimeout(function () { if (self.state.gps === 'buscando') self.setState({ gps: 'ok' }); }, 2500);
+          return;
+        }
+        self.setState({ tela: tela + 1 });
+      },
+      voltar: function () { self.setState({ tela: tela - 1 }); },
+      reiniciar: function () { self.setState(Object.assign({}, BASE, { tela: 1, tipo: null, midias: [], limite: false, erroVideo: false })); },
+      offline: off, online: !off,
+      tituloFim: off ? 'Guardado no celular' : 'Obrigado!',
+      textoFim: off ? 'Assim que a internet voltar, o relato é enviado sozinho. Não precisa fazer nada.' : 'A equipe da prefeitura vai conferir o local.',
+      tomEnvio: off ? 'atencao' : 'positivo',
+      estadoEnvio: off ? 'Pendente: aguardando internet' : 'Enviado'
+    };
+  }
+}
+</script>
+</body>
+</html>

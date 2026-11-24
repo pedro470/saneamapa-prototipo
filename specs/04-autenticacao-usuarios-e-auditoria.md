@@ -24,6 +24,7 @@ Controlar o acesso individual da equipe interna por meio de autenticação segur
 | `PUT` | `/api/prefeitura/usuarios/{id}` | `PREFEITURA` | Atualiza nome, e-mail, celular, perfil e status ativo (CPF é imutável). |
 | `PATCH` | `/api/prefeitura/usuarios/{id}/alternar-ativo` | `PREFEITURA` | Ativa/desativa usuário impedindo desativar o último `PREFEITURA` ativo (`RF021`). |
 | `GET` | `/api/prefeitura/auditoria` | `PREFEITURA` | Pesquisa logs imutáveis por `usuarioId`, `apenasSistema`, `tipoEvento`, `de` e `ate`. |
+| `GET` | `/api/publico/privacidade` | Público | Dados do termo de uso: controlador, encarregado de dados e prazo de guarda (RNF19). |
 
 ---
 
@@ -47,15 +48,24 @@ Controlar o acesso individual da equipe interna por meio de autenticação segur
 - [DataInitializer.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/config/DataInitializer.java) cria os usuários iniciais quando o banco está vazio.
 
 ### 3.3. Auditoria Imutável LGPD (`RF019`, `RS011`)
-- Eventos auditados (`TipoEventoAuditoria`): `ACESSO_CONTATO_MORADOR`, `ACESSO_COORDENADA_EXATA`, `AUDIO_OUVIDO`, `EDICAO_FOTO`, `CORRECAO_TRANSCRICAO`, `ATRIBUICAO_PONTO`, `RETIRADA_ATRIBUICAO`, `MUDANCA_STATUS_PONTO`, `ALTERACAO_USUARIO`, `IMPORTACAO_CENSO`, `ROLLBACK_CENSO`.
+- Eventos auditados (`TipoEventoAuditoria`): `ACESSO_CONTATO_MORADOR`, `ACESSO_COORDENADA_EXATA`, `AUDIO_OUVIDO`, `EDICAO_FOTO`, `CORRECAO_TRANSCRICAO`, `ATRIBUICAO_PONTO`, `RETIRADA_ATRIBUICAO`, `MUDANCA_STATUS_PONTO`, `ALTERACAO_USUARIO`, `IMPORTACAO_CENSO`, `ROLLBACK_CENSO`, `ELIMINACAO_DADOS_MORADOR`.
 - Imutabilidade garantida em 3 camadas:
   1. **JPA (`LogAuditoria`)**: `@PreUpdate` e `@PreRemove` lançam `AcessoNegadoException`.
   2. **Trigger PostgreSQL (`02_triggers.sql`)**: `trg_log_auditoria_imutavel` bloqueia `UPDATE` e `DELETE`.
   3. **Permissões SQL (`04_contas_permissoes.sql`)**: `REVOKE UPDATE, DELETE ON TABLE log_auditoria` para todas as roles.
+
+### 3.4. Controlador e prazo de guarda (`RNF19`, `RNF20`; TBD-29 e TBD-30)
+- O controlador dos dados é a prefeitura que opera o sistema. Nome e contato dela e do encarregado ficam em `saneamapa.lgpd.*` no [application.yml](saneamapa-app/src/main/resources/application.yml) (variáveis `CONTROLADOR_NOME`, `CONTROLADOR_CONTATO`, `ENCARREGADO_NOME`, `ENCARREGADO_CONTATO`). O termo de uso de [morador.html](saneamapa-app/src/main/resources/static/morador.html) lê esses dados de `/api/publico/privacidade`. A chave do aceite mudou para `saneamapa_termo_aceito_v8`, e quem aceitou o termo antigo vê o novo.
+- [PrazoGuardaService.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/service/PrazoGuardaService.java) roda todo dia às 3h. Ele procura relatos ainda identificados cujo ponto recebeu, depois do relato, uma vistoria com mais de 180 dias (`PRAZO_GUARDA_DIAS`), chama `Relato.anonimizar` (nome e telefone viram `NULL` e `anonimizado_em` recebe a data) e registra `ELIMINACAO_DADOS_MORADOR`. Enquanto o ponto aguarda vistoria, nada é apagado.
+- No banco, `chk_relato_identificacao` aceita duas formas: relato identificado (nome e telefone válidos, `anonimizado_em` nulo) ou anonimizado (nome e telefone nulos, `anonimizado_em` preenchido).
+- A consulta de contatos de um ponto ignora os relatos anonimizados.
 
 ---
 
 ## 4. Critérios de Aceitação Verificados em Testes
 
 - `DominioPooTest.deveBloquearUsuarioApos5TentativasEValidarCpf`
+- `DominioPooTest.deveAnonimizarRelatoUmaVezSoAoFimDoPrazo`
+- `SaneaMapaIntegracaoTest.fluxoCompletoMoradorAgrupamentoPrefeituraEFiscal` (nada é apagado antes de 180 dias da vistoria; depois, a eliminação roda uma vez e entra no log)
+- `SaneaMapaIntegracaoTest.uploadRealDeMidiasEConsultaConfiguracao` (`/api/publico/privacidade` responde sem autenticação)
 - `SaneaMapaIntegracaoTest.fluxoCompletoMoradorAgrupamentoPrefeituraEFiscal` (RBAC 403 quando Fiscal tenta acessar `/api/prefeitura/auditoria`, registro de auditoria e erro 409 em CPF duplicado)

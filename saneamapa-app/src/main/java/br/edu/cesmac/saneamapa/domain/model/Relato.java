@@ -46,11 +46,15 @@ public class Relato extends EntidadeAuditavel {
     @Column(length = 2350)
     private String descricao;
 
-    @Column(name = "nome_morador", nullable = false, length = 120)
+    // Nulos só depois da eliminação ao fim do prazo de guarda (RNF20).
+    @Column(name = "nome_morador", length = 120)
     private String nomeMorador;
 
-    @Column(name = "telefone_morador", nullable = false, length = 15)
+    @Column(name = "telefone_morador", length = 15)
     private String telefoneMorador;
+
+    @Column(name = "anonimizado_em")
+    private OffsetDateTime anonimizadoEm;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "situacao_envio", nullable = false, length = 15)
@@ -140,6 +144,21 @@ public class Relato extends EntidadeAuditavel {
     public String getDescricao() { return descricao; }
     public String getNomeMorador() { return nomeMorador; }
     public String getTelefoneMorador() { return telefoneMorador; }
+    public OffsetDateTime getAnonimizadoEm() { return anonimizadoEm; }
+    public boolean isAnonimizado() { return anonimizadoEm != null; }
+
+    /**
+     * RNF20: elimina nome e telefone ao fim do prazo de guarda e mantém o relato sem identificação.
+     * Um relato já anonimizado não muda.
+     */
+    public void anonimizar(OffsetDateTime quando) {
+        if (anonimizadoEm != null) {
+            return;
+        }
+        this.nomeMorador = null;
+        this.telefoneMorador = null;
+        this.anonimizadoEm = quando != null ? quando : OffsetDateTime.now();
+    }
     public SituacaoEnvio getSituacaoEnvio() { return situacaoEnvio; }
     public BigDecimal getLatitude() { return latitude; }
     public BigDecimal getLongitude() { return longitude; }

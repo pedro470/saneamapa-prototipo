@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Cobertura dos requisitos</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estilodopedro/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&amp;family=Public+Sans:wght@400;600;700&amp;family=Source+Code+Pro:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="pagina secoes-cat-1">
+  <header class="cabecalho">
+    <h1 class="t-titulo-pagina">SaneaMapa: protótipo da versão 8</h1>
+    <p class="lede">As telas do morador, do fiscal e da Prefeitura alinhadas ao Documento de Requisitos v8, sem itens a definir, com o requisito que cada tela atende e o que não cabe numa tela.</p>
+    <p class="meta">Atualizado em 24/11/2026</p>
+  </header>
+
+  <p class="t-corpo">As 13 funções da versão 8 têm tela. O aplicativo do morador e o do fiscal rodam no navegador do celular, no Chrome do Android 8 ou superior e no Safari do iOS 15 ou superior, sem instalação por loja. Dos 22 requisitos não funcionais, 11 aparecem na interface; os outros 11 tratam de servidor, plataforma ou desempenho e não se desenham. Os 13 requisitos de segurança deixam marca em pelo menos uma tela.</p>
+
+  <section class="secao" aria-labelledby="sec-telas">
+    <header><h2 id="sec-telas">Telas</h2><p>Cada fila do canvas é um aplicativo. A primeira prancheta de cada fila é navegável do início ao fim; as outras abrem o mesmo fluxo num estado que vale a pena ver.</p></header>
+    <div class="grade-caixas">
+      <article class="caixa cat-2" aria-labelledby="cx-morador">
+        <div class="tarja"><h3 id="cx-morador">App do morador</h3><span class="conta">8 telas</span></div>
+        <div class="folha">
+          <ul class="lista-simples">
+            <li><span>Termo de uso e privacidade na primeira abertura, com prazo de guarda de 180 dias após a vistoria e o controlador</span><span class="linha-2">RNF19, RNF17, RNF20, RNF21, RS003</span></li>
+            <li><span>Passo 1: tipo do problema, orientação para problema fora da lista e evidências, com recusa do vídeo longo</span><span class="linha-2">RF001, RF003, RNF02, RNF03</span></li>
+            <li><span>Passo 2: localização pelo GPS ou marcada à mão</span><span class="linha-2">RF002</span></li>
+            <li><span>Passo 3: descrição, nome e telefone obrigatórios com a finalidade, e limite de relatos</span><span class="linha-2">RF001, RS001</span></li>
+            <li><span>Protocolo enviado ou guardado sem internet</span><span class="linha-2">RF001, RNF13, RS005</span></li>
+          </ul>
+        </div>
+      </article>
+      <article class="caixa cat-3" aria-labelledby="cx-fiscal">
+        <div class="tarja"><h3 id="cx-fiscal">App do fiscal</h3><span class="conta">6 telas</span></div>
+        <div class="folha">
+          <ul class="lista-simples">
+            <li><span>Entrada com e-mail e senha, e conta bloqueada</span><span class="linha-2">RF018, RNF16, RS010</span></li>
+            <li><span>Pontos atribuídos, na ordem da fila</span><span class="linha-2">RF005, RF006</span></li>
+            <li><span>Vistoria: evidências, áudio e transcrição, resultado com motivo do "não confirmado", tipo e local</span><span class="linha-2">RF007, RF003, RF019, RS002</span></li>
+            <li><span>Vistoria recusada a mais de 100 m do ponto</span><span class="linha-2">RF007, RS008</span></li>
+            <li><span>Novo desfoque numa foto</span><span class="linha-2">RF003, RS006</span></li>
+          </ul>
+        </div>
+      </article>
+      <article class="caixa cat-4" aria-labelledby="cx-painel">
+        <div class="tarja"><h3 id="cx-painel">Painel da Prefeitura</h3><span class="conta">7 telas</span></div>
+        <div class="folha">
+          <ul class="lista-simples">
+            <li><span>Entrada</span><span class="linha-2">RF018, RNF16</span></li>
+            <li><span>Mapa, detalhe do ponto e fila de vistoria</span><span class="linha-2">RF010, RF004, RF005, RF006, RF020</span></li>
+            <li><span>Indicadores por status, tipo, urgência e bairro</span><span class="linha-2">RF015</span></li>
+            <li><span>Usuários da equipe interna</span><span class="linha-2">RF013, RS010</span></li>
+            <li><span>Camadas de vulnerabilidade</span><span class="linha-2">RF006, RS012</span></li>
+            <li><span>Importação do Censo do IBGE</span><span class="linha-2">RF020, RS013</span></li>
+            <li><span>Auditoria</span><span class="linha-2">RF019, RS011</span></li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="sec-rf">
+    <header><h2 id="sec-rf">Requisitos funcionais</h2></header>
+    <div class="tabela-rolar">
+      <table class="tabela">
+        <thead><tr><th scope="col">ID</th><th scope="col">Função</th><th scope="col">Onde aparece</th></tr></thead>
+        <tbody>
+          <tr><td>RF001</td><td>Registro de ocorrência</td><td>Morador, passos 1 a 3 e protocolo; limite de 5 relatos por telefone; nome e telefone obrigatórios, preenchidos com os do último relato.</td></tr>
+          <tr><td>RF002</td><td>Localização</td><td>Morador, passo 2: espera de até 30 s pela precisão de 15 m, alfinete arrastável, endereço editável e "posição informada à mão".</td></tr>
+          <tr><td>RF003</td><td>Tratamento das evidências</td><td>Morador, aviso de desfoque; fiscal, evidência divergente, áudio com transcrição corrigível e novo desfoque; painel, fotos tratadas.</td></tr>
+          <tr><td>RF004</td><td>Agrupamento de relatos</td><td>Número de relatos no marcador do mapa, relatos vinculados no detalhe e reincidência.</td></tr>
+          <tr><td>RF005</td><td>Fila de vistoria</td><td>Painel, fila com pontuação, atribuir e retirar fiscal; fiscal, só os pontos atribuídos.</td></tr>
+          <tr><td>RF006</td><td>Classificação de urgência</td><td>Nível e camada que o motivou no mapa, na fila e no app do fiscal; cadastro de camadas no painel. O morador não vê.</td></tr>
+          <tr><td>RF007</td><td>Vistoria</td><td>Fiscal: resultado, motivo do "não confirmado" (não encontrado ou não é de saneamento), tipo, localização, fotos e vídeos só pela câmera e posição a até 100 m.</td></tr>
+          <tr><td>RF010</td><td>Mapa e painel</td><td>Painel: quatro camadas, detalhe do ponto, filtros e atualização em até 60 segundos.</td></tr>
+          <tr><td>RF013</td><td>Cadastro de usuários</td><td>Painel: lista, formulário com CPF e e-mail únicos, desativação no lugar da exclusão.</td></tr>
+          <tr><td>RF015</td><td>Indicadores do painel</td><td>Painel: contagens por status, tipo, urgência e bairro, filtradas por período e bairro.</td></tr>
+          <tr><td>RF018</td><td>Autenticação</td><td>Entrada do fiscal e do painel, redefinição de senha e saída.</td></tr>
+          <tr><td>RF019</td><td>Auditoria</td><td>Painel: busca por usuário, período e evento; avisos de "acesso registrado" onde há dado pessoal.</td></tr>
+          <tr><td>RF020</td><td>Censo do IBGE</td><td>Camada do mapa, proporção no detalhe do ponto e importação com validação e volta à anterior.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="sec-rnf">
+    <header><h2 id="sec-rnf">Requisitos não funcionais e de segurança</h2><p>Os que não se desenham ficam registrados para não parecerem esquecidos.</p></header>
+    <div class="tabela-rolar">
+      <table class="tabela">
+        <thead><tr><th scope="col">ID</th><th scope="col">Na interface</th><th scope="col">Como</th></tr></thead>
+        <tbody>
+          <tr><td>RNF01</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Registro em três passos; o termo aparece só na primeira abertura.</td></tr>
+          <tr><td>RNF02</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Tipos com ícone e texto curto.</td></tr>
+          <tr><td>RNF03</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Toda recusa diz o motivo e o que fazer: vídeo longo, GPS fraco, limite de relatos, conta bloqueada, vistoria longe do ponto, CPF repetido, arquivo do Censo inválido.</td></tr>
+          <tr><td>RNF04</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Botões e campos reais com rótulo, alvos de 44 px, estados com marca e palavra.</td></tr>
+          <tr><td>RNF13</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Contagem dos relatos guardados, até 20.</td></tr>
+          <tr><td>RNF16</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Bloqueio de 15 min após 5 tentativas e aviso de sessão de 30 min.</td></tr>
+          <tr><td>RNF17, RNF18</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>"Gratuito, sem anúncios" no termo, só com software sem licença paga; tudo em português do Brasil.</td></tr>
+          <tr><td>RNF19 a RNF21</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Termo com finalidade, dados, prazo de guarda, controlador e direitos do titular, e aceite antes do primeiro registro.</td></tr>
+          <tr><td>RNF05</td><td><span class="estado" data-tom="neutro">Fora da tela</span></td><td>Navegador do celular: Chrome no Android 8 ou superior e Safari no iOS 15 ou superior.</td></tr>
+          <tr><td>RNF06 a RNF12, RNF14, RNF15, RNF22</td><td><span class="estado" data-tom="neutro">Fora da tela</span></td><td>Navegadores do painel, tamanho do app, compressão, tempos, disponibilidade, cópia de segurança, criptografia e local dos dados.</td></tr>
+          <tr><td>RS001 a RS013</td><td><span class="estado" data-tom="positivo">Na tela</span></td><td>Limite de relatos, evidência divergente, trecho de rua, registro de acesso, sem histórico no aparelho, novo desfoque, áudio sem nome, 100 m e câmera, histórico do ponto, bloqueio, log imutável, camada só por polígono e volta da importação.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="secao" aria-labelledby="sec-tbd">
+    <header><h2 id="sec-tbd">Itens a definir: todos resolvidos</h2><p>Na versão 8, nenhuma tela traz mais marcas entre colchetes. Os últimos itens foram fechados por decisão do grupo.</p></header>
+    <ul class="t-corpo" style="margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-2);">
+      <li><b>TBD-01, 03, 04, 07, 08 e 09:</b> a Prefeitura é um perfil único, com todas as ações internas.</li>
+      <li><b>TBD-10:</b> toda denúncia é identificada; o envio anônimo saiu do app.</li>
+      <li><b>TBD-13:</b> a imagem original é descartada após o desfoque.</li>
+      <li><b>TBD-17:</b> a fila mostra os pesos da pontuação.</li>
+      <li><b>TBD-18:</b> relato novo num ponto confirmado marca reincidência, sem nova vistoria.</li>
+      <li><b>TBD-19:</b> entrada com e-mail e senha do próprio sistema.</li>
+      <li><b>TBD-20:</b> o mapa atualiza em até 60 segundos.</li>
+      <li><b>TBD-23 e TBD-25:</b> envio guardado sem internet; validação pela vistoria do fiscal.</li>
+      <li><b>TBD-26:</b> não há opção "outro"; o passo 1 orienta a procurar a prefeitura, e o fiscal diz o motivo do "não confirmado".</li>
+      <li><b>TBD-27:</b> o app roda no navegador do celular, Android 8+ e iOS 15+.</li>
+      <li><b>TBD-28:</b> gratuito para o morador; operação só com software sem licença paga.</li>
+      <li><b>TBD-29 e TBD-30:</b> nome e telefone apagados 180 dias após a vistoria; controlador é a prefeitura que opera o sistema, com o contato do encarregado no termo.</li>
+    </ul>
+  </section>
+
+  <section class="secao" aria-labelledby="sec-mudou">
+    <header><h2 id="sec-mudou">O que mudou</h2></header>
+    <ul class="t-corpo" style="margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-2);">
+      <li>Versão 8: saiu a tela do envio anônimo; o passo 3 pede nome e telefone com a finalidade; o termo traz prazo de guarda e controlador; o passo 1 orienta sobre problema fora da lista; a vistoria pede o motivo do "não confirmado"; as marcas de itens a definir saíram do painel.</li>
+      <li>Morador: termo de uso na primeira abertura, recusa de vídeo e áudio longos, remoção de evidência, espera do GPS e marcação à mão, limite de relatos por telefone e aviso de que o app não guarda cópia.</li>
+      <li>Fiscal: entrada com senha, evidência divergente, áudio com transcrição, acesso registrado ao contato do morador, posição a até 100 m, foto e vídeo só pela câmera e tela de novo desfoque.</li>
+      <li>Painel: filtro por quantidade de relatos, pontuação e retirada de atribuição na fila, atualização automática e as telas de indicadores, usuários, camadas, Censo e auditoria, que eram só itens de menu.</li>
+      <li>"Em vistoria" tinha tom âmbar no app do fiscal e cinza no painel; agora usa o mesmo tom nos dois.</li>
+      <li>"Vistorias do dia" saiu do menu, porque a rota do fiscal (RF016) está fora do escopo.</li>
+    </ul>
+  </section>
+
+  <footer class="rodape-pagina">Atualizado em 24/11/2026 a partir do Documento de Requisitos v8 (requisitos.md). Todos os dados das telas são fictícios.</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2400}}'>
+class Component extends DCLogic {
+  componentDidMount() { document.documentElement.lang = 'pt-BR'; }
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

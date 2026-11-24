@@ -1,6 +1,6 @@
 -- ============================================================================
 -- SaneaMapa — DDL PostgreSQL com as 4 Integridades (Entidade, Domínio, Referencial, Semântica)
--- Baseado no Documento de Requisitos v6 e no Protótipo SaneaMapa
+-- Baseado no Documento de Requisitos v8 e no Protótipo SaneaMapa
 -- ============================================================================
 
 -- Limpeza opcional para reexecução em ambiente de desenvolvimento
@@ -116,8 +116,8 @@ CREATE TABLE IF NOT EXISTS relato (
     data_hora_registro TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     tipo_ocorrencia    VARCHAR(30)    NOT NULL,
     descricao          VARCHAR(2350),
-    nome_morador       VARCHAR(120)   NOT NULL,
-    telefone_morador   VARCHAR(15)    NOT NULL,
+    nome_morador       VARCHAR(120),                                          -- NULL só após o prazo de guarda (RNF20)
+    telefone_morador   VARCHAR(15),
     situacao_envio     VARCHAR(15)    NOT NULL DEFAULT 'ENVIADO',
     latitude           NUMERIC(10, 7) NOT NULL,
     longitude          NUMERIC(10, 7) NOT NULL,
@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS relato (
     bairro             VARCHAR(80),
     ponto_referencia   VARCHAR(100),
     posicao_manual     BOOLEAN        NOT NULL DEFAULT FALSE,
+    anonimizado_em     TIMESTAMPTZ,                                           -- RNF20: data da eliminação de nome e telefone
     criado_em          TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Integridade Referencial
@@ -144,11 +145,15 @@ CREATE TABLE IF NOT EXISTS relato (
     CONSTRAINT chk_relato_precisao
         CHECK (precisao_metros >= 0),
 
-    -- Integridade Semântica (RF001, nota 5: toda denúncia é identificada, com nome preenchido e telefone com DDD)
+    -- Integridade Semântica (RF001, nota 5: toda denúncia é identificada, com nome preenchido e telefone com DDD;
+    -- RNF20: ao fim do prazo de guarda, nome e telefone são eliminados juntos e a data fica em anonimizado_em)
     CONSTRAINT chk_relato_identificacao
         CHECK (
-            length(trim(nome_morador)) > 0
-            AND telefone_morador ~ '^\(\d{2}\) \d{4,5}-\d{4}$'
+            (anonimizado_em IS NULL
+                AND length(trim(nome_morador)) > 0
+                AND telefone_morador ~ '^\(\d{2}\) \d{4,5}-\d{4}$')
+            OR
+            (anonimizado_em IS NOT NULL AND nome_morador IS NULL AND telefone_morador IS NULL)
         )
 );
 
@@ -263,6 +268,7 @@ CREATE TABLE IF NOT EXISTS vistoria (
     fiscal_id                 BIGINT         NOT NULL,                        -- Referencial
     data_hora_vistoria        TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     resultado                 VARCHAR(20)    NOT NULL,
+    motivo_nao_confirmacao    VARCHAR(20),                                     -- RF007, nota 5
     tipo_ocorrencia_validado  VARCHAR(30)    NOT NULL,
     latitude_ponto            NUMERIC(10, 7) NOT NULL,
     longitude_ponto           NUMERIC(10, 7) NOT NULL,
@@ -281,12 +287,16 @@ CREATE TABLE IF NOT EXISTS vistoria (
     -- Integridade de Domínio
     CONSTRAINT chk_vistoria_resultado
         CHECK (resultado IN ('CONFIRMADO', 'NAO_CONFIRMADO')),
+    CONSTRAINT chk_vistoria_motivo
+        CHECK (motivo_nao_confirmacao IN ('NAO_ENCONTRADO', 'FORA_DO_ESCOPO')),
     CONSTRAINT chk_vistoria_tipo
         CHECK (tipo_ocorrencia_validado IN ('CASA_SEM_AGUA', 'AGUA_FORA_PADRAO', 'RUA_SEM_ESGOTO', 'ESGOTO_CEU_ABERTO')),
 
     -- Integridade Semântica (RF007 / RS008: fiscal a até 100 m e mídia obrigatória na confirmação)
     CONSTRAINT chk_vistoria_raio_100m
         CHECK (distancia_fiscal_metros >= 0 AND distancia_fiscal_metros <= 100.00),
+    CONSTRAINT chk_vistoria_motivo_so_nao_confirmado
+        CHECK ((resultado = 'NAO_CONFIRMADO') = (motivo_nao_confirmacao IS NOT NULL)),
     CONSTRAINT chk_vistoria_confirmado_exige_midia
         CHECK (resultado <> 'CONFIRMADO' OR (evidencia_camera_caminhos IS NOT NULL AND length(trim(evidencia_camera_caminhos)) > 0))
 );
@@ -366,7 +376,8 @@ CREATE TABLE IF NOT EXISTS log_auditoria (
             'MUDANCA_STATUS_PONTO',
             'ALTERACAO_USUARIO',
             'IMPORTACAO_CENSO',
-            'ROLLBACK_CENSO'
+            'ROLLBACK_CENSO',
+            'ELIMINACAO_DADOS_MORADOR'
         )),
     CONSTRAINT chk_log_objeto
         CHECK (tipo_objeto IN ('RELATO', 'PONTO', 'EVIDENCIA', 'USUARIO', 'CENSO'))

@@ -1,5 +1,6 @@
 package br.edu.cesmac.saneamapa.dto;
 
+import br.edu.cesmac.saneamapa.domain.enums.MotivoNaoConfirmacao;
 import br.edu.cesmac.saneamapa.domain.enums.OrigemEvidencia;
 import br.edu.cesmac.saneamapa.domain.enums.ResultadoVistoria;
 import br.edu.cesmac.saneamapa.domain.enums.TipoOcorrencia;
@@ -15,6 +16,7 @@ public final class FiscalDtos {
 
     public record RegistrarVistoriaRequest(
             @NotNull(message = "Informe o resultado da vistoria.") ResultadoVistoria resultado,
+            MotivoNaoConfirmacao motivoNaoConfirmacao,
             TipoOcorrencia tipoOcorrenciaValidado,
             BigDecimal novaLatitudePonto,
             BigDecimal novaLongitudePonto,

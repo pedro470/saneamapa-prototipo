@@ -99,6 +99,7 @@ public class VistoriaService {
                 ponto,
                 fiscal,
                 req.resultado(),
+                req.motivoNaoConfirmacao(),
                 req.tipoOcorrenciaValidado(),
                 req.novaLatitudePonto(),
                 req.novaLongitudePonto(),
@@ -120,7 +121,8 @@ public class VistoriaService {
 
         auditoriaService.registrar(fiscalId, TipoEventoAuditoria.MUDANCA_STATUS_PONTO,
                 TipoObjetoAuditoria.PONTO, ponto.getId(),
-                "Vistoria registrada no ponto " + ponto.getCodigoExibicao() + ": " + req.resultado().getRotulo());
+                "Vistoria registrada no ponto " + ponto.getCodigoExibicao() + ": " + req.resultado().getRotulo()
+                        + (req.motivoNaoConfirmacao() != null ? " (" + req.motivoNaoConfirmacao().getRotulo() + ")" : ""));
 
         return new VistoriaRegistradaResponse(
                 vistoria.getId(),

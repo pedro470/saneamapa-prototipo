@@ -61,24 +61,68 @@ class DominioPooTest {
         ponto.atribuirFiscal(fiscal);
 
         assertThrows(DistanciaVistoriaExcedidaException.class, () -> new Vistoria(
-                ponto, fiscal, ResultadoVistoria.CONFIRMADO, TipoOcorrencia.ESGOTO_CEU_ABERTO,
+                ponto, fiscal, ResultadoVistoria.CONFIRMADO, null, TipoOcorrencia.ESGOTO_CEU_ABERTO,
                 null, null, new BigDecimal("-9.6740000"), new BigDecimal("-35.7489300"),
                 "Longe", List.of("/cam.jpg"), List.of(OrigemEvidencia.CAMERA)
         ));
 
         // RS008: enviar a própria posição como "nova posição do ponto" não zera a distância.
         assertThrows(DistanciaVistoriaExcedidaException.class, () -> new Vistoria(
-                ponto, fiscal, ResultadoVistoria.CONFIRMADO, TipoOcorrencia.ESGOTO_CEU_ABERTO,
+                ponto, fiscal, ResultadoVistoria.CONFIRMADO, null, TipoOcorrencia.ESGOTO_CEU_ABERTO,
                 new BigDecimal("-9.6740000"), new BigDecimal("-35.7489300"),
                 new BigDecimal("-9.6740000"), new BigDecimal("-35.7489300"),
                 "Correção forjada", List.of("/cam.jpg"), List.of(OrigemEvidencia.CAMERA)
         ));
 
         assertThrows(RegraNegocioException.class, () -> new Vistoria(
-                ponto, fiscal, ResultadoVistoria.CONFIRMADO, TipoOcorrencia.ESGOTO_CEU_ABERTO,
+                ponto, fiscal, ResultadoVistoria.CONFIRMADO, null, TipoOcorrencia.ESGOTO_CEU_ABERTO,
                 null, null, new BigDecimal("-9.6712500"), new BigDecimal("-35.7489300"),
                 "Galeria", List.of("/gal.jpg"), List.of(OrigemEvidencia.GALERIA)
         ));
+    }
+
+    @Test
+    void deveExigirMotivoSoNaVistoriaNaoConfirmada() {
+        Usuario fiscal = new Usuario("456.789.002-77", "Carlos Mendes", "carlos@gov.br", "(82) 99876-1020", "hash", PerfilUsuario.FISCAL, true);
+        Ponto ponto = new Ponto("P-9001", TipoOcorrencia.ESGOTO_CEU_ABERTO, new BigDecimal("-9.6712400"), new BigDecimal("-35.7489300"),
+                "Rua Teste", "Vergel", LocalDate.now(), false);
+        ponto.atribuirFiscal(fiscal);
+        BigDecimal lat = new BigDecimal("-9.6712500");
+        BigDecimal lon = new BigDecimal("-35.7489300");
+
+        // RF007, nota 5 (TBD-26): "não confirmado" sem motivo é recusado.
+        assertThrows(RegraNegocioException.class, () -> new Vistoria(
+                ponto, fiscal, ResultadoVistoria.NAO_CONFIRMADO, null, null,
+                null, null, lat, lon, null, List.of(), List.of()));
+
+        // Motivo em vistoria "confirmado" também é recusado.
+        assertThrows(RegraNegocioException.class, () -> new Vistoria(
+                ponto, fiscal, ResultadoVistoria.CONFIRMADO, MotivoNaoConfirmacao.NAO_ENCONTRADO, null,
+                null, null, lat, lon, null, List.of("/cam.jpg"), List.of(OrigemEvidencia.CAMERA)));
+
+        Vistoria foraDoEscopo = new Vistoria(
+                ponto, fiscal, ResultadoVistoria.NAO_CONFIRMADO, MotivoNaoConfirmacao.FORA_DO_ESCOPO, null,
+                null, null, lat, lon, "Vazamento na rede de água, não é esgoto", List.of(), List.of());
+        assertEquals(MotivoNaoConfirmacao.FORA_DO_ESCOPO, foraDoEscopo.getMotivoNaoConfirmacao());
+    }
+
+    @Test
+    void deveAnonimizarRelatoUmaVezSoAoFimDoPrazo() {
+        Ponto ponto = new Ponto("P-9002", TipoOcorrencia.RUA_SEM_ESGOTO, new BigDecimal("-9.6712400"), new BigDecimal("-35.7489300"),
+                "Rua Teste", "Vergel", LocalDate.now(), false);
+        Relato relato = new Relato(ponto, "SM-TESTE-0001", OffsetDateTime.now(), TipoOcorrencia.RUA_SEM_ESGOTO,
+                "Sem rede", "Maria Souza", "(82) 99999-0000",
+                new BigDecimal("-9.6712400"), new BigDecimal("-35.7489300"), 10, "Rua Teste", "Vergel", null, false);
+
+        OffsetDateTime quando = OffsetDateTime.now();
+        relato.anonimizar(quando);
+        assertTrue(relato.isAnonimizado());
+        assertNull(relato.getNomeMorador());
+        assertNull(relato.getTelefoneMorador());
+        assertEquals("SM-TESTE-0001", relato.getProtocolo());
+
+        relato.anonimizar(quando.plusDays(1));
+        assertEquals(quando, relato.getAnonimizadoEm());
     }
 
     @Test

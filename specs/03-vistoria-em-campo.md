@@ -40,7 +40,10 @@ Em [Vistoria.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/mo
    - Qualquer item em `origensMidia` diferente de `CAMERA` é rejeitado.
 4. **Evidência obrigatória para confirmação:**
    - Se `resultado == CONFIRMADO`, `midiasCamera` não pode ser vazio (validado em `Vistoria` e pela constraint `chk_vistoria_confirmado_exige_midia`).
-5. **Transição de status e remoção da fila:**
+5. **Motivo da não confirmação (RF007, nota 5; TBD-26):**
+   - Se `resultado == NAO_CONFIRMADO`, `motivoNaoConfirmacao` é obrigatório: `NAO_ENCONTRADO` (problema não encontrado no local) ou `FORA_DO_ESCOPO` (problema existe, mas não é de saneamento, como poço, vazamento ou lixo). Na vistoria confirmada, o motivo é recusado.
+   - Validado em `Vistoria` e no banco pelas constraints `chk_vistoria_motivo` e `chk_vistoria_motivo_so_nao_confirmado`. O motivo entra no detalhe do evento `MUDANCA_STATUS_PONTO`, que a Prefeitura vê no histórico do ponto.
+6. **Transição de status e remoção da fila:**
    - `Ponto.aplicarResultadoVistoria` atualiza tipo/coordenadas corrigidas e transiciona `EM_VISTORIA` → `CONFIRMADO` ou `NAO_CONFIRMADO`.
    - `VistoriaService` remove o `ItemFilaVistoria` da fila e registra `MUDANCA_STATUS_PONTO` em `log_auditoria`.
 
@@ -49,4 +52,5 @@ Em [Vistoria.java](saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/mo
 ## 4. Critérios de Aceitação Verificados em Testes
 
 - `DominioPooTest.deveBloquearVistoriaForaDe100MetrosEExigirCamera` (valida distância > 100 m, tentativa de correção forjada e rejeição de `GALERIA`)
+- `DominioPooTest.deveExigirMotivoSoNaVistoriaNaoConfirmada` (motivo obrigatório no "não confirmado" e recusado no "confirmado")
 - `SaneaMapaIntegracaoTest.fluxoCompletoMoradorAgrupamentoPrefeituraEFiscal` (vistoria rejeitada a > 100 m com HTTP 422 e confirmada dentro de 100 m com HTTP 200)

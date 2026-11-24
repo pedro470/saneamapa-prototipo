@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Painel: mapa e fila</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estilodopedro/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&amp;family=Public+Sans:wght@400;600;700&amp;family=Source+Code+Pro:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+.app{min-height:0}
+.trilho{position:static;height:auto;min-height:100%}
+a.item-nav{text-decoration:none;color:inherit}
+.mapa-pino{position:absolute;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;background:var(--cor);color:var(--cat-on);font:inherit;font-size:14px;font-weight:700;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 3px rgba(15,20,30,.35)}
+.mapa-pino:focus-visible{outline:var(--fio) solid var(--accent);outline-offset:2px}
+.link-ponto{font:inherit;font-weight:600;color:var(--accent);background:none;border:0;padding:0;min-height:32px;white-space:nowrap;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.foto-tratada{height:92px;border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--sunk) 0 8px,var(--trilho) 8px 16px);display:grid;place-items:end start;padding:6px}
+@media (max-width: 900px){.trilho{min-height:0}}
+</style>
+</helmet>
+
+<div class="app">
+  <nav class="trilho" aria-label="Menu do painel">
+    <div style="display: grid; gap: 2px;">
+      <span class="marca-app">SaneaMapa</span>
+      <span class="t-meta" style="padding: 0 var(--space-3); color: var(--soft);">Painel da Prefeitura</span>
+    </div>
+    <div class="grupo-nav">
+      <span class="rot-nav">Denúncias</span>
+      <a class="item-nav" href="P2-Mapa.dc.html" aria-current="true"><span class="quadro"></span><span class="nome-nav">Mapa e fila</span><span class="conta">44</span></a>
+      <a class="item-nav" href="P3-Indicadores.dc.html"><span class="quadro"></span><span class="nome-nav">Indicadores</span></a>
+    </div>
+    <div class="grupo-nav">
+      <span class="rot-nav">Administração</span>
+      <a class="item-nav" href="P4-Usuarios.dc.html"><span class="quadro"></span><span class="nome-nav">Usuários</span></a>
+      <a class="item-nav" href="P5-Camadas.dc.html"><span class="quadro"></span><span class="nome-nav">Camadas de vulnerabilidade</span></a>
+      <a class="item-nav" href="P6-Censo.dc.html"><span class="quadro"></span><span class="nome-nav">Censo do IBGE</span></a>
+      <a class="item-nav" href="P7-Auditoria.dc.html"><span class="quadro"></span><span class="nome-nav">Auditoria</span></a>
+    </div>
+    <div style="border-top: 1px solid var(--line); padding: var(--space-3) var(--space-3) 0; display: grid; gap: 4px;">
+      <span class="t-rotulo">Ana Lima</span>
+      <span class="t-meta" style="color: var(--soft);">Prefeitura</span>
+      <a href="P1-Entrada.dc.html" class="t-pequeno" style="min-height: 32px; display: inline-flex; align-items: center;">Sair</a>
+    </div>
+  </nav>
+
+  <main class="area secoes-cat-1">
+    <header class="cabecalho" style="max-width: none;">
+      <h1 class="t-titulo-pagina">Mapa e fila de vistoria</h1>
+      <p class="lede">As denúncias dos moradores agrupadas em pontos, a fila de vistoria e os pontos já vistoriados.</p>
+      <p class="meta">Atualizado às 14:20 de 07/11/2026 · atualiza sozinho</p>
+    </header>
+
+    <p class="t-corpo">38 pontos aguardam vistoria, 9 deles de urgência crítica; 6 estão em vistoria e 23 já foram confirmados em campo.</p>
+    <p class="retorno" aria-live="polite" style="margin: 0;">{{aoVivo}}</p>
+
+    <section class="secao" aria-labelledby="sec-mapa">
+      <header>
+        <h2 id="sec-mapa">Mapa</h2>
+        <p>Clique num ponto para ver evidências, relatos, histórico e urgência. O número no marcador é a quantidade de relatos agrupados no ponto.</p>
+      </header>
+
+      <form class="formulario" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+        <label><span class="t-rotulo">Tipo</span><select class="campo"><option>Todos</option><option>Casa sem ligação de água</option><option>Água fora do padrão</option><option>Rua sem rede de esgoto</option><option>Esgoto a céu aberto</option></select></label>
+        <label><span class="t-rotulo">Status</span><select class="campo"><option>Todos</option><option>Aguardando vistoria</option><option>Em vistoria</option><option>Confirmado</option><option>Não confirmado</option></select></label>
+        <label><span class="t-rotulo">Bairro</span><select class="campo"><option>Todos</option><option>Benedito Bentes</option><option>Bom Parto</option><option>Clima Bom</option><option>Jacintinho</option><option>Ponta Grossa</option><option>Vergel do Lago</option></select></label>
+        <label><span class="t-rotulo">Período</span><select class="campo"><option>Últimos 90 dias</option><option>Últimos 30 dias</option><option>Este ano</option><option>Personalizado</option></select></label>
+        <label><span class="t-rotulo">Relatos no ponto</span><select class="campo"><option>Qualquer quantidade</option><option>2 ou mais</option><option>5 ou mais</option><option>10 ou mais</option></select></label>
+        <label><span class="t-rotulo">Urgência</span><select class="campo"><option>Todas</option><option>Crítica</option><option>Elevada</option><option>Normal</option></select></label>
+        <div class="acoes">
+          <span class="filtro-ativo">Mostrando 7 de 72 pontos, 1 filtro ativo <button type="button">Limpar filtros</button></span>
+        </div>
+      </form>
+
+      <div style="display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: start;">
+        <div style="flex: 999 1 560px; min-width: 0; display: grid; gap: var(--space-3);">
+          <fieldset style="margin: 0; border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4);">
+            <legend class="t-rotulo" style="float: left; padding: 0; margin-right: var(--space-2);">Camadas</legend>
+            <sc-for list="{{camadas}}" as="c" hint-placeholder-count="4">
+              <label class="t-pequeno" style="display: flex; align-items: center; gap: var(--space-2); min-height: 40px; cursor: pointer;"><input type="checkbox" checked="{{c.on}}" onChange="{{c.toggle}}" style="width: 18px; height: 18px; accent-color: var(--accent);">{{c.nome}}</label>
+            </sc-for>
+          </fieldset>
+          <div style="position: relative; height: 640px; border-radius: var(--radius-lg); background: var(--sunk); overflow: hidden; border: 1px solid var(--line);" role="group" aria-label="Mapa dos pontos">
+            <div style="position: absolute; left: -6%; bottom: -10%; width: 42%; height: 46%; border-radius: 48% 52% 0 0; background: var(--neutro-soft);"></div>
+            <span class="t-legenda" style="position: absolute; left: 6%; bottom: 8%; color: var(--soft); font-style: italic;">Lagoa Mundaú</span>
+            <div style="position: absolute; left: 0; top: 38%; width: 100%; height: 12px; background: var(--surface);"></div>
+            <div style="position: absolute; left: 0; top: 70%; width: 100%; height: 8px; background: var(--surface); transform: rotate(-6deg);"></div>
+            <div style="position: absolute; left: 34%; top: 0; width: 12px; height: 100%; background: var(--surface);"></div>
+            <div style="position: absolute; left: 64%; top: 0; width: 8px; height: 100%; background: var(--surface); transform: rotate(8deg);"></div>
+            <div style="position: absolute; left: 82%; top: 0; width: 8px; height: 100%; background: var(--surface);"></div>
+            <span class="t-legenda" style="position: absolute; left: 36%; top: 40.5%; color: var(--soft);">Av. Senador Rui Palmeira</span>
+            <span class="t-legenda" style="position: absolute; left: 10%; top: 26%; color: var(--soft); font-weight: 600;">Vergel do Lago</span>
+            <span class="t-legenda" style="position: absolute; left: 25%; top: 63%; color: var(--soft); font-weight: 600;">Bom Parto</span>
+            <span class="t-legenda" style="position: absolute; left: 46%; top: 22%; color: var(--soft); font-weight: 600;">Jacintinho</span>
+            <span class="t-legenda" style="position: absolute; left: 70%; top: 8%; color: var(--soft); font-weight: 600;">Benedito Bentes</span>
+            <span class="t-legenda" style="position: absolute; left: 62%; top: 68%; color: var(--soft); font-weight: 600;">Ponta Grossa</span>
+            <span class="t-legenda" style="position: absolute; left: 86%; top: 48%; color: var(--soft); font-weight: 600;">Clima Bom</span>
+
+            <sc-if value="{{camadaCenso}}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: 40%; top: 44%; width: 38%; height: 40%; border: 1.5px dashed var(--line-strong); border-radius: 6px; background: repeating-linear-gradient(45deg, transparent 0 10px, rgba(122,130,148,0.14) 10px 12px);"></div>
+              <span class="t-legenda" style="position: absolute; left: 41%; top: 79%; background: var(--surface); padding: 2px 6px; border-radius: 4px;">Censo: esgoto 92% · água 99%</span>
+              <div style="position: absolute; left: 4%; top: 46%; width: 28%; height: 22%; border: 1.5px dashed var(--line-strong); border-radius: 6px;"></div>
+              <span class="t-legenda" style="position: absolute; left: 5%; top: 47%; background: var(--surface); padding: 2px 6px; border-radius: 4px;">Censo: esgoto 34% · água 90%</span>
+            </sc-if>
+
+            <sc-if value="{{camadaCalor}}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: 4%; top: 12%; width: 36%; height: 46%; border-radius: 50%; background: radial-gradient(closest-side, rgba(137,0,40,0.38), rgba(137,0,40,0));"></div>
+              <div style="position: absolute; left: 40%; top: 10%; width: 26%; height: 30%; border-radius: 50%; background: radial-gradient(closest-side, rgba(151,87,13,0.32), rgba(151,87,13,0));"></div>
+              <div style="position: absolute; left: 44%; top: 48%; width: 22%; height: 26%; border-radius: 50%; background: radial-gradient(closest-side, rgba(151,87,13,0.26), rgba(151,87,13,0));"></div>
+            </sc-if>
+
+            <sc-if value="{{camadaVuln}}" hint-placeholder-val="{{ true }}">
+              <div style="position: absolute; left: 14%; top: 22%; width: 120px; height: 120px; border-radius: 50%; border: 2px dashed var(--ink); opacity: 0.55;"></div>
+              <span class="t-legenda" style="position: absolute; left: 13%; top: 17.5%; background: var(--surface); padding: 2px 6px; border-radius: 4px;">Creche municipal, raio 150 m</span>
+              <div style="position: absolute; left: 10%; top: 50%; width: 150px; height: 96px; border-radius: 40%; border: 2px dashed var(--ink); opacity: 0.55;"></div>
+              <span class="t-legenda" style="position: absolute; left: 10%; top: 67.5%; background: var(--surface); padding: 2px 6px; border-radius: 4px;">Vila de pescadores</span>
+              <div style="position: absolute; left: 56%; top: 52%; width: 90px; height: 90px; border-radius: 50%; border: 2px dashed var(--ink); opacity: 0.55;"></div>
+              <span class="t-legenda" style="position: absolute; left: 55%; top: 48%; background: var(--surface); padding: 2px 6px; border-radius: 4px;">UBS, raio 120 m</span>
+            </sc-if>
+
+            <sc-if value="{{camadaPontos}}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{pontos}}" as="p" hint-placeholder-count="7">
+                <button class="mapa-pino {{p.cat}}" style="{{p.pinStyle}}" onClick="{{p.pick}}" aria-label="{{p.pinLabel}}" aria-pressed="{{p.sel}}">{{p.relatos}}</button>
+              </sc-for>
+            </sc-if>
+
+            <div style="position: absolute; right: 12px; top: 12px; display: grid; gap: 4px;">
+              <button class="botao" style="background: var(--surface); width: 40px; padding: 0;" aria-label="Aproximar">+</button>
+              <button class="botao" style="background: var(--surface); width: 40px; padding: 0;" aria-label="Afastar">−</button>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center;">
+            <span class="etiqueta cat-2">Casa sem ligação de água</span>
+            <span class="etiqueta cat-3">Água fora do padrão</span>
+            <span class="etiqueta cat-4">Rua sem rede de esgoto</span>
+            <span class="etiqueta cat-5">Esgoto a céu aberto</span>
+          </div>
+        </div>
+
+        <article class="caixa {{d.cat}}" style="flex: 1 1 380px; min-width: 0;" aria-labelledby="det-titulo">
+          <div class="tarja">
+            <h2 id="det-titulo">{{d.id}}</h2>
+            <span class="chip">{{d.tipoNome}}</span>
+            <span class="conta">{{d.relatos}} relatos</span>
+          </div>
+          <div class="folha">
+            <div style="padding: var(--space-3); display: grid; gap: var(--space-2);">
+              <span class="t-corpo" style="font-weight: 600;">{{d.trecho}}</span>
+              <span class="t-pequeno" style="color: var(--soft);">{{d.bairro}} · primeiro relato em {{d.primeiro}}, último em {{d.ultimo}}</span>
+              <div style="display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center;">
+                <span class="estado" data-tom="{{d.tom}}">{{d.status}}</span>
+                <span class="medidor" data-nivel="{{d.nivel}}"><i><b></b><b></b><b></b></i>Urgência {{d.nivelNome}}</span>
+              </div>
+              <span class="t-pequeno" style="color: var(--soft);">{{d.motivo}}</span>
+              <sc-if value="{{d.reincidente}}" hint-placeholder-val="{{ false }}">
+                <span class="estado" data-tom="atencao" style="white-space: normal;">Reincidência: relato novo depois da confirmação, somado sem nova vistoria</span>
+              </sc-if>
+              <sc-if value="{{d.manual}}" hint-placeholder-val="{{ false }}">
+                <span class="estado" data-tom="atencao" style="white-space: normal;">Posição informada à mão pelo morador</span>
+              </sc-if>
+              <sc-if value="{{coordOculta}}" hint-placeholder-val="{{ true }}">
+                <button class="botao quieto" style="justify-self: start; padding: 0;" onClick="{{verCoord}}">Ver coordenada exata (acesso registrado)</button>
+              </sc-if>
+              <sc-if value="{{coordVisivel}}" hint-placeholder-val="{{ false }}">
+                <span class="t-pequeno">Coordenada: <span class="t-meta">{{d.coord}}</span> · acesso registrado às 14:21</span>
+              </sc-if>
+            </div>
+            <div style="border-top: 1px solid var(--line); padding: var(--space-3); display: grid; gap: var(--space-2);">
+              <span class="t-rotulo" style="color: var(--soft);">Censo do IBGE</span>
+              <span class="t-pequeno">{{d.censo}}</span>
+            </div>
+            <div style="border-top: 1px solid var(--line); padding: var(--space-3); display: grid; gap: var(--space-2);">
+              <span class="t-rotulo" style="color: var(--soft);">Evidências tratadas</span>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2);">
+                <div class="foto-tratada"><span class="t-legenda" style="background: var(--surface); padding: 1px 6px; border-radius: 4px;">Rosto desfocado</span></div>
+                <div class="foto-tratada"><span class="t-legenda" style="background: var(--surface); padding: 1px 6px; border-radius: 4px;">Divergente</span></div>
+                <div class="foto-tratada"><span class="t-legenda" style="background: var(--surface); padding: 1px 6px; border-radius: 4px;">Vídeo sem som</span></div>
+              </div>
+              <button class="botao" style="justify-self: start; display: inline-flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg>
+                Ouvir áudio de 0:24 (acesso registrado)
+              </button>
+              <span class="t-pequeno" style="color: var(--soft);">Transcrição: "o esgoto desce pela rua toda vez que chove, passa na frente da creche".</span>
+              <span class="t-pequeno" style="color: var(--soft);">Novo desfoque é feito pelo fiscal, na vistoria.</span>
+            </div>
+            <div style="border-top: 1px solid var(--line); padding: var(--space-3); display: grid; gap: var(--space-2);">
+              <span class="t-rotulo" style="color: var(--soft);">Relatos vinculados</span>
+              <ul style="margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2);">
+                <sc-for list="{{d.relatosLista}}" as="r" hint-placeholder-count="2">
+                  <li style="display: grid; gap: 2px;">
+                    <span class="t-pequeno"><b>{{r.data}}</b> · {{r.autor}}</span>
+                    <span class="t-pequeno" style="color: var(--soft);">{{r.texto}}</span>
+                  </li>
+                </sc-for>
+              </ul>
+              <span class="t-pequeno" style="color: var(--soft);">{{d.maisRelatos}}</span>
+              <sc-if value="{{contatoOculto}}" hint-placeholder-val="{{ true }}">
+                <button class="botao quieto" style="justify-self: start; padding: 0;" onClick="{{verContato}}">Ver nome e telefone dos moradores (acesso registrado)</button>
+              </sc-if>
+              <sc-if value="{{contatoVisivel}}" hint-placeholder-val="{{ false }}">
+                <span class="t-pequeno">Maria José da Silva · (82) 99876-5432 · acesso registrado às 14:21</span>
+              </sc-if>
+            </div>
+            <div style="border-top: 1px solid var(--line); padding: var(--space-3); display: grid; gap: var(--space-2);">
+              <span class="t-rotulo" style="color: var(--soft);">Histórico</span>
+              <sc-for list="{{d.historico}}" as="h" hint-placeholder-count="2">
+                <span class="t-pequeno"><span class="t-meta" style="color: var(--soft);">{{h.quando}}</span> · {{h.oque}} ({{h.quem}})</span>
+              </sc-for>
+            </div>
+            <div style="border-top: 1px solid var(--line); padding: var(--space-3); display: grid; gap: var(--space-3);">
+              <sc-if value="{{d.naFila}}" hint-placeholder-val="{{ true }}">
+                <label style="display: grid; gap: var(--space-1);"><span class="t-rotulo">Fiscal atribuído</span>
+                  <select class="campo" onChange="{{d.atribuir}}">
+                    <sc-for list="{{d.opcoesFiscal}}" as="o" hint-placeholder-count="4">
+                      <option value="{{o.valor}}" selected="{{o.sel}}">{{o.nome}}</option>
+                    </sc-for>
+                  </select>
+                  <span class="t-pequeno" style="color: var(--soft);">Atribuir põe o ponto "em vistoria"; retirar a atribuição devolve a "aguardando vistoria". Fica registrado.</span>
+                </label>
+              </sc-if>
+              <sc-if value="{{d.foraDaFila}}" hint-placeholder-val="{{ false }}">
+                <span class="t-pequeno" style="color: var(--soft);">Vistoriado por {{d.fiscal}}.</span>
+              </sc-if>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="secao" aria-labelledby="sec-fila">
+      <header>
+        <h2 id="sec-fila">Fila de vistoria e pontos vistoriados</h2>
+        <p>A fila tem os pontos aguardando ou em vistoria, da maior para a menor pontuação. A pontuação soma, com pesos, os relatos, os dias de espera, a urgência, os pontos na fila no mesmo bairro (6 por relato, até 10; 1,5 por dia; 15 por nível de urgência; 2 por ponto no mesmo bairro, até 10). Abaixo da fila ficam os pontos já vistoriados.</p>
+      </header>
+      <div class="tabela-rolar" style="overflow-x: auto;">
+        <table class="tabela" style="min-width: 960px;">
+          <thead>
+            <tr>
+              <th class="num" scope="col">Pos.</th>
+              <th scope="col">Ponto</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Trecho e bairro</th>
+              <th class="num" scope="col">Relatos</th>
+              <th class="num" scope="col">Espera</th>
+              <th scope="col">Urgência</th>
+              <th class="num" scope="col">Pontuação</th>
+              <th scope="col">Status</th>
+              <th scope="col">Fiscal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{pontos}}" as="p" hint-placeholder-count="7">
+              <tr style="{{p.rowStyle}}">
+                <td class="num t-meta">{{p.pos}}</td>
+                <td><button class="link-ponto" onClick="{{p.pick}}">{{p.id}}</button></td>
+                <td><span class="etiqueta {{p.cat}}" style="font-weight: 400;">{{p.tipoNome}}</span></td>
+                <td><span style="display: block;">{{p.trecho}}</span><span class="t-meta" style="color: var(--soft);">{{p.bairro}}</span></td>
+                <td class="num">{{p.relatos}}</td>
+                <td class="num">{{p.espera}}</td>
+                <td><span class="medidor" data-nivel="{{p.nivel}}"><i><b></b><b></b><b></b></i>{{p.nivelNomeMai}}</span></td>
+                <td class="num">{{p.pontuacao}}</td>
+                <td><span class="estado" data-tom="{{p.tom}}">{{p.status}}</span></td>
+                <td>{{p.fiscal}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="rodape-pagina" style="max-width: none;">Dados fictícios para validar o wireframe. Nome e telefone do morador nunca aparecem no mapa; fora da equipe interna, a localização aparece só por trecho de rua.</footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2700}}'>
+// Tipo de ocorrência → categoria: a cor identifica o tipo, sempre com o nome escrito ao lado
+var TIPOS = {
+  agua: { nome: 'Casa sem ligação de água', cat: 'cat-2' },
+  padrao: { nome: 'Água fora do padrão', cat: 'cat-3' },
+  rede: { nome: 'Rua sem rede de esgoto', cat: 'cat-4' },
+  ceu: { nome: 'Esgoto a céu aberto', cat: 'cat-5' }
+};
+// Status do ponto → tom (o mesmo no app do fiscal)
+var TOM_STATUS = { 'Aguardando vistoria': 'atencao', 'Em vistoria': 'neutro', 'Confirmado': 'positivo', 'Não confirmado': 'neutro' };
+// Nível de urgência (RF006): medidor 1 normal, 2 elevada, 3 crítica
+var NIVEL = { 1: 'normal', 2: 'elevada', 3: 'crítica' };
+var FISCAIS = ['Carlos Mendes', 'Júlia Souza', 'Rafael Torres'];
+var NA_FILA = { 'Aguardando vistoria': true, 'Em vistoria': true };
+
+var PONTOS = [
+  { id: 'P-0142', tipo: 'ceu', trecho: 'Rua São Domingos, trecho 200 a 300', bairro: 'Vergel do Lago', relatos: 7, espera: '18 d', nivel: 3, pontuacao: 88, motivo: 'Crítica pela camada Público infantil e escolar: creche municipal a 80 m.', status: 'Em vistoria', fiscal: 'Carlos Mendes', censo: 'Setor 270430405000123: 88% dos domicílios aparecem ligados à rede de esgoto.', x: 20, y: 31, primeiro: '09/10/2026', ultimo: '07/11/2026', coord: '-9,67124, -35,74893',
+    relatosLista: [ { data: '07/11/2026', autor: 'Morador', texto: 'Esgoto descendo pela rua até a creche.' }, { data: '22/10/2026', autor: 'Morador', texto: 'Áudio de 0:24, transcrito.' } ],
+    historico: [ { quando: '07/11, 14:19', oque: 'Relato vinculado (7º)', quem: 'sistema' }, { quando: '06/11, 08:05', oque: 'Atribuído a Carlos Mendes: em vistoria', quem: 'Ana Lima' }, { quando: '09/10, 12:30', oque: 'Ponto criado', quem: 'sistema' } ] },
+  { id: 'P-0118', tipo: 'rede', trecho: 'Travessa Santa Maria, trecho 1 a 150', bairro: 'Bom Parto', relatos: 5, espera: '22 d', nivel: 3, pontuacao: 0, motivo: 'Crítica pela camada Comunidades tradicionais: vila de pescadores.', status: 'Confirmado', fiscal: 'Carlos Mendes', censo: 'Setor 270430405000087: 92% dos domicílios aparecem ligados à rede de esgoto. Saneado no papel, com 5 relatos de falta de rede.', x: 22, y: 58, primeiro: '05/10/2026', ultimo: '24/10/2026', coord: '-9,68011, -35,75120',
+    relatosLista: [ { data: '24/10/2026', autor: 'Morador', texto: 'Vala aberta na frente das casas, cheiro forte.' }, { data: '19/10/2026', autor: 'Morador', texto: 'Sem descrição, só foto.' } ],
+    historico: [ { quando: '25/10, 10:12', oque: 'Vistoria: confirmado', quem: 'Carlos Mendes' }, { quando: '21/10, 08:40', oque: 'Atribuído a Carlos Mendes', quem: 'Ana Lima' }, { quando: '05/10, 19:03', oque: 'Ponto criado', quem: 'sistema' } ] },
+  { id: 'P-0131', tipo: 'agua', trecho: 'Rua Nova Esperança, trecho 400 a 550', bairro: 'Benedito Bentes', relatos: 4, espera: '9 d', nivel: 2, pontuacao: 71, motivo: 'Elevada pela camada Público infantil e escolar: escola estadual a 150 m.', status: 'Em vistoria', fiscal: 'Júlia Souza', censo: 'Setor 270430405000311: 97% dos domicílios aparecem ligados à rede de água.', x: 76, y: 18, primeiro: '18/10/2026', ultimo: '25/10/2026', coord: '-9,55302, -35,72011',
+    relatosLista: [ { data: '25/10/2026', autor: 'Morador', texto: 'Quatro casas sem ligação, pegam água do vizinho.' } ],
+    historico: [ { quando: '27/10, 09:10', oque: 'Atribuído a Júlia Souza: em vistoria', quem: 'Ana Lima' }, { quando: '18/10, 16:21', oque: 'Ponto criado', quem: 'sistema' } ] },
+  { id: 'P-0150', tipo: 'ceu', trecho: 'Rua do Arame, trecho 50 a 200', bairro: 'Jacintinho', relatos: 2, espera: '3 d', nivel: 1, pontuacao: 31, motivo: 'Normal: nenhuma camada de vulnerabilidade no local.', status: 'Em vistoria', fiscal: 'Carlos Mendes', manual: true, censo: 'Setor 270430405000204: 81% dos domicílios aparecem ligados à rede de esgoto.', x: 44, y: 14, primeiro: '04/11/2026', ultimo: '06/11/2026', coord: '-9,64410, -35,71555',
+    relatosLista: [ { data: '06/11/2026', autor: 'Morador', texto: 'Sem descrição, só foto.' } ],
+    historico: [ { quando: '06/11, 08:07', oque: 'Atribuído a Carlos Mendes: em vistoria', quem: 'Ana Lima' }, { quando: '04/11, 21:17', oque: 'Ponto criado (relato guardado sem internet, enviado depois)', quem: 'sistema' } ] },
+  { id: 'P-0127', tipo: 'padrao', trecho: 'Avenida Senador Rui Palmeira, trecho 3', bairro: 'Ponta Grossa', relatos: 3, espera: '14 d', nivel: 2, pontuacao: 0, motivo: 'Elevada pela camada Idosos e cuidados: UBS a 120 m.', status: 'Não confirmado', fiscal: 'Carlos Mendes', censo: 'Setor 270430405000152: 99% dos domicílios aparecem ligados à rede de água.', x: 58, y: 56, primeiro: '12/10/2026', ultimo: '20/10/2026', coord: '-9,67550, -35,73320',
+    relatosLista: [ { data: '20/10/2026', autor: 'Morador', texto: 'Água barrenta há uma semana.' } ],
+    historico: [ { quando: '24/10, 14:02', oque: 'Vistoria: não confirmado (problema não encontrado no local)', quem: 'Carlos Mendes' }, { quando: '12/10, 09:44', oque: 'Ponto criado', quem: 'sistema' } ] },
+  { id: 'P-0109', tipo: 'rede', trecho: 'Grota do Cigano, trecho 2', bairro: 'Jacintinho', relatos: 6, espera: '—', nivel: 1, pontuacao: 0, motivo: 'Normal: nenhuma camada de vulnerabilidade no local.', status: 'Confirmado', fiscal: 'Rafael Torres', censo: 'Setor 270430405000198: 34% dos domicílios aparecem ligados à rede de esgoto.', x: 50, y: 28, primeiro: '20/09/2026', ultimo: '15/10/2026', coord: '-9,64870, -35,72240',
+    relatosLista: [ { data: '15/10/2026', autor: 'Morador', texto: 'Rua inteira sem rede, esgoto em fossa.' } ],
+    historico: [ { quando: '17/10, 11:30', oque: 'Vistoria: confirmado', quem: 'Rafael Torres' }, { quando: '20/09, 18:05', oque: 'Ponto criado', quem: 'sistema' } ] },
+  { id: 'P-0098', tipo: 'agua', trecho: 'Rua Projetada B, trecho 1', bairro: 'Clima Bom', relatos: 3, espera: '—', nivel: 1, pontuacao: 0, motivo: 'Normal: nenhuma camada de vulnerabilidade no local.', status: 'Confirmado', fiscal: 'Júlia Souza', reincidente: true, censo: 'Setor 270430405000402: 95% dos domicílios aparecem ligados à rede de água.', x: 88, y: 56, primeiro: '02/08/2026', ultimo: '23/10/2026', coord: '-9,60120, -35,70110',
+    relatosLista: [ { data: '23/10/2026', autor: 'Morador', texto: 'Continua sem água.' } ],
+    historico: [ { quando: '23/10, 06:48', oque: 'Reincidência registrada', quem: 'sistema' }, { quando: '30/09, 15:00', oque: 'Vistoria: confirmado', quem: 'Júlia Souza' } ] }
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 'P-0142', camadas: { pontos: true, calor: false, vuln: true, censo: false }, status: {}, fiscal: {}, coord: false, contato: false };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var pick = function (id) { return function () { self.setState({ sel: id, coord: false, contato: false }); }; };
+    var statusDe = function (p) { return st.status[p.id] || p.status; };
+    // a fila primeiro, pela pontuação; depois os vistoriados
+    var fila = PONTOS.filter(function (p) { return NA_FILA[statusDe(p)]; }).sort(function (a, b) { return b.pontuacao - a.pontuacao; });
+    var ordenados = fila.concat(PONTOS.filter(function (p) { return !NA_FILA[statusDe(p)]; }));
+    var posFila = 0;
+    var pontos = ordenados.map(function (p) {
+      var status = statusDe(p);
+      var fiscal = st.fiscal[p.id] !== undefined ? st.fiscal[p.id] : p.fiscal;
+      var tipo = TIPOS[p.tipo];
+      var sel = p.id === st.sel;
+      var naFila = !!NA_FILA[status];
+      return Object.assign({}, p, {
+        pos: naFila ? ++posFila : '—',
+        pontuacao: naFila ? p.pontuacao : '—',
+        status: status, fiscal: fiscal, naFila: naFila, sel: sel,
+        tom: TOM_STATUS[status],
+        tipoNome: tipo.nome, cat: tipo.cat,
+        nivelNomeMai: NIVEL[p.nivel].charAt(0).toUpperCase() + NIVEL[p.nivel].slice(1),
+        pick: pick(p.id),
+        pinStyle: 'left: ' + p.x + '%; top: ' + p.y + '%; border: ' + (sel ? '3px solid var(--accent); width: 44px; height: 44px; z-index: 2;' : '3px solid var(--surface);'),
+        pinLabel: p.id + ', ' + tipo.nome + ', ' + p.relatos + ' relatos, ' + status,
+        rowStyle: sel ? 'background: var(--accent-soft);' : ''
+      });
+    });
+    var d0 = pontos.filter(function (p) { return p.id === st.sel; })[0];
+    var d = Object.assign({}, d0, {
+      nivelNome: NIVEL[d0.nivel],
+      foraDaFila: !d0.naFila,
+      reincidente: !!d0.reincidente,
+      manual: !!d0.manual,
+      opcoesFiscal: [{ valor: '—', nome: d0.fiscal === '—' ? 'Sem fiscal atribuído' : 'Retirar atribuição', sel: d0.fiscal === '—' }].concat(
+        FISCAIS.map(function (f) { return { valor: f, nome: f, sel: d0.fiscal === f }; })),
+      // RF005 nota 2: atribuir põe em vistoria; retirar devolve a aguardando vistoria
+      atribuir: function (e) {
+        var nome = e.target.value;
+        var f = Object.assign({}, self.state.fiscal), s = Object.assign({}, self.state.status);
+        f[d0.id] = nome;
+        s[d0.id] = nome === '—' ? 'Aguardando vistoria' : 'Em vistoria';
+        self.setState({ fiscal: f, status: s });
+      },
+      maisRelatos: d0.relatos > d0.relatosLista.length ? 'E mais ' + (d0.relatos - d0.relatosLista.length) + ' relatos, cada um com evidências, descrição e data.' : ''
+    });
+    var camadasDef = [ ['pontos', 'Pontos'], ['calor', 'Calor por densidade'], ['vuln', 'Vulnerabilidade'], ['censo', 'Censo do IBGE'] ];
+    return {
+      aoVivo: 'P-0142 recebeu um relato novo às 14:19; o mapa e a fila já mostram.',
+      pontos: pontos,
+      d: d,
+      coordOculta: !st.coord, coordVisivel: st.coord,
+      verCoord: function () { self.setState({ coord: true }); },
+      contatoOculto: !st.contato, contatoVisivel: st.contato,
+      verContato: function () { self.setState({ contato: true }); },
+      camadas: camadasDef.map(function (c) {
+        return { nome: c[1], on: !!st.camadas[c[0]], toggle: function () { var nc = Object.assign({}, self.state.camadas); nc[c[0]] = !nc[c[0]]; self.setState({ camadas: nc }); } };
+      }),
+      camadaPontos: st.camadas.pontos,
+      camadaCalor: st.camadas.calor,
+      camadaVuln: st.camadas.vuln,
+      camadaCenso: st.camadas.censo
+    };
+  }
+}
+</script>
+</body>
+</html>

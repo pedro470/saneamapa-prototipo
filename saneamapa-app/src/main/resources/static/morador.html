@@ -34,7 +34,16 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&l
 
 const TIPOS = SaneaMapaTipos.TIPOS;
 const OFFLINE_KEY_LEGADO = 'saneamapa_pendentes_v6';
-const TERMO_KEY = 'saneamapa_termo_aceito_v6';
+// v8: o termo passou a trazer o prazo de guarda e o controlador (RNF19, RNF20); quem aceitou o termo antigo vê o novo.
+const TERMO_KEY = 'saneamapa_termo_aceito_v8';
+// RNF19: controlador, encarregado e prazo de guarda vêm da configuração da instalação.
+let privacidade = null;
+async function carregarPrivacidade() {
+  try {
+    const r = await fetch('/api/publico/privacidade');
+    if (r.ok) privacidade = await r.json();
+  } catch { /* sem internet: o termo mostra o texto sem os contatos */ }
+}
 // RF001 (nota 5, Obs3): o aparelho guarda só o nome e o telefone do último relato, para preencher o próximo.
 const CONTATO_KEY = 'saneamapa_contato_morador';
 function lerContatoSalvo() {
@@ -709,7 +718,12 @@ function render() {
     body += `
       <p class="t-corpo" style="margin:0;">O SaneaMapa é gratuito e ajuda a mapear problemas de água e esgoto na cidade para orientar vistorias da prefeitura.</p>
       <div class="chamada" data-tom="neutro"><span class="rotulo">Privacidade e proteção de dados</span>
-        <span class="t-pequeno">Seu nome, telefone e localização exata ficam restritos à equipe técnica. Fotos e vídeos passam por desfoque de rostos e placas antes da análise.</span>
+        <span class="t-pequeno">Pedimos seu nome e telefone para o fiscal falar com você na vistoria e para controlar denúncias repetidas. Só a equipe da prefeitura vê esses dados e a localização exata, e cada acesso fica registrado. Fotos e vídeos passam por desfoque de rostos e placas antes da análise.</span>
+        <span class="t-pequeno">Nome e telefone são apagados ${privacidade ? esc(privacidade.prazoGuardaDias) : 180} dias depois da vistoria do ponto. O relato continua no sistema, sem identificar você.</span>
+        <span class="t-pequeno">Responsável pelos dados (controlador): ${privacidade ? `${esc(privacidade.controladorNome)}, ${esc(privacidade.controladorContato)}` : 'a prefeitura que opera o SaneaMapa'}. ${privacidade ? `Encarregado de dados: ${esc(privacidade.encarregadoNome)}, ${esc(privacidade.encarregadoContato)}. ` : ''}Fale com ele para ver, corrigir ou apagar seus dados.</span>
+      </div>
+      <div class="chamada" data-tom="atencao"><span class="rotulo">Risco de exposição</span>
+        <span class="t-pequeno">Sua denúncia não aparece com seu nome no mapa, mas quem causou o problema pode suspeitar de quem reclamou.</span>
       </div>
       <div class="chamada" data-tom="atencao"><span class="rotulo">Orientações ao registrar</span>
         <span class="t-pequeno">Dê preferência a mostrar apenas o problema na rua. Evite filmar pessoas ou citar nomes de vizinhos no áudio.</span>
@@ -721,6 +735,7 @@ function render() {
       <div class="grade-tipos" role="group" aria-label="Tipo de ocorrência">
         ${TIPOS.map(t => `<button type="button" class="tipo-btn" aria-pressed="${state.tipoOcorrencia === t.id}" onclick="state.tipoOcorrencia='${t.id}'; render();">${SaneaMapaTipos.icone(t.id, 28, t.cor)}<span>${esc(t.nome)}</span></button>`).join('')}
       </div>
+      <p class="t-pequeno" style="margin:0; color:var(--soft);">Não achou seu problema? O SaneaMapa trata só de água e esgoto. Para poço contaminado, vazamento ou lixo, procure a prefeitura.</p>
       <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:8px;">
         <span class="t-rotulo">Anexar fotos, vídeo ou áudio (mínimo 1)</span>
         <input id="inp-foto-cam" class="input-oculto" tabindex="-1" aria-hidden="true" type="file" accept="image/*" capture="environment" onchange="processarArquivosSelecionados(this.files, 'CAMERA'); this.value='';">
@@ -808,6 +823,8 @@ window.addEventListener('online', () => { render(); tentarSincronizarPendentes()
 window.addEventListener('offline', render);
 
 (async () => {
+  render();
+  await carregarPrivacidade();
   render();
   await migrarPendentesLegados();
   await atualizarContagemPendentes();

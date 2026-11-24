@@ -4,6 +4,7 @@ import br.edu.cesmac.saneamapa.dto.PainelDtos.PontoResumoDto;
 import br.edu.cesmac.saneamapa.dto.RelatoDtos.CriarRelatoRequest;
 import br.edu.cesmac.saneamapa.dto.RelatoDtos.RelatoCriadoResponse;
 import br.edu.cesmac.saneamapa.service.PontoFilaService;
+import br.edu.cesmac.saneamapa.service.PrazoGuardaService;
 import br.edu.cesmac.saneamapa.service.RelatoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,10 +18,21 @@ public class MoradorController {
 
     private final RelatoService relatoService;
     private final PontoFilaService pontoFilaService;
+    private final PrazoGuardaService prazoGuardaService;
 
-    public MoradorController(RelatoService relatoService, PontoFilaService pontoFilaService) {
+    public MoradorController(RelatoService relatoService, PontoFilaService pontoFilaService,
+                             PrazoGuardaService prazoGuardaService) {
         this.relatoService = relatoService;
         this.pontoFilaService = pontoFilaService;
+        this.prazoGuardaService = prazoGuardaService;
+    }
+
+    /**
+     * RNF19: dados do termo de uso que dependem da instalação (controlador, encarregado e prazo de guarda).
+     */
+    @GetMapping("/api/publico/privacidade")
+    public Map<String, Object> obterPrivacidade() {
+        return prazoGuardaService.dadosDoTermo();
     }
 
     @PostMapping("/api/morador/relatos")

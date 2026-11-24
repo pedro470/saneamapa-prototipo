@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Painel: entrada</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/estilodopedro/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&amp;family=Public+Sans:wght@400;600;700&amp;family=Source+Code+Pro:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div style="min-height: 900px; box-sizing: border-box; display: grid; place-items: center; padding: 48px 16px; background: var(--trilho); color: var(--ink); font-family: var(--font-body);">
+  <main style="width: 100%; max-width: 420px; box-sizing: border-box; background: var(--surface); border-radius: var(--radius-caixa); padding: 40px 32px; display: grid; gap: 20px;">
+    <div style="display: grid; gap: 4px;">
+      <h1 class="t-titulo-pagina" style="margin: 0;">SaneaMapa</h1>
+      <p class="lede" style="margin: 0;">Painel da Prefeitura</p>
+    </div>
+    <sc-if value="{{erro}}" hint-placeholder-val="{{ false }}">
+      <div class="chamada" data-tom="critico" role="alert">
+        <span class="rotulo">E-mail ou senha não conferem</span>
+        <span class="t-pequeno">Restam 2 tentativas antes de a conta ser bloqueada por 15 minutos.</span>
+      </div>
+    </sc-if>
+    <form style="display: grid; gap: 14px;">
+      <label style="display: grid; gap: 6px;"><span class="t-rotulo">E-mail</span><input class="campo" type="email" autocomplete="username" defaultValue="ana.lima@exemplo.gov.br"></label>
+      <label style="display: grid; gap: 6px;"><span class="t-rotulo">Senha</span><input class="campo" type="password" autocomplete="current-password" defaultValue="********"></label>
+      <a class="botao primario" href="P2-Mapa.dc.html" style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-height: 48px;">Entrar</a>
+      <button class="botao quieto" type="button" style="justify-self: start; padding: 0;">Esqueci minha senha</button>
+    </form>
+    <p class="t-pequeno" style="margin: 0; color: var(--soft);">Acesso individual da equipe interna. A senha tem ao menos 8 caracteres, com letras e números, e a sessão termina depois de 30 minutos sem uso. Entrada com e-mail e senha do próprio sistema.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"erro":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return { erro: !!this.props.erro }; }
+}
+</script>
+</body>
+</html>
