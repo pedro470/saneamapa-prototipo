@@ -33,6 +33,52 @@ public class GrafoConhecimento {
 
     /** Adiciona o indivíduo, ou devolve o que já existe com a mesma classe e chave. */
     public No adicionarNo(ClasseOntologia classe, Object chave, String rotulo, Map<String, Object> atributos) {
+        validarInstanciacao(classe);
+        String id = idDe(classe, chave);
+        return nos.computeIfAbsent(id, k -> new No(k, classe, rotulo,
+                atributos == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(atributos))));
+    }
+
+    /** Atualiza rótulo e atributos de um nó existente (preservando arestas), ou cria um novo. */
+    public No atualizarOuAdicionarNo(ClasseOntologia classe, Object chave, String rotulo, Map<String, Object> atributos) {
+        validarInstanciacao(classe);
+        String id = idDe(classe, chave);
+        No novo = new No(id, classe, rotulo,
+                atributos == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(atributos)));
+        nos.put(id, novo);
+        return novo;
+    }
+
+    /** Remove o nó e todas as arestas ligadas a ele. */
+    public boolean removerNo(String id) {
+        boolean existia = nos.remove(id) != null;
+        if (existia) {
+            arestas.removeIf(a -> a.origem().equals(id) || a.destino().equals(id));
+        }
+        return existia;
+    }
+
+    public void removerArestasDeOrigem(String origemId, RelacaoOntologia relacao) {
+        arestas.removeIf(a -> a.origem().equals(origemId) && a.relacao() == relacao);
+    }
+
+    public void removerArestasDeDestino(String destinoId, RelacaoOntologia relacao) {
+        arestas.removeIf(a -> a.destino().equals(destinoId) && a.relacao() == relacao);
+    }
+
+    public void removerArestasComNo(String noId, RelacaoOntologia relacao) {
+        arestas.removeIf(a -> (a.origem().equals(noId) || a.destino().equals(noId)) && a.relacao() == relacao);
+    }
+
+    public List<No> nosDaClasse(ClasseOntologia classe) {
+        return nos.values().stream().filter(n -> n.classe() == classe).toList();
+    }
+
+    public boolean temArestaComNo(String noId) {
+        return arestas.stream().anyMatch(a -> a.origem().equals(noId) || a.destino().equals(noId));
+    }
+
+    private static void validarInstanciacao(ClasseOntologia classe) {
         if (!classe.podeSerInstanciada()) {
             throw new RegraNegocioException(
                     "A classe " + classe.getRotulo() + " não pode ter indivíduos no grafo.",
@@ -40,9 +86,6 @@ public class GrafoConhecimento {
                             ? "Dados pessoais só são consultados pelo acesso auditado do painel."
                             : "Use uma das subclasses concretas dessa classe.");
         }
-        String id = idDe(classe, chave);
-        return nos.computeIfAbsent(id, k -> new No(k, classe, rotulo,
-                atributos == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(atributos))));
     }
 
     /** Liga dois nós existentes, validando domínio e contradomínio da relação. Arestas repetidas são ignoradas. */

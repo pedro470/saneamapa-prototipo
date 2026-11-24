@@ -15,6 +15,7 @@ import br.edu.cesmac.saneamapa.repository.SetorCensitarioRepository;
 import br.edu.cesmac.saneamapa.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,16 +34,19 @@ public class CensoService {
     private final SetorCensitarioRepository setorRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public CensoService(ImportacaoCensoRepository importacaoRepository,
                         SetorCensitarioRepository setorRepository,
                         UsuarioRepository usuarioRepository,
-                        AuditoriaService auditoriaService) {
+                        AuditoriaService auditoriaService,
+                        ApplicationEventPublisher eventPublisher) {
         this.importacaoRepository = importacaoRepository;
         this.setorRepository = setorRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -118,6 +122,8 @@ public class CensoService {
                 TipoObjetoAuditoria.CENSO, nova.getId(),
                 "Importação do Censo " + nome + " com " + setores.size() + " setores.");
 
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.CensoAlterado());
+
         return new ImportarCensoResponse(true, "Importação concluída com " + setores.size() + " setores.", List.of(), toDto(nova));
     }
 
@@ -137,6 +143,8 @@ public class CensoService {
         auditoriaService.registrar(usuarioId, TipoEventoAuditoria.ROLLBACK_CENSO,
                 TipoObjetoAuditoria.CENSO, alvo.getId(),
                 "Retorno da camada do Censo para a importação " + alvo.getNomeArquivo());
+
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.CensoAlterado());
 
         return toDto(alvo);
     }

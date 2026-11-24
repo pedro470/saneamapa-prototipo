@@ -13,6 +13,7 @@ import br.edu.cesmac.saneamapa.dto.AdminDtos.CriarUsuarioRequest;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.UsuarioDto;
 import br.edu.cesmac.saneamapa.repository.AlteracaoUsuarioRepository;
 import br.edu.cesmac.saneamapa.repository.UsuarioRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,15 +28,18 @@ public class UsuarioService {
     private final AlteracaoUsuarioRepository alteracaoRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           AlteracaoUsuarioRepository alteracaoRepository,
                           PasswordEncoder passwordEncoder,
-                          AuditoriaService auditoriaService) {
+                          AuditoriaService auditoriaService,
+                          ApplicationEventPublisher eventPublisher) {
         this.usuarioRepository = usuarioRepository;
         this.alteracaoRepository = alteracaoRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -109,6 +113,7 @@ public class UsuarioService {
 
         auditoriaService.registrar(autorId, TipoEventoAuditoria.ALTERACAO_USUARIO,
                 TipoObjetoAuditoria.USUARIO, alvo.getId(), "Alteração cadastral de " + alvo.getNomeCompleto());
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.UsuarioAtualizado(alvo.getId()));
         return toDto(alvo);
     }
 
@@ -125,6 +130,7 @@ public class UsuarioService {
         auditoriaService.registrar(autorId, TipoEventoAuditoria.ALTERACAO_USUARIO,
                 TipoObjetoAuditoria.USUARIO, alvo.getId(),
                 alvo.getNomeCompleto() + (novoStatus ? " reativado." : " desativado."));
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.UsuarioAtualizado(alvo.getId()));
         return toDto(alvo);
     }
 

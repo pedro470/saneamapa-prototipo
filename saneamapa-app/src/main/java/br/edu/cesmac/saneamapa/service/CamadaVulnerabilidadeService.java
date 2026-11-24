@@ -9,6 +9,7 @@ import br.edu.cesmac.saneamapa.dto.AdminDtos.CamadaDto;
 import br.edu.cesmac.saneamapa.dto.AdminDtos.CriarCamadaRequest;
 import br.edu.cesmac.saneamapa.repository.CamadaVulnerabilidadeRepository;
 import br.edu.cesmac.saneamapa.repository.PontoRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +22,18 @@ public class CamadaVulnerabilidadeService {
     private final PontoRepository pontoRepository;
     private final ServicoClassificacaoUrgencia servicoUrgencia;
     private final PontoFilaService pontoFilaService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CamadaVulnerabilidadeService(CamadaVulnerabilidadeRepository camadaRepository,
                                         PontoRepository pontoRepository,
                                         ServicoClassificacaoUrgencia servicoUrgencia,
-                                        PontoFilaService pontoFilaService) {
+                                        PontoFilaService pontoFilaService,
+                                        ApplicationEventPublisher eventPublisher) {
         this.camadaRepository = camadaRepository;
         this.pontoRepository = pontoRepository;
         this.servicoUrgencia = servicoUrgencia;
         this.pontoFilaService = pontoFilaService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +61,7 @@ public class CamadaVulnerabilidadeService {
         );
         camada = camadaRepository.save(camada);
         recalcularUrgenciaDeTodosOsPontos();
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.CamadasAlteradas(camada.getId()));
         return toDto(camada, pontoRepository.findAll());
     }
 
@@ -67,6 +72,7 @@ public class CamadaVulnerabilidadeService {
         camada.alterarSituacao(!camada.isAtiva());
         camadaRepository.save(camada);
         recalcularUrgenciaDeTodosOsPontos();
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.CamadasAlteradas(camada.getId()));
         return toDto(camada, pontoRepository.findAll());
     }
 

@@ -117,6 +117,38 @@ class GrafoConhecimentoTest {
         assertTrue(g.vizinhanca("ponto:999", 2).nos().isEmpty());
     }
 
+    @Test
+    void atualizacaoIncrementalPreservaArestasELimpaRemocoes() {
+        GrafoConhecimento g = new GrafoConhecimento();
+        String p1 = id(ClasseOntologia.PONTO, 1);
+        String p2 = id(ClasseOntologia.PONTO, 2);
+        String f1 = id(ClasseOntologia.FISCAL, 10);
+        String b1 = id(ClasseOntologia.BAIRRO, "vergel");
+
+        g.adicionarNo(ClasseOntologia.PONTO, 1, "P-0001", Map.of("Status", "Aguardando vistoria"));
+        g.adicionarNo(ClasseOntologia.PONTO, 2, "P-0002", Map.of("Status", "Aguardando vistoria"));
+        g.adicionarNo(ClasseOntologia.FISCAL, 10, "Carlos", Map.of("Situação", "Ativo"));
+        g.adicionarNo(ClasseOntologia.BAIRRO, "vergel", "Vergel", null);
+        g.relacionar(p1, RelacaoOntologia.ATRIBUIDO_A, f1);
+        g.relacionar(p1, RelacaoOntologia.LOCALIZADO_EM, b1);
+        g.relacionar(p1, RelacaoOntologia.VIZINHO_DE, p2);
+
+        g.atualizarOuAdicionarNo(ClasseOntologia.PONTO, 1, "P-0001", Map.of("Status", "Em vistoria"));
+        assertEquals(3, g.arestas().size());
+        assertEquals("Em vistoria", g.nos().stream().filter(n -> n.id().equals(p1)).findFirst().orElseThrow().atributos().get("Status"));
+
+        g.removerArestasDeOrigem(p1, RelacaoOntologia.ATRIBUIDO_A);
+        assertFalse(g.temArestaComNo(f1));
+        assertTrue(g.removerNo(f1));
+        assertFalse(g.removerNo(f1));
+
+        g.removerArestasDeDestino(b1, RelacaoOntologia.LOCALIZADO_EM);
+        assertFalse(g.temArestaComNo(b1));
+
+        g.removerArestasComNo(p2, RelacaoOntologia.VIZINHO_DE);
+        assertTrue(g.arestas().isEmpty());
+    }
+
     private static Set<String> ids(GrafoConhecimento g) {
         return g.nos().stream().map(GrafoConhecimento.No::id).collect(Collectors.toSet());
     }

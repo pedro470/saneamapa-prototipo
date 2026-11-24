@@ -16,6 +16,7 @@ import br.edu.cesmac.saneamapa.domain.model.Usuario;
 import br.edu.cesmac.saneamapa.domain.service.CalculadoraPontuacaoFila;
 import br.edu.cesmac.saneamapa.dto.PainelDtos.*;
 import br.edu.cesmac.saneamapa.repository.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,7 @@ public class PontoFilaService {
     private final LogAuditoriaRepository logRepository;
     private final CalculadoraPontuacaoFila calculadoraPontuacao;
     private final AuditoriaService auditoriaService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PontoFilaService(PontoRepository pontoRepository,
                             ItemFilaVistoriaRepository filaRepository,
@@ -47,7 +49,8 @@ public class PontoFilaService {
                             SetorCensitarioRepository setorRepository,
                             LogAuditoriaRepository logRepository,
                             CalculadoraPontuacaoFila calculadoraPontuacao,
-                            AuditoriaService auditoriaService) {
+                            AuditoriaService auditoriaService,
+                            ApplicationEventPublisher eventPublisher) {
         this.pontoRepository = pontoRepository;
         this.filaRepository = filaRepository;
         this.relatoRepository = relatoRepository;
@@ -57,6 +60,7 @@ public class PontoFilaService {
         this.logRepository = logRepository;
         this.calculadoraPontuacao = calculadoraPontuacao;
         this.auditoriaService = auditoriaService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -210,6 +214,8 @@ public class PontoFilaService {
                     TipoObjetoAuditoria.PONTO, ponto.getId(),
                     "Atribuição retirada do ponto " + ponto.getCodigoExibicao() + " (retornou a aguardando vistoria).");
         }
+
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.PontoAtribuicaoAlterada(ponto.getId()));
 
         return toResumoDto(ponto, item, null);
     }

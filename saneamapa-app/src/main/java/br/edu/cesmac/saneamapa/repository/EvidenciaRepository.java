@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface EvidenciaRepository extends JpaRepository<Evidencia, Long> {
     List<Evidencia> findByRelatoPontoIdOrderByIdAsc(Long pontoId);
+    List<Evidencia> findByRelatoIdOrderByIdAsc(Long relatoId);
 }

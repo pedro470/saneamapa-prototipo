@@ -156,14 +156,14 @@ Os scripts em `saneamapa-app/database/` executam na inicialização do container
 
 ## 7. Ontologia e Grafo de Conhecimento
 
-O domínio também é descrito por uma **ontologia** em código (pacote `domain/ontologia`) e exposto como um **grafo de conhecimento** só de leitura, montado a partir do banco. Nada é gravado: o grafo é uma visão.
+O domínio também é descrito por uma **ontologia** em código (pacote `domain/ontologia`) e exposto como um **grafo de conhecimento** em memória, hidratado uma única vez na inicialização (`ApplicationReadyEvent`) e atualizado incrementalmente após o commit de cada mudança no domínio. Nada é gravado em tabela separada: o grafo é uma visão de leitura.
 
 | Peça | Papel | Arquivo |
 |---|---|---|
 | **Classes** | Hierarquia "é um" com 20 conceitos. `Entidade` é a raiz; `Registro`, `Agente`, `Território`, `Conceito` e `Evidência` são abstratas e só agrupam. | [ClasseOntologia.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/ontologia/ClasseOntologia.java) |
 | **Relações** | 13 relações, cada uma com domínio e contradomínio. Dez são declaradas (vêm de chave estrangeira ou atributo) e três são inferidas das geometrias. | [RelacaoOntologia.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/ontologia/RelacaoOntologia.java) |
 | **Grafo** | Nós e arestas tipados pela ontologia. Recusa aresta fora do domínio/contradomínio e nó de classe abstrata ou protegida. Calcula a vizinhança de um nó por número de saltos. | [GrafoConhecimento.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/domain/ontologia/GrafoConhecimento.java) |
-| **Montagem** | Lê pontos, relatos, evidências, vistorias, camadas ativas e setores da importação em uso, e faz as inferências espaciais. | [GrafoConhecimentoService.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/service/GrafoConhecimentoService.java) |
+| **Montagem** | Faz a carga inicial na subida (`ApplicationReadyEvent`), atende leituras direto da memória (`ReentrantReadWriteLock`) e aplica atualizações incrementais pós-commit (`EventoMutacaoGrafo`). | [GrafoConhecimentoService.java](../saneamapa-app/src/main/java/br/edu/cesmac/saneamapa/service/GrafoConhecimentoService.java) |
 | **Tela** | Aba **Grafo** do painel: desenho em SVG sem biblioteca externa, filtro por classe, detalhe do nó em texto e as tabelas da ontologia. | [grafo-saneamapa.js](../saneamapa-app/src/main/resources/static/js/grafo-saneamapa.js) |
 
 ```mermaid

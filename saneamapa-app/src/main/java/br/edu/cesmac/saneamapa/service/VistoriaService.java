@@ -25,6 +25,7 @@ import br.edu.cesmac.saneamapa.repository.ItemFilaVistoriaRepository;
 import br.edu.cesmac.saneamapa.repository.PontoRepository;
 import br.edu.cesmac.saneamapa.repository.UsuarioRepository;
 import br.edu.cesmac.saneamapa.repository.VistoriaRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class VistoriaService {
     private final EvidenciaRepository evidenciaRepository;
     private final PontoFilaService pontoFilaService;
     private final AuditoriaService auditoriaService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public VistoriaService(ItemFilaVistoriaRepository filaRepository,
                            PontoRepository pontoRepository,
@@ -48,7 +50,8 @@ public class VistoriaService {
                            VistoriaRepository vistoriaRepository,
                            EvidenciaRepository evidenciaRepository,
                            PontoFilaService pontoFilaService,
-                           AuditoriaService auditoriaService) {
+                           AuditoriaService auditoriaService,
+                           ApplicationEventPublisher eventPublisher) {
         this.filaRepository = filaRepository;
         this.pontoRepository = pontoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -56,6 +59,7 @@ public class VistoriaService {
         this.evidenciaRepository = evidenciaRepository;
         this.pontoFilaService = pontoFilaService;
         this.auditoriaService = auditoriaService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -124,6 +128,8 @@ public class VistoriaService {
                 "Vistoria registrada no ponto " + ponto.getCodigoExibicao() + ": " + req.resultado().getRotulo()
                         + (req.motivoNaoConfirmacao() != null ? " (" + req.motivoNaoConfirmacao().getRotulo() + ")" : ""));
 
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.VistoriaRegistrada(vistoria.getId(), ponto.getId()));
+
         return new VistoriaRegistradaResponse(
                 vistoria.getId(),
                 ponto.getCodigoExibicao(),
@@ -148,6 +154,7 @@ public class VistoriaService {
         auditoriaService.registrar(fiscalId, TipoEventoAuditoria.EDICAO_FOTO,
                 TipoObjetoAuditoria.EVIDENCIA, foto.getId(),
                 "Novo desfoque aplicado na evidência #" + foto.getId() + " (" + req.regiao().trim() + "). Versão anterior descartada.");
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.EvidenciaAtualizada(foto.getId()));
         return "Área de desfoque registrada. No protótipo o desfoque é simulado: a foto exibida continua a original.";
     }
 
@@ -166,6 +173,7 @@ public class VistoriaService {
         auditoriaService.registrar(fiscalId, TipoEventoAuditoria.CORRECAO_TRANSCRICAO,
                 TipoObjetoAuditoria.EVIDENCIA, audio.getId(),
                 "Transcrição de áudio corrigida pelo fiscal.");
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.EvidenciaAtualizada(audio.getId()));
         return "Transcrição atualizada com sucesso.";
     }
 

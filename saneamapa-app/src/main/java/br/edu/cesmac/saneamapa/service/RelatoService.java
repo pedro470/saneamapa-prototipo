@@ -22,6 +22,7 @@ import br.edu.cesmac.saneamapa.repository.CamadaVulnerabilidadeRepository;
 import br.edu.cesmac.saneamapa.repository.ItemFilaVistoriaRepository;
 import br.edu.cesmac.saneamapa.repository.PontoRepository;
 import br.edu.cesmac.saneamapa.repository.RelatoRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +49,7 @@ public class RelatoService {
     private final ServicoTranscricaoAudio servicoTranscricao;
     private final CalculadoraPontuacaoFila calculadoraPontuacao;
     private final AuditoriaService auditoriaService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public RelatoService(RelatoRepository relatoRepository,
                          PontoRepository pontoRepository,
@@ -56,7 +58,8 @@ public class RelatoService {
                          ServicoClassificacaoUrgencia servicoUrgencia,
                          ServicoTranscricaoAudio servicoTranscricao,
                          CalculadoraPontuacaoFila calculadoraPontuacao,
-                         AuditoriaService auditoriaService) {
+                         AuditoriaService auditoriaService,
+                         ApplicationEventPublisher eventPublisher) {
         this.relatoRepository = relatoRepository;
         this.pontoRepository = pontoRepository;
         this.filaRepository = filaRepository;
@@ -65,6 +68,7 @@ public class RelatoService {
         this.servicoTranscricao = servicoTranscricao;
         this.calculadoraPontuacao = calculadoraPontuacao;
         this.auditoriaService = auditoriaService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -162,6 +166,8 @@ public class RelatoService {
                     TipoObjetoAuditoria.PONTO, ponto.getId(),
                     "Reincidência registrada no ponto " + ponto.getCodigoExibicao() + " via protocolo " + protocolo);
         }
+
+        eventPublisher.publishEvent(new EventoMutacaoGrafo.RelatoRegistrado(relato.getId(), ponto.getId(), !agrupado));
 
         return new RelatoCriadoResponse(
                 relato.getProtocolo(),
