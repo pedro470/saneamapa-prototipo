@@ -9,6 +9,7 @@ cabeçalho, rodapé e estilos; o corpo do documento é refeito a cada geração.
 """
 import html
 import re
+import struct
 import subprocess
 import sys
 import zipfile
@@ -22,12 +23,64 @@ LARGURA_TABELA = 9322  # dxa, a mesma das tabelas do modelo
 FONTE_TEMA = '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:cs="Arial"/>'
 NUM_MARCADOR = 900  # lista com marcadores criada em numbering.xml pelo gerador
 CINZA = '<w:shd w:val="clear" w:color="auto" w:fill="D9D9D9"/>'
+EMU_MAX_LARGURA = 5_600_000  # ~15,5 cm (largura útil na página A4)
+EMU_MAX_ALTURA = 3_600_000   # 10,0 cm (evita telas verticais gigantes)
 
 
 # ---------- texto e runs ----------
 
 def esc(texto):
     return html.escape(texto, quote=False)
+
+
+def esc_attr(texto):
+    return html.escape(texto, quote=True)
+
+
+def dimensoes_png(dados):
+    if dados[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("Apenas imagens PNG são suportadas no momento.")
+    return struct.unpack(">II", dados[16:24])
+
+
+def registrar_imagem(caminho_rel, alt, imagens, base=PASTA):
+    arquivo = (base / caminho_rel).resolve()
+    if not arquivo.is_file():
+        raise FileNotFoundError(f"Imagem não encontrada: {arquivo}")
+    dados = arquivo.read_bytes()
+    largura_px, altura_px = dimensoes_png(dados)
+    escala = min(EMU_MAX_LARGURA / (largura_px * 9525), EMU_MAX_ALTURA / (altura_px * 9525))
+    cx = int(round(largura_px * 9525 * escala))
+    cy = int(round(altura_px * 9525 * escala))
+    indice = len(imagens) + 1
+    ext = arquivo.suffix.lstrip(".").lower()
+    alvo = f"media/img{indice}.{ext}"
+    imagens.append((indice, alvo, dados, ext))
+    return indice, cx, cy, arquivo.name, alt
+
+
+def paragrafo_imagem(rid, doc_id, nome, alt, cx, cy):
+    alt_esc = esc_attr(alt or nome)
+    nome_esc = esc_attr(nome)
+    return (
+        '<w:p><w:pPr><w:spacing w:before="40" w:after="140"/><w:jc w:val="center"/></w:pPr>'
+        '<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>'
+        '<wp:inline distT="0" distB="0" distL="0" distR="0">'
+        f'<wp:extent cx="{cx}" cy="{cy}"/>'
+        '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+        f'<wp:docPr id="{doc_id}" name="{nome_esc}" descr="{alt_esc}"/>'
+        '<wp:cNvGraphicFramePr>'
+        '<a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>'
+        '</wp:cNvGraphicFramePr>'
+        '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        f'<pic:nvPicPr><pic:cNvPr id="{doc_id}" name="{nome_esc}"/><pic:cNvPicPr/></pic:nvPicPr>'
+        f'<pic:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+        f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+        '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+    )
 
 
 def runs(texto, tamanho=None, negrito=False):
@@ -186,13 +239,22 @@ def celulas(linha):
 
 # ---------- markdown -> corpo ----------
 
-def corpo_do_markdown(md):
+def corpo_do_markdown(md, imagens=None, primeiro_rid=19):
+    if imagens is None:
+        imagens = []
     md = re.sub(r"<!--(?!\s*cols:).*?-->", "", md, flags=re.S)
     linhas = md.splitlines()
     xml, i, percentuais = [], 0, None
     while i < len(linhas):
         linha = linhas[i].rstrip()
         if not linha.strip():
+            i += 1
+            continue
+        img = re.match(r"\s*!\[([^\]]*)\]\(([^)]+)\)\s*$", linha)
+        if img:
+            indice, cx, cy, nome, alt = registrar_imagem(img.group(2).strip(), img.group(1).strip(), imagens)
+            rid = f"rId{primeiro_rid + indice - 1}"
+            xml.append(paragrafo_imagem(rid, 1000 + indice, nome, alt, cx, cy))
             i += 1
             continue
         cols = re.match(r"\s*<!--\s*cols:\s*([\d,\s]+)-->", linha)
@@ -247,7 +309,7 @@ def corpo_do_markdown(md):
         # parágrafo: junta linhas seguidas até uma linha vazia ou outro bloco
         texto = [linha.strip()]
         i += 1
-        while i < len(linhas) and linhas[i].strip() and not re.match(r"\s*(#|\||- |<!--|\[\[)", linhas[i]):
+        while i < len(linhas) and linhas[i].strip() and not re.match(r"\s*(#|\||- |<!--|\[\[|:::|!\[)", linhas[i]):
             texto.append(linhas[i].strip())
             i += 1
         # parágrafo todo em negrito (título do requisito, rótulo "Campos:") fica na página do que vem depois
@@ -303,16 +365,48 @@ def montar(md):
     inicio_texto = next(i for i, b in enumerate(blocos) if 'w:val="Ttulo1"' in b)
     fim_capa = next(b for b in reversed(blocos[:inicio_texto]) if "<w:sectPr" in b)
 
+    rels = arquivos["word/_rels/document.xml.rels"].decode("utf8")
+    rids = [int(x) for x in re.findall(r'Id="rId(\d+)"', rels)]
+    primeiro_rid = max(rids) + 1 if rids else 1
+    imagens = []
+
     novo = (
         doc[:inicio_corpo]
         + "".join(capa)
         + sumario()
         + fim_capa
-        + corpo_do_markdown(md)
+        + corpo_do_markdown(md, imagens=imagens, primeiro_rid=primeiro_rid)
         + sect_final
         + "</w:document>"
     )
     arquivos["word/document.xml"] = novo.encode("utf8")
+
+    if imagens:
+        novas_rels = []
+        extensoes = set()
+        for indice, alvo, dados, ext in imagens:
+            arquivos[f"word/{alvo}"] = dados
+            rid = f"rId{primeiro_rid + indice - 1}"
+            novas_rels.append(
+                f'<Relationship Id="{rid}" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+                f'Target="{alvo}"/>'
+            )
+            extensoes.add(ext)
+        arquivos["word/_rels/document.xml.rels"] = rels.replace(
+            "</Relationships>", "".join(novas_rels) + "</Relationships>"
+        ).encode("utf8")
+
+        tipos = arquivos["[Content_Types].xml"].decode("utf8")
+        novos_tipos = []
+        for ext in sorted(extensoes):
+            if f'Extension="{ext}"' not in tipos:
+                mime = "image/png" if ext == "png" else f"image/{ext}"
+                novos_tipos.append(f'<Default Extension="{ext}" ContentType="{mime}"/>')
+        if novos_tipos:
+            arquivos["[Content_Types].xml"] = tipos.replace(
+                "</Types>", "".join(novos_tipos) + "</Types>"
+            ).encode("utf8")
 
     # lista com marcadores (o estilo de lista do modelo é numerado)
     numeracao = arquivos["word/numbering.xml"].decode("utf8")

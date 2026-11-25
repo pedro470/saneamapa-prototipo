@@ -12,6 +12,7 @@ Convenções de marcação aceitas pelo gerador:
   ::: RFnnn | Prioridade início de um requisito; cada linha até ":::" vira um parágrafo da
   ...                    célula "Descrição". Requisitos seguidos formam uma única tabela
   :::                    ID | Descrição | Prioridade
+  ![alt](caminho)        imagem centralizada
   [[quebra]]             quebra de página
 -->
 <!-- versao: Versão 8 – novembro de 2026 -->
@@ -164,6 +165,14 @@ Obs3: depois do envio, o aplicativo não guarda o relato nem mantém histórico 
 **Fonte:** Entrevista (evidências, localização, identificação obrigatória e envio sem conexão); Analista (tipos de ocorrência e orientação para problema fora do escopo, durações, descrição, limite de relatos e preenchimento com o último relato); Legislação (LGPD) (aviso da finalidade e ocultação no mapa); Derivado (demais regras).
 :::
 
+**Protótipo:**
+
+![Registro de ocorrência — Passo 1: tipo de ocorrência e mídias](../Imgs-Prototipo/denuncia-usuario.png)
+
+![Registro de ocorrência — Passo 3: dados do morador e descrição](../Imgs-Prototipo/dados-usuario.png)
+
+![Protocolo gerado após o registro da denúncia](../Imgs-Prototipo/protocolo-realizado-usuario.png)
+
 ## Localização
 
 ::: RF002 | Essencial
@@ -189,6 +198,10 @@ Obs2: cada acesso à coordenada exata é registrado em log (RF019).
 
 **Fonte:** Entrevista (geolocalização com precisão exata); Legislação (LGPD) (exibição por trecho de rua e log de acesso); Derivado (demais regras).
 :::
+
+**Protótipo:**
+
+![Localização da ocorrência — Passo 2: endereço e marcador no mapa](../Imgs-Prototipo/localizacao-usuario.png)
 
 ## Tratamento das evidências
 
@@ -271,6 +284,10 @@ Obs2: o fiscal vê somente os pontos atribuídos a ele.
 **Fonte:** Entrevista (validação por fiscal no local); Analista (atribuição a fiscais, visão restrita do fiscal e pesos da pontuação, adotados sem validação do cliente); Derivado (demais regras).
 :::
 
+**Protótipo:**
+
+![Fila de pontos atribuídos ao fiscal](../Imgs-Prototipo/fiscal-pontosatribuidos.png)
+
 ## Classificação de urgência
 
 ::: RF006 | Importante
@@ -298,6 +315,10 @@ Ativa: Boolean; obrigatório
 
 **Fonte:** Entrevista (prioridade para grupos e situações de risco); Analista (categorias e pesos sugeridos, adotados sem validação do cliente); Legislação (LGPD) (camadas sem dados de pessoas e ocultação do nível ao morador); Derivado (demais regras).
 :::
+
+**Protótipo:**
+
+![Camadas de sensibilidade social e classificação de urgência](../Imgs-Prototipo/camada-de-vulnerabilidade.png)
 
 ## Vistoria
 
@@ -330,6 +351,10 @@ Obs2: cada mudança de status fica no histórico do ponto, com usuário, data e 
 **Fonte:** Entrevista (validação da denúncia por fiscal da prefeitura, no local); Analista (vistoria restrita aos pontos atribuídos, evidência obrigatória na confirmação, motivo da não confirmação, foto só pela câmera e posição do fiscal); Derivado (demais regras).
 :::
 
+**Protótipo:**
+
+![Vistoria em campo pelo fiscal](../Imgs-Prototipo/vistoriadolocal.png)
+
 ## Mapa e painel
 
 ::: RF010 | Essencial
@@ -351,6 +376,12 @@ Obs1: quando um relato ou uma vistoria alterar um ponto, o mapa deve refletir a 
 
 **Fonte:** Entrevista (status e quantidade de denúncias por localização numa tela); Derivado (detalhe do ponto e atualização automática).
 :::
+
+**Protótipo:**
+
+![Mapa e fila de vistoria no painel da Prefeitura](../Imgs-Prototipo/mapa-fila-vistoria.png)
+
+![Grafo de conhecimento e ontologia do painel](../Imgs-Prototipo/grafo-de-conhecimento.png)
 
 ## Cadastro de usuários
 
@@ -400,6 +431,10 @@ Obs3: a criação do primeiro usuário é registrada no log de auditoria (RF019)
 **Fonte:** Derivado.
 :::
 
+**Protótipo:**
+
+![Cadastro de usuários da equipe interna](../Imgs-Prototipo/tela-equipe-municipal.png)
+
 ## Indicadores do painel
 
 ::: RF015 | Importante
@@ -417,6 +452,10 @@ Quantidade de pontos por bairro.
 
 **Fonte:** Entrevista (status e quantidade de denúncias por localização num painel); Derivado (filtros).
 :::
+
+**Protótipo:**
+
+![Indicadores do painel gerencial](../Imgs-Prototipo/indicadores.png)
 
 ## Autenticação
 
@@ -459,6 +498,10 @@ Objeto afetado: Integer; (identificador do relato, ponto, evidência ou usuário
 **Fonte:** Legislação (LGPD).
 :::
 
+**Protótipo:**
+
+![Registro permanente de auditoria](../Imgs-Prototipo/auditoria.png)
+
 ## Censo do IBGE
 
 ::: RF020 | Importante
@@ -477,6 +520,10 @@ Obs2: o mapa oferece uma camada com a proporção de domicílios ligados à rede
 
 **Fonte:** Entrevista (integração com o Censo do IBGE); Analista (validação e versão anterior da importação); Derivado (proporção no detalhe do ponto).
 :::
+
+**Protótipo:**
+
+![Importação dos dados do Censo do IBGE](../Imgs-Prototipo/censo-ibge.png)
 
 [[quebra]]
 
@@ -523,6 +570,10 @@ Os valores desta seção são hipóteses do analista, exceto quando a fonte indi
 | RNF20 | Legal – prazo de guarda | O sistema deve eliminar o nome e o telefone do morador 180 dias depois da primeira vistoria do ponto feita após o relato e manter o relato sem identificação. O relato que chega a um ponto já confirmado não gera nova vistoria (RF004), e nele o prazo conta da data do relato. Enquanto o ponto aguarda vistoria, os dados ficam guardados, porque o fiscal pode precisar do contato. | Essencial | Legislação (LGPD); Analista |
 | RNF21 | Legal – direitos do titular | O sistema deve permitir atender, em até 15 dias, ao pedido do morador para acessar, corrigir ou eliminar os seus dados. | Essencial | Legislação (LGPD) |
 | RNF22 | Legal – transferência de dados | A hospedagem e o serviço de transcrição devem manter os dados no Brasil ou em país com proteção equivalente, com contrato que proíba o seu uso para outro fim. | Importante | Legislação (LGPD) |
+
+**Protótipo:**
+
+![Termo de uso e consentimento LGPD (RNF19)](../Imgs-Prototipo/termo-de-uso-usuario.png)
 
 [[quebra]]
 
