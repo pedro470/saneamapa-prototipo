@@ -87,7 +87,7 @@ A máquina de estados é garantida duplamente: no domínio OO ([Ponto.java](sane
 
 ## 7. Escopo Excluído desta Versão
 
-Conforme a Seção 12.3 do [Documento de Requisitos](requisitos/requisitos.md), permanecem fora desta versão: cruzamento contratual com concessionária (RF008), geração de ofício de notificação (RF009), exportação de planilhas/PDF (RF011), moderação manual de relatos (RF012), tela de parametrização dinâmica (RF014), roteirização automática do fiscal (RF016) e consulta pública de protocolo (RF017).
+Conforme a Seção 10.3 do [Documento de Requisitos](requisitos/requisitos.md), permanecem fora desta versão: cruzamento contratual com concessionária (RF008), geração de ofício de notificação (RF009), exportação de planilhas/PDF (RF011), moderação manual de relatos (RF012), tela de parametrização dinâmica (RF014), roteirização automática do fiscal (RF016) e consulta pública de protocolo (RF017).
 
 ---
 

@@ -30,7 +30,7 @@ Não há gravação nem ata. Os dois registros abaixo foram feitos de memória p
 
 ## Respostas do cliente às dúvidas
 
-Áudio enviado ao cliente com quatro dúvidas (roteiro-audio.md), cada uma com a solução que o grupo pretendia adotar. Registrado como "de acordo" nas quatro; conferir com a resposta real e corrigir aqui e na seção 11.4 do requisitos.md se ele discordar de alguma.
+Áudio enviado ao cliente com quatro dúvidas (roteiro-audio.md), cada uma com a solução que o grupo pretendia adotar. Registrado como "de acordo" nas quatro; conferir com a resposta real e corrigir aqui e na seção 9.4 do requisitos.md se ele discordar de alguma.
 
 1. Quem valida a denúncia: um fiscal da prefeitura, indo ao local (TBD-25).
 2. Perfis da prefeitura: um perfil só, que vê tudo, inclusive nome e telefone do morador (TBD-01, 03, 04, 07, 08, 09).
